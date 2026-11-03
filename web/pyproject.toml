@@ -10,7 +10,11 @@ dependencies = [
     "django-allauth[socialaccount]>=65.20.1",
     "gunicorn>=26.2.0",
     "mangum>=0.19.0",
+    "n2s-api",
     "psycopg[binary]>=3.3.6",
     "python-dotenv>=1.2.4",
     "whitenoise>=6.12.0",
 ]
+
+[tool.uv.sources]
+n2s-api = { path = "../packages/n2s_api", editable = true }

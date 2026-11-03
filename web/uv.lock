@@ -376,6 +376,11 @@ wheels = [
 ]
 
 [[package]]
+name = "n2s-api"
+version = "0.1.0"
+source = { editable = "../packages/n2s_api" }
+
+[[package]]
 name = "oauthlib"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -546,6 +551,7 @@ dependencies = [
     { name = "django-allauth", extra = ["socialaccount"] },
     { name = "gunicorn" },
     { name = "mangum" },
+    { name = "n2s-api" },
     { name = "psycopg", extra = ["binary"] },
     { name = "python-dotenv" },
     { name = "whitenoise" },
@@ -558,6 +564,7 @@ requires-dist = [
     { name = "django-allauth", extras = ["socialaccount"], specifier = ">=65.20.1" },
     { name = "gunicorn", specifier = ">=26.2.0" },
     { name = "mangum", specifier = ">=0.19.0" },
+    { name = "n2s-api", editable = "../packages/n2s_api" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "whitenoise", specifier = ">=6.12.0" },

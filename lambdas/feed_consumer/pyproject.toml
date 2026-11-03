@@ -6,5 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "feedparser>=6.0.14",
+    "n2s-api",
     "python-dotenv>=1.2.4",
 ]
+
+[tool.uv.sources]
+n2s-api = { path = "../../packages/n2s_api", editable = true }

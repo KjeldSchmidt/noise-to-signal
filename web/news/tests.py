@@ -1,4 +1,7 @@
+from dataclasses import asdict
+
 from django.test import TestCase, override_settings
+from n2s_api import Feed as FeedDTO, FeedListResponse
 
 from news.models import Feed
 
@@ -31,11 +34,33 @@ class InternalFeedsApiTests(TestCase):
             headers={"Authorization": "Bearer test-internal-token"},
         )
         self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertEqual(len(payload["feeds"]), 1)
-        self.assertEqual(payload["feeds"][0]["id"], self.feed.id)
-        self.assertEqual(payload["feeds"][0]["url"], self.feed.url)
-        self.assertTrue(payload["feeds"][0]["is_active"])
+        typed = FeedListResponse(
+            feeds=[FeedDTO(**item) for item in response.json()["feeds"]]
+        )
+        self.assertEqual(len(typed.feeds), 1)
+        self.assertEqual(typed.feeds[0].id, self.feed.id)
+        self.assertEqual(typed.feeds[0].url, self.feed.url)
+        self.assertTrue(typed.feeds[0].is_active)
+        self.assertEqual(
+            response.json(),
+            asdict(
+                FeedListResponse(
+                    feeds=[
+                        FeedDTO(
+                            id=self.feed.id,
+                            title=self.feed.title,
+                            url=self.feed.url,
+                            site_url=self.feed.site_url,
+                            description=self.feed.description,
+                            category=self.feed.category,
+                            kind=self.feed.kind,
+                            owner_id=self.feed.owner_id,
+                            is_active=self.feed.is_active,
+                        )
+                    ]
+                )
+            ),
+        )
 
     def test_list_feeds_with_x_internal_token_header(self) -> None:
         response = self.client.get(

@@ -8,12 +8,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "feedparser" },
+    { name = "n2s-api" },
     { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "feedparser", specifier = ">=6.0.14" },
+    { name = "n2s-api", editable = "../../packages/n2s_api" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
 ]
 
@@ -37,6 +39,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/da/df/38596299216e5c22d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/85/a0/79a31f898092e145bd66e2b338fb0656979acb2bbbcae8220940fbfcd820/feedparser_sgmllib-2.1.0-py3-none-any.whl", hash = "sha256:2cab2d43b95a954f920f18aebce7a4dbbb3f539780b127e2aa114f579821e01d", size = 11652, upload-time = "2026-08-02T21:27:52.894Z" },
 ]
+
+[[package]]
+name = "n2s-api"
+version = "0.1.0"
+source = { editable = "../../packages/n2s_api" }
 
 [[package]]
 name = "python-dotenv"

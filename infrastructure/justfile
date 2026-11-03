@@ -171,13 +171,14 @@ push-image tag="latest":
     "${aws_cli[@]}" ecr get-login-password --region "$aws_region" \
       | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
 
-    echo "Building ${repo}:{{tag}} from web/..."
+    echo "Building ${repo}:{{tag}} from repo root (web/Dockerfile)..."
     docker build \
       --platform linux/amd64 \
       --provenance=false \
       --sbom=false \
+      -f "$root/web/Dockerfile" \
       -t "${repo}:{{tag}}" \
-      "$root/web"
+      "$root"
     docker push "${repo}:{{tag}}"
 
     if [[ "{{tag}}" != "latest" ]]; then
