@@ -15,7 +15,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "feedparser", specifier = ">=6.0.14" },
-    { name = "n2s-api", editable = "../../packages/n2s_api" },
+    { name = "n2s-api", directory = "../../packages/n2s_api" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
 ]
 
@@ -43,7 +43,7 @@ wheels = [
 [[package]]
 name = "n2s-api"
 version = "0.1.0"
-source = { editable = "../../packages/n2s_api" }
+source = { directory = "../../packages/n2s_api" }
 
 [[package]]
 name = "python-dotenv"

@@ -7,11 +7,13 @@ FROM public.ecr.aws/lambda/python:3.12 AS builder
 ARG LAMBDA_NAME
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1
+
 WORKDIR /build
 COPY packages/n2s_api /build/packages/n2s_api
 COPY lambdas/${LAMBDA_NAME}/pyproject.toml lambdas/${LAMBDA_NAME}/uv.lock /build/lambdas/${LAMBDA_NAME}/
 WORKDIR /build/lambdas/${LAMBDA_NAME}
-# --no-editable so path deps (n2s-api) land in site-packages, not a build-time path
 RUN uv sync --frozen --no-dev --no-install-project --no-editable
 
 COPY lambdas/${LAMBDA_NAME}/ /build/lambdas/${LAMBDA_NAME}/

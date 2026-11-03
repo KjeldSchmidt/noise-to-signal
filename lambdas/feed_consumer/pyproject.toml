@@ -11,4 +11,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-n2s-api = { path = "../../packages/n2s_api", editable = true }
+n2s-api = { path = "../../packages/n2s_api", editable = false }
