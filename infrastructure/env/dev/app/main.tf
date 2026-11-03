@@ -47,6 +47,25 @@ module "web" {
   acm_certificate_arn = data.terraform_remote_state.shared.outputs.acm_certificate_arn
 }
 
+module "workers" {
+  source = "../../../modules/workers"
+
+  project            = "noise-to-signal"
+  environment        = "dev"
+  ecr_repository_url = data.terraform_remote_state.shared.outputs.ecr_repository_url
+  image_tag          = var.image_tag
+  public_hostname    = "beta.signal-to-noise.fyi"
+  app_secret_arn     = module.web.app_secret_arn
+
+  workers = {
+    feed_consumer = {
+      schedule_expression = "rate(15 minutes)"
+      memory_size         = 512
+      timeout             = 60
+    }
+  }
+}
+
 variable "image_tag" {
   type    = string
   default = "latest"
@@ -98,4 +117,16 @@ output "db_name" {
 
 output "image_identifier" {
   value = module.web.image_identifier
+}
+
+output "worker_function_names" {
+  value = module.workers.function_names
+}
+
+output "worker_function_arns" {
+  value = module.workers.function_arns
+}
+
+output "worker_image_identifiers" {
+  value = module.workers.image_identifiers
 }

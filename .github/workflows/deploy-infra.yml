@@ -7,6 +7,8 @@ on:
     paths:
       - "infrastructure/**"
       - "web/**"
+      - "lambdas/**"
+      - "packages/**"
       - ".github/workflows/deploy-infra.yml"
   workflow_dispatch:
 
@@ -50,9 +52,25 @@ jobs:
         working-directory: infrastructure
         run: just lint
 
-      - name: Deploy
+      - name: Apply shared stack
         working-directory: infrastructure
-        run: just deploy "${{ github.sha }}"
+        run: just apply-shared
+
+      - name: Build and push web image
+        working-directory: infrastructure
+        run: just push-image "${{ github.sha }}"
+
+      - name: Build and push worker images
+        working-directory: infrastructure
+        run: just push-lambdas "${{ github.sha }}"
+
+      - name: Apply app stack
+        working-directory: infrastructure
+        run: just apply-app "${{ github.sha }}"
+
+      - name: Migrate and seed
+        working-directory: infrastructure
+        run: just setup-remote
 
       - name: Publish App URL
         id: summary
@@ -66,6 +84,8 @@ jobs:
             echo "**App URL:** $URL"
             echo ""
             echo "Use this host for Google OAuth origin + redirect URI."
+            echo ""
+            echo "**Images:** web \`${{ github.sha }}\` + worker tags \`*-${{ github.sha }}\` (via \`just push-image\` / \`just push-lambdas\`)."
             echo ""
             echo '```'
             cd env/dev/app && terraform output

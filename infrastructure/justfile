@@ -2,7 +2,7 @@
 #
 # Terraform stacks (full applies, no -target lists):
 #   env/shared     — ECR + Route53 zone + ACM (shared across envs)
-#   env/<env>/app  — Lambda + Function URL + CloudFront + DNS alias
+#   env/<env>/app  — web Lambda + workers + Function URL + CloudFront + DNS alias
 
 default:
     @just --list
@@ -17,7 +17,7 @@ lint:
     #!/usr/bin/env bash
     set -euo pipefail
     # Validate stack roots (modules with provider aliases need a root context)
-    for root in env/shared modules/ecr modules/web_app; do
+    for root in env/shared modules/ecr modules/web_app modules/workers; do
       pushd "$root" >/dev/null
       terraform init -reconfigure -backend=false >/dev/null
       terraform validate
@@ -59,10 +59,11 @@ plan-app tag="latest" env="dev":
     terraform plan -var="image_tag={{tag}}"
     popd >/dev/null
 
-# shared → push → app → migrate/seed
+# shared → push web + workers → app → migrate/seed
 deploy tag="latest" env="dev":
     just apply-shared
     DEPLOY_ENV={{env}} just push-image "{{tag}}"
+    DEPLOY_ENV={{env}} just push-lambdas "{{tag}}"
     just apply-app "{{tag}}" "{{env}}"
     just setup-remote "{{env}}"
 
@@ -187,3 +188,64 @@ push-image tag="latest":
     fi
 
     echo "Pushed ${repo}:{{tag}}"
+
+# One worker Lambda image: ECR tags <name>-<tag> (+ <name>-latest)
+push-lambda name tag="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="$(cd "{{justfile_directory()}}/.." && pwd)"
+    tf_dir="{{justfile_directory()}}/env/shared"
+    aws_region="${AWS_REGION:-eu-central-1}"
+    name="{{name}}"
+    tag="{{tag}}"
+    repo="$(cd "$tf_dir" && terraform output -raw ecr_repository_url)"
+
+    if [[ ! -f "$root/lambdas/${name}/pyproject.toml" ]]; then
+      echo "Missing lambdas/${name}/pyproject.toml" >&2
+      exit 1
+    fi
+
+    aws_cli=(aws)
+    if [[ -n "${AWS_PROFILE:-}" ]]; then
+      aws_cli+=( --profile "$AWS_PROFILE" )
+    fi
+    account_id="$("${aws_cli[@]}" sts get-caller-identity --query Account --output text)"
+    echo "Logging in to ECR ${account_id} (${aws_region})..."
+    "${aws_cli[@]}" ecr get-login-password --region "$aws_region" \
+      | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${aws_region}.amazonaws.com"
+
+    image="${repo}:${name}-${tag}"
+    echo "Building ${image} (lambdas/Dockerfile LAMBDA_NAME=${name})..."
+    docker build \
+      --platform linux/amd64 \
+      --provenance=false \
+      --sbom=false \
+      -f "$root/lambdas/Dockerfile" \
+      --build-arg "LAMBDA_NAME=${name}" \
+      -t "${image}" \
+      "$root"
+    docker push "${image}"
+
+    if [[ "${tag}" != "latest" ]]; then
+      docker tag "${image}" "${repo}:${name}-latest"
+      docker push "${repo}:${name}-latest"
+    fi
+
+    echo "Pushed ${image}"
+
+# All deployable workers (lambdas/*/pyproject.toml)
+push-lambdas tag="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="$(cd "{{justfile_directory()}}/.." && pwd)"
+    tag="{{tag}}"
+    shopt -s nullglob
+    found=0
+    for pyproject in "$root"/lambdas/*/pyproject.toml; do
+      name="$(basename "$(dirname "$pyproject")")"
+      found=1
+      just push-lambda "${name}" "${tag}"
+    done
+    if [[ "${found}" -eq 0 ]]; then
+      echo "No lambdas/*/pyproject.toml found — nothing to push"
+    fi

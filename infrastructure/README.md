@@ -1,17 +1,33 @@
 # noise-to-signal infrastructure (AWS)
 
-Django on **Lambda (container image) → Function URL → CloudFront**, image in **shared ECR**, data on shared [tck-labs-base](../../tck-labs-base) RDS.
+Django on **Lambda (container image) → Function URL → CloudFront**, image in **shared ECR**, data on shared [tck-labs-base](../../tck-labs-base) RDS. Worker Lambdas (e.g. `feed_consumer`) share the same ECR repo with prefixed tags and call the web internal API on a schedule.
 
 ## Stacks
 
 | Stack | Path | State key | Contains |
 |-------|------|-----------|----------|
 | **shared** | [`env/shared`](env/shared) | `noise-to-signal.shared.tfstate` | ECR + Route 53 (`signal-to-noise.fyi`) + ACM wildcard |
-| **app (dev)** | [`env/dev/app`](env/dev/app) | `noise-to-signal.dev.app.tfstate` | Lambda, Function URL, CloudFront, `beta.signal-to-noise.fyi` |
+| **app (dev)** | [`env/dev/app`](env/dev/app) | `noise-to-signal.dev.app.tfstate` | Web Lambda, workers, Function URL, CloudFront, `beta.signal-to-noise.fyi` |
 
 Environments share ECR + DNS; distinguish releases with **image tags**. Dev public URL: **https://beta.signal-to-noise.fyi/**
 
-Deploy order: **shared → push image → app**.
+Deploy order: **shared → push web + worker images → app**.
+
+## Image tags (one ECR: `noise-to-signal`)
+
+| Image | Tags |
+|-------|------|
+| Web (Django) | `<tag>`, `latest` |
+| Worker `feed_consumer` | `feed_consumer-<tag>`, `feed_consumer-latest` |
+
+Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) (`ARG LAMBDA_NAME`). Recipes: `just push-lambda <name> <tag>`, `just push-lambdas <tag>` (every `lambdas/*/pyproject.toml`).
+
+## Worker Lambdas
+
+- Module: [`modules/workers`](modules/workers), wired from `env/dev/app`.
+- Today: **`feed_consumer`** on EventBridge `rate(15 minutes)`.
+- Env: `WEB_API_BASE_URL=https://<public-hostname>`, `INTERNAL_API_TOKEN` from the app secret.
+- Skip dirs under `lambdas/` without a `pyproject.toml` (e.g. unfinished `news_parser`).
 
 ## Cost model
 
@@ -27,7 +43,7 @@ CREATE DATABASE noise_to_signal_prod;
 
 ## Internal API token
 
-Terraform generates `INTERNAL_API_TOKEN` into the per-env app secret (`noise-to-signal/<env>/app`) and injects it into the web Lambda. Worker Lambdas should `GetSecretValue` on that same secret (ARN is output as `app_secret_arn`) and call `https://<public-host>/api/internal/...` with `Authorization: Bearer <token>`.
+Terraform generates `INTERNAL_API_TOKEN` into the per-env app secret (`noise-to-signal/<env>/app`) and injects it into the web Lambda and worker Lambdas. Workers call `https://<public-host>/api/internal/...` with `Authorization: Bearer <token>`.
 
 ## Prerequisites
 
@@ -45,10 +61,11 @@ just
 
 | Path | Role |
 |------|------|
-| [`justfile`](justfile) | `apply-shared`, `apply-app`, `deploy`, … |
+| [`justfile`](justfile) | `apply-shared`, `push-image`, `push-lambdas`, `apply-app`, `deploy`, … |
 | [`modules/ecr`](modules/ecr) | Shared ECR |
 | [`modules/dns`](modules/dns) | Route 53 zone + ACM (us-east-1) |
-| [`modules/web_app`](modules/web_app) | Per-env compute + CloudFront alias |
+| [`modules/web_app`](modules/web_app) | Per-env web compute + CloudFront alias |
+| [`modules/workers`](modules/workers) | Per-env worker Lambdas + EventBridge |
 | [`env/shared`](env/shared) | Shared stack root |
 | [`env/dev/app`](env/dev/app) | Dev app → `beta.signal-to-noise.fyi` |
 
