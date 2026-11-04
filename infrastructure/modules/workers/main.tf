@@ -64,8 +64,6 @@ resource "aws_iam_role_policy" "secrets" {
 }
 
 data "aws_iam_policy_document" "sqs_consume" {
-  count = var.feed_items_queue_arn != "" ? 1 : 0
-
   statement {
     actions = [
       "sqs:ReceiveMessage",
@@ -77,15 +75,19 @@ data "aws_iam_policy_document" "sqs_consume" {
   }
 }
 
-resource "aws_iam_role_policy" "sqs_consume" {
-  for_each = {
+locals {
+  sqs_subscribers = {
     for name, cfg in var.workers : name => cfg
-    if try(cfg.subscribe_feed_items, false) && var.feed_items_queue_arn != ""
+    if try(cfg.subscribe_feed_items, false)
   }
+}
+
+resource "aws_iam_role_policy" "sqs_consume" {
+  for_each = local.sqs_subscribers
 
   name   = "sqs-feed-items-consume"
   role   = aws_iam_role.worker[each.key].id
-  policy = data.aws_iam_policy_document.sqs_consume[0].json
+  policy = data.aws_iam_policy_document.sqs_consume.json
 }
 
 resource "aws_lambda_function" "worker" {
@@ -149,10 +151,7 @@ resource "aws_lambda_permission" "events" {
 }
 
 resource "aws_lambda_event_source_mapping" "feed_items" {
-  for_each = {
-    for name, cfg in var.workers : name => cfg
-    if try(cfg.subscribe_feed_items, false) && var.feed_items_queue_arn != ""
-  }
+  for_each = local.sqs_subscribers
 
   event_source_arn                   = var.feed_items_queue_arn
   function_name                      = aws_lambda_function.worker[each.key].arn

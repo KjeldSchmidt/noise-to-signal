@@ -29,7 +29,6 @@ variable "app_secret_arn" {
 
 variable "feed_items_queue_arn" {
   type        = string
-  default     = ""
   description = "SQS queue ARN for news_parser event source mapping (from web_app)"
 }
 
