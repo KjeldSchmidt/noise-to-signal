@@ -63,6 +63,31 @@ resource "aws_iam_role_policy" "secrets" {
   policy = data.aws_iam_policy_document.secrets.json
 }
 
+data "aws_iam_policy_document" "sqs_consume" {
+  count = var.feed_items_queue_arn != "" ? 1 : 0
+
+  statement {
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ChangeMessageVisibility",
+    ]
+    resources = [var.feed_items_queue_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "sqs_consume" {
+  for_each = {
+    for name, cfg in var.workers : name => cfg
+    if try(cfg.subscribe_feed_items, false) && var.feed_items_queue_arn != ""
+  }
+
+  name   = "sqs-feed-items-consume"
+  role   = aws_iam_role.worker[each.key].id
+  policy = data.aws_iam_policy_document.sqs_consume[0].json
+}
+
 resource "aws_lambda_function" "worker" {
   for_each = var.workers
 
@@ -121,4 +146,19 @@ resource "aws_lambda_permission" "events" {
   function_name = aws_lambda_function.worker[each.key].function_name
   principal     = "events.amazonaws.com"
   source_arn    = each.value.arn
+}
+
+resource "aws_lambda_event_source_mapping" "feed_items" {
+  for_each = {
+    for name, cfg in var.workers : name => cfg
+    if try(cfg.subscribe_feed_items, false) && var.feed_items_queue_arn != ""
+  }
+
+  event_source_arn                   = var.feed_items_queue_arn
+  function_name                      = aws_lambda_function.worker[each.key].arn
+  batch_size                         = 10
+  function_response_types            = ["ReportBatchItemFailures"]
+  maximum_batching_window_in_seconds = 5
+
+  depends_on = [aws_iam_role_policy.sqs_consume]
 }

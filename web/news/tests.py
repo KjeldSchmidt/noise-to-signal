@@ -1,9 +1,15 @@
-from dataclasses import asdict
+from datetime import datetime, timezone
+from unittest.mock import patch
 
 from django.test import TestCase, override_settings
-from n2s_api import Feed as FeedDTO, FeedListResponse
+from n2s_api import (
+    Feed as FeedDTO,
+    FeedItem,
+    FeedItemIngestRequest,
+    FeedListResponse,
+)
 
-from news.models import Feed
+from news.models import Article, Feed
 
 
 @override_settings(INTERNAL_API_TOKEN="test-internal-token")
@@ -34,33 +40,27 @@ class InternalFeedsApiTests(TestCase):
             headers={"Authorization": "Bearer test-internal-token"},
         )
         self.assertEqual(response.status_code, 200)
-        typed = FeedListResponse(
-            feeds=[FeedDTO(**item) for item in response.json()["feeds"]]
-        )
+        typed = FeedListResponse.model_validate(response.json())
         self.assertEqual(len(typed.feeds), 1)
         self.assertEqual(typed.feeds[0].id, self.feed.id)
         self.assertEqual(typed.feeds[0].url, self.feed.url)
         self.assertTrue(typed.feeds[0].is_active)
-        self.assertEqual(
-            response.json(),
-            asdict(
-                FeedListResponse(
-                    feeds=[
-                        FeedDTO(
-                            id=self.feed.id,
-                            title=self.feed.title,
-                            url=self.feed.url,
-                            site_url=self.feed.site_url,
-                            description=self.feed.description,
-                            category=self.feed.category,
-                            kind=self.feed.kind,
-                            owner_id=self.feed.owner_id,
-                            is_active=self.feed.is_active,
-                        )
-                    ]
+        expected = FeedListResponse(
+            feeds=[
+                FeedDTO(
+                    id=self.feed.id,
+                    title=self.feed.title,
+                    url=self.feed.url,
+                    site_url=self.feed.site_url,
+                    description=self.feed.description,
+                    category=self.feed.category,
+                    kind=self.feed.kind,
+                    owner_id=self.feed.owner_id,
+                    is_active=self.feed.is_active,
                 )
-            ),
+            ]
         )
+        self.assertEqual(response.json(), expected.model_dump())
 
     def test_list_feeds_with_x_internal_token_header(self) -> None:
         response = self.client.get(
@@ -77,3 +77,122 @@ class InternalFeedsApiTests(TestCase):
             headers={"Authorization": "Bearer anything"},
         )
         self.assertEqual(response.status_code, 503)
+
+
+@override_settings(
+    INTERNAL_API_TOKEN="test-internal-token",
+    FEED_ITEMS_QUEUE_URL="https://sqs.example/queue",
+)
+class InternalFeedItemsApiTests(TestCase):
+    def setUp(self) -> None:
+        self.feed = Feed.objects.create(
+            title="BBC World",
+            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            kind=Feed.SourceKind.CURATED,
+        )
+        self.item = FeedItem(
+            feed_id=self.feed.id,
+            id="guid-1",
+            link="https://www.bbc.com/news/1",
+            title="Hello",
+            description="World",
+            published_at="2026-11-04T10:00:00+00:00",
+            thumbnail="",
+        )
+
+    @patch("news.api.enqueue_feed_items", return_value=1)
+    def test_ingest_enqueues_new_items(self, mock_enqueue) -> None:
+        response = self.client.post(
+            "/api/internal/feed-items/",
+            data=FeedItemIngestRequest(items=[self.item]).model_dump(),
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["accepted"], 1)
+        self.assertEqual(payload["skipped_existing"], 0)
+        self.assertEqual(payload["enqueued"], 1)
+        mock_enqueue.assert_called_once()
+        self.assertEqual(len(mock_enqueue.call_args.args[0]), 1)
+
+    @patch("news.api.enqueue_feed_items", return_value=0)
+    def test_ingest_skips_existing_articles(self, mock_enqueue) -> None:
+        Article.objects.create(
+            feed=self.feed,
+            title="Hello",
+            url=self.item.link,
+            summary="World",
+            published_at=datetime(2026, 11, 4, 10, 0, tzinfo=timezone.utc),
+        )
+        response = self.client.post(
+            "/api/internal/feed-items/",
+            data={"items": [self.item.model_dump()]},
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["accepted"], 0)
+        self.assertEqual(payload["skipped_existing"], 1)
+        self.assertEqual(payload["enqueued"], 0)
+        mock_enqueue.assert_called_once_with([])
+
+
+@override_settings(INTERNAL_API_TOKEN="test-internal-token")
+class InternalArticlesApiTests(TestCase):
+    def setUp(self) -> None:
+        self.feed = Feed.objects.create(
+            title="BBC World",
+            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            kind=Feed.SourceKind.CURATED,
+        )
+
+    def test_upsert_creates_article(self) -> None:
+        response = self.client.post(
+            "/api/internal/articles/",
+            data={
+                "feed_id": self.feed.id,
+                "url": "https://www.bbc.com/news/1",
+                "title": "Hello",
+                "summary": "World",
+                "published_at": "2026-11-04T10:00:00+00:00",
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["created"])
+        self.assertTrue(Article.objects.filter(pk=payload["article_id"]).exists())
+
+    def test_upsert_is_idempotent(self) -> None:
+        first = self.client.post(
+            "/api/internal/articles/",
+            data={
+                "feed_id": self.feed.id,
+                "url": "https://www.bbc.com/news/1",
+                "title": "Hello",
+                "summary": "World",
+                "published_at": "2026-11-04T10:00:00+00:00",
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        second = self.client.post(
+            "/api/internal/articles/",
+            data={
+                "feed_id": self.feed.id,
+                "url": "https://www.bbc.com/news/1",
+                "title": "Hello updated",
+                "summary": "World",
+                "published_at": "2026-11-04T10:00:00+00:00",
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertTrue(first.json()["created"])
+        self.assertFalse(second.json()["created"])
+        self.assertEqual(first.json()["article_id"], second.json()["article_id"])
+        self.assertEqual(Article.objects.count(), 1)
+        self.assertEqual(Article.objects.get().title, "Hello updated")

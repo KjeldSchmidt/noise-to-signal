@@ -5,6 +5,7 @@ description = "noise-to-signal news aggregator web UI (Django)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "boto3>=1.35.0",
     "dj-database-url>=3.1.2",
     "django>=6.1.2",
     "django-allauth[socialaccount]>=65.20.1",

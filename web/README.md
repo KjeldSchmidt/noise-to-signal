@@ -6,7 +6,7 @@ Auth is **Google-only** (django-allauth) for humans. Django still has a `User` r
 
 Machine callers (Lambdas) use a shared bearer token (`INTERNAL_API_TOKEN`) against `/api/internal/*`. On AWS the token is generated in Terraform and stored in the app Secrets Manager secret; locally set it in `.env`.
 
-Request/response shapes for those routes live in `packages/n2s_api` (`n2s-api`), depended on via uv path sources from `web/` and `lambdas/*` (no workspace — each app keeps its own lockfile/venv).
+Request/response shapes live in `packages/n2s_api` (`n2s-api`). Worker Lambdas talk to Django through `packages/n2s_web_client` (`n2s-web-client`, depends on `n2s-api`). Both are uv path deps (no workspace — each app keeps its own lockfile/venv).
 
 ## Google OAuth setup (where to put credentials)
 

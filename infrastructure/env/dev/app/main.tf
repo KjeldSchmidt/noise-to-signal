@@ -50,18 +50,24 @@ module "web" {
 module "workers" {
   source = "../../../modules/workers"
 
-  project            = "noise-to-signal"
-  environment        = "dev"
-  ecr_repository_url = data.terraform_remote_state.shared.outputs.ecr_repository_url
-  image_tag          = var.image_tag
-  public_hostname    = "beta.signal-to-noise.fyi"
-  app_secret_arn     = module.web.app_secret_arn
+  project              = "noise-to-signal"
+  environment          = "dev"
+  ecr_repository_url   = data.terraform_remote_state.shared.outputs.ecr_repository_url
+  image_tag            = var.image_tag
+  public_hostname      = "beta.signal-to-noise.fyi"
+  app_secret_arn       = module.web.app_secret_arn
+  feed_items_queue_arn = module.web.feed_items_queue_arn
 
   workers = {
     feed_consumer = {
       schedule_expression = "rate(480 minutes)"
       memory_size         = 512
-      timeout             = 60
+      timeout             = 120
+    }
+    news_parser = {
+      subscribe_feed_items = true
+      memory_size          = 512
+      timeout              = 60
     }
   }
 }
@@ -129,4 +135,8 @@ output "worker_function_arns" {
 
 output "worker_image_identifiers" {
   value = module.workers.image_identifiers
+}
+
+output "feed_items_queue_url" {
+  value = module.web.feed_items_queue_url
 }

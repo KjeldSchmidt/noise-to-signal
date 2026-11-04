@@ -1,0 +1,13 @@
+[project]
+name = "news_parser"
+version = "0.1.0"
+description = "noise-to-signal news parser — enrich feed items into Articles"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "n2s-web-client",
+    "python-dotenv>=1.2.4",
+]
+
+[tool.uv.sources]
+n2s-web-client = { path = "../../packages/n2s_web_client", editable = false }

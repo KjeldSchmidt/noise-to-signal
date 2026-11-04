@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True, slots=True)
-class Feed:
+class Feed(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     id: int
     title: str
     url: str
@@ -18,6 +19,7 @@ class Feed:
     is_active: bool
 
 
-@dataclass(frozen=True, slots=True)
-class FeedListResponse:
+class FeedListResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     feeds: list[Feed]

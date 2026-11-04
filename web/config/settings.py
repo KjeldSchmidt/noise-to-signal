@@ -18,6 +18,9 @@ SECRET_KEY = os.environ.get(
 # Shared bearer token for /api/internal/* (Lambdas). Empty disables those routes (503).
 INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "").strip()
 
+# SQS queue for new feed items → news_parser (empty = ingest dedups but does not enqueue).
+FEED_ITEMS_QUEUE_URL = os.environ.get("FEED_ITEMS_QUEUE_URL", "").strip()
+
 DEBUG = os.environ.get("DEBUG", "true").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = [

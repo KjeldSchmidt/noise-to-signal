@@ -27,11 +27,18 @@ variable "app_secret_arn" {
   description = "Secrets Manager ARN for noise-to-signal/<env>/app (INTERNAL_API_TOKEN)"
 }
 
+variable "feed_items_queue_arn" {
+  type        = string
+  default     = ""
+  description = "SQS queue ARN for news_parser event source mapping (from web_app)"
+}
+
 variable "workers" {
   type = map(object({
-    schedule_expression = optional(string)
-    memory_size         = optional(number, 512)
-    timeout             = optional(number, 60)
+    schedule_expression  = optional(string)
+    subscribe_feed_items = optional(bool, false)
+    memory_size          = optional(number, 512)
+    timeout              = optional(number, 60)
   }))
   description = "Map of worker name → config. Name must match lambdas/<name>/ and ECR tag prefix."
 }

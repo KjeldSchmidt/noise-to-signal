@@ -3,7 +3,9 @@ name = "n2s-api"
 version = "0.1.0"
 description = "Shared API contracts for noise-to-signal (web ↔ Lambdas)"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.0",
+]
 
 [build-system]
 requires = ["hatchling"]

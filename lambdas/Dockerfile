@@ -12,6 +12,7 @@ ENV UV_LINK_MODE=copy \
 
 WORKDIR /build
 COPY packages/n2s_api /build/packages/n2s_api
+COPY packages/n2s_web_client /build/packages/n2s_web_client
 COPY lambdas/${LAMBDA_NAME}/pyproject.toml lambdas/${LAMBDA_NAME}/uv.lock /build/lambdas/${LAMBDA_NAME}/
 WORKDIR /build/lambdas/${LAMBDA_NAME}
 RUN uv sync --frozen --no-dev --no-install-project --no-editable

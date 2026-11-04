@@ -124,6 +124,36 @@ resource "aws_iam_role_policy" "lambda_secrets" {
   policy = data.aws_iam_policy_document.lambda_secrets.json
 }
 
+resource "aws_sqs_queue" "feed_items_dlq" {
+  name                      = "${local.name_prefix}-feed-items-dlq"
+  message_retention_seconds = 1209600
+  tags                      = local.tags
+}
+
+resource "aws_sqs_queue" "feed_items" {
+  name                       = "${local.name_prefix}-feed-items"
+  visibility_timeout_seconds = 120
+  message_retention_seconds  = 345600
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.feed_items_dlq.arn
+    maxReceiveCount     = 5
+  })
+  tags = local.tags
+}
+
+data "aws_iam_policy_document" "lambda_sqs_send" {
+  statement {
+    actions   = ["sqs:SendMessage", "sqs:GetQueueAttributes", "sqs:GetQueueUrl"]
+    resources = [aws_sqs_queue.feed_items.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_sqs_send" {
+  name   = "sqs-feed-items-send"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_sqs_send.json
+}
+
 resource "aws_lambda_function" "web" {
   function_name = local.name_prefix
   role          = aws_iam_role.lambda.arn
@@ -152,6 +182,7 @@ resource "aws_lambda_function" "web" {
       SECRET_KEY           = local.app_secret.SECRET_KEY
       DATABASE_URL         = local.app_secret.DATABASE_URL
       INTERNAL_API_TOKEN   = local.app_secret.INTERNAL_API_TOKEN
+      FEED_ITEMS_QUEUE_URL = aws_sqs_queue.feed_items.url
       GOOGLE_CLIENT_ID     = local.google_oauth.GOOGLE_CLIENT_ID
       GOOGLE_CLIENT_SECRET = local.google_oauth.GOOGLE_CLIENT_SECRET
     }
@@ -162,6 +193,7 @@ resource "aws_lambda_function" "web" {
   depends_on = [
     aws_iam_role_policy_attachment.lambda_basic,
     aws_iam_role_policy.lambda_secrets,
+    aws_iam_role_policy.lambda_sqs_send,
     aws_secretsmanager_secret_version.app,
   ]
 }

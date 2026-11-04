@@ -40,3 +40,11 @@ output "db_name" {
 output "image_identifier" {
   value = local.image_identifier
 }
+
+output "feed_items_queue_url" {
+  value = aws_sqs_queue.feed_items.url
+}
+
+output "feed_items_queue_arn" {
+  value = aws_sqs_queue.feed_items.arn
+}

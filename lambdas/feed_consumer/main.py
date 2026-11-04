@@ -3,26 +3,16 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
 import feedparser
 from dotenv import load_dotenv
+from n2s_api import FeedItem
 
-from web_api import list_feeds
+from n2s_web_client import ingest_feed_items, list_feeds
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class FeedItem:
-    id: str
-    link: str
-    thumbnail: str
-    date: datetime
-    title: str
-    description: str
 
 
 def _entry_thumbnail(entry: Any) -> str:
@@ -44,24 +34,28 @@ def _entry_description(entry: Any) -> str:
 
 
 def collect_feed_items() -> list[FeedItem]:
-    """Fetch active feed list from the web API and parse each RSS URL."""
+    """Fetch feed list from the web API and parse each RSS URL."""
     items: list[FeedItem] = []
     feeds = list_feeds()
     for feed in feeds:
+        if not feed.is_active:
+            continue
         logger.info("Parsing feed %s: %s", feed.id, feed.url)
         parsed = feedparser.parse(feed.url)
         for entry in parsed.entries:
             published = getattr(entry, "published_parsed", None)
             if published:
-                date = datetime(*published[:6])
+                date = datetime(*published[:6], tzinfo=timezone.utc)
             else:
                 date = datetime.now(timezone.utc)
+            link = str(getattr(entry, "link", "") or "")
             items.append(
                 FeedItem(
-                    id=str(getattr(entry, "id", None) or getattr(entry, "link", "")),
-                    link=str(getattr(entry, "link", "") or ""),
+                    feed_id=feed.id,
+                    id=str(getattr(entry, "id", None) or link),
+                    link=link,
                     thumbnail=_entry_thumbnail(entry),
-                    date=date,
+                    published_at=date.isoformat(),
                     title=str(getattr(entry, "title", "") or ""),
                     description=_entry_description(entry),
                 )
@@ -72,11 +66,20 @@ def collect_feed_items() -> list[FeedItem]:
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """AWS Lambda entrypoint (CMD main.handler)."""
     items = collect_feed_items()
-    logger.info("Collected %s feed items from %s event", len(items), type(event).__name__)
+    result = ingest_feed_items(items)
+    logger.info(
+        "Collected %s items; accepted=%s skipped=%s enqueued=%s",
+        len(items),
+        result.accepted,
+        result.skipped_existing,
+        result.enqueued,
+    )
     return {
         "ok": True,
         "item_count": len(items),
-        # Keep payload small — full bodies belong in a later persistence step.
+        "accepted": result.accepted,
+        "skipped_existing": result.skipped_existing,
+        "enqueued": result.enqueued,
         "sample_titles": [item.title for item in items[:5]],
     }
 
@@ -84,9 +87,13 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 def main() -> None:
     load_dotenv()
     items = collect_feed_items()
+    result = ingest_feed_items(items)
     for item in items:
-        print(f"{item.date.isoformat()} | {item.title} | {item.link}")
-    print(f"total={len(items)}")
+        print(f"{item.published_at} | {item.title} | {item.link}")
+    print(
+        f"total={len(items)} accepted={result.accepted} "
+        f"skipped={result.skipped_existing} enqueued={result.enqueued}"
+    )
 
 
 if __name__ == "__main__":

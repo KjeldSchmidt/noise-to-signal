@@ -25,9 +25,10 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 ## Worker Lambdas
 
 - Module: [`modules/workers`](modules/workers), wired from `env/dev/app`.
-- Today: **`feed_consumer`** on EventBridge `rate(15 minutes)`.
-- Env: `WEB_API_BASE_URL=https://<public-hostname>`, `INTERNAL_API_TOKEN` from the app secret.
-- Skip dirs under `lambdas/` without a `pyproject.toml` (e.g. unfinished `news_parser`).
+- **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
+- **`news_parser`** — SQS (`<project>-<env>-feed-items`); enrich → `POST /api/internal/articles/`.
+- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN`; web also gets `FEED_ITEMS_QUEUE_URL`.
+- Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
 
 ## Cost model
 
