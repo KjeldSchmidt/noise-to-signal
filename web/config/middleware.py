@@ -33,6 +33,10 @@ class NormalizeTrailingSlashMiddleware:
     """Resolve URLs that need a trailing slash without issuing a redirect.
 
     Avoids the APPEND_SLASH ↔ proxy slash-strip loop (301 Location to the same path).
+
+    Prefer the trailing-slash route whenever it resolves. Otherwise Django admin's
+    catch-all can match ``/admin/login`` (no slash), ``admin_view`` calls
+    ``redirect_to_login``, and CloudFront slash-stripping nests ``?next=`` forever.
     """
 
     def __init__(self, get_response):
@@ -41,16 +45,14 @@ class NormalizeTrailingSlashMiddleware:
     def __call__(self, request: HttpRequest):
         path = request.path_info
         if path != "/" and not path.endswith("/"):
+            slashed = f"{path}/"
             try:
-                resolve(path)
+                resolve(slashed)
             except Resolver404:
-                try:
-                    resolve(f"{path}/")
-                except Resolver404:
-                    pass
-                else:
-                    request.path_info = f"{path}/"
-                    # Keep path in sync for get_full_path() / redirects.
-                    if not request.path.endswith("/"):
-                        request.path = f"{request.path}/"
+                pass
+            else:
+                request.path_info = slashed
+                # Keep path in sync for get_full_path() / redirects.
+                if not request.path.endswith("/"):
+                    request.path = f"{request.path}/"
         return self.get_response(request)
