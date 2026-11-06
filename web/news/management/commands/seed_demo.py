@@ -1,11 +1,9 @@
 import os
-from datetime import timedelta
 
 from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
-from news.models import Article, Feed, FollowUpQuestion
+from news.models import Feed, FollowUpQuestion
 
 
 FEEDS = [
@@ -75,49 +73,6 @@ FEEDS = [
     },
 ]
 
-ARTICLES = {
-    "BBC World": [
-        ("European leaders meet on trade pact", "Diplomats signal progress after late-night talks in Brussels."),
-        ("Flooding displaces thousands after coastal storm", "Emergency services expand shelters along the shoreline."),
-        ("New climate report warns of faster ice loss", "Researchers say polar melt is outpacing earlier models."),
-    ],
-    "NPR News": [
-        ("City budgets face pressure from housing costs", "Mayors push for zoning reforms ahead of spring sessions."),
-        ("Public radio explores the future of local news", "Stations experiment with memberships and newsletters."),
-        ("Health officials update guidance on seasonal illness", "Clinics prepare for a busier than usual outpatient season."),
-    ],
-    "The Verge": [
-        ("A quieter phone launch still moves the market", "Mid-range hardware and AI features share the spotlight."),
-        ("Streaming apps rewrite their home screens again", "Personalization teams chase lower churn with denser rails."),
-        ("E-bike makers race to simplify urban commuting", "Battery swaps and safer frames headline spring catalogs."),
-    ],
-    "Ars Technica": [
-        ("Why open weights still matter for enterprise AI", "Procurement teams weigh auditability against hosted APIs."),
-        ("Chipmakers outline the next packaging leap", "Yield and thermals remain the hard constraints."),
-        ("Security researchers detail a novel supply-chain path", "Maintainers urge signed builds and narrower trust roots."),
-    ],
-    "Nature News": [
-        ("Gene therapy trial shows durable response", "Early patients remain stable a year after dosing."),
-        ("Ocean sensors map microplastic hotspots", "Citizen science fleets add coastal resolution."),
-        ("Lab-grown cartilage clears a regulatory hurdle", "Clinicians eye sports-injury applications first."),
-    ],
-    "The Guardian Technology": [
-        ("Regulators scrutinize dark-pattern checkout flows", "Consumer groups want clearer cancellation paths."),
-        ("Workers organize around AI workload spikes", "Unions ask for transparency on productivity metrics."),
-        ("Europe debates messaging interoperability timelines", "Vendors argue over encryption and metadata boundaries."),
-    ],
-    "Hacker News Front Page": [
-        ("Show HN: a tiny offline RSS reader", "Single binary, keyboard-first, no account required."),
-        ("Lessons from running Postgres on free tiers", "Connection pooling and migrations still bite."),
-        ("Ask HN: how do you filter news without doomscrolling?", "Readers share keyword lists and morning rituals."),
-    ],
-    "Associated Press Top News": [
-        ("Markets open mixed after overnight futures dip", "Energy and retail stocks pull in opposite directions."),
-        ("Transport strike slows morning commute", "Officials urge remote work where possible."),
-        ("Talks resume on regional infrastructure funding", "Bridges and broadband top the draft agenda."),
-    ],
-}
-
 QUESTIONS = [
     "Which topics should almost always surface in your brief?",
     "What kinds of stories do you want filtered out aggressively?",
@@ -128,12 +83,9 @@ QUESTIONS = [
 
 
 class Command(BaseCommand):
-    help = "Seed curated feeds, placeholder articles, and follow-up questions."
+    help = "Seed curated/recommended feeds and follow-up questions."
 
     def handle(self, *args, **options):
-        now = timezone.now()
-        feed_map: dict[str, Feed] = {}
-
         site_domain = os.environ.get("SITE_DOMAIN", "127.0.0.1:8000")
         Site.objects.update_or_create(
             id=1,
@@ -154,27 +106,9 @@ class Command(BaseCommand):
                     "owner": None,
                 },
             )
-            feed_map[feed.title] = feed
             self.stdout.write(
                 f"{'Created' if created else 'Updated'} feed: {feed.title}"
             )
-
-        for feed_title, items in ARTICLES.items():
-            feed = feed_map[feed_title]
-            for index, (title, summary) in enumerate(items):
-                url = f"https://example.com/demo/{feed.id}/{index}"
-                # Deterministic placeholder images for Stories card previews.
-                image_url = f"https://picsum.photos/seed/n2s-{feed.id}-{index}/800/500"
-                Article.objects.update_or_create(
-                    feed=feed,
-                    url=url,
-                    defaults={
-                        "title": title,
-                        "summary": summary,
-                        "image_url": image_url,
-                        "published_at": now - timedelta(hours=index + 1),
-                    },
-                )
 
         for order, prompt in enumerate(QUESTIONS):
             FollowUpQuestion.objects.update_or_create(

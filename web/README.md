@@ -63,5 +63,4 @@ See [`../infrastructure/README.md`](../infrastructure/README.md).
 
 ### Caveats
 
-- Seeded articles are demo content until real RSS ingestion lands.
 - Cold starts are expected; idle compute cost is ~$0.
