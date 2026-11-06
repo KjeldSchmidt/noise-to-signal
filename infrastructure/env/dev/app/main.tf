@@ -60,7 +60,7 @@ module "workers" {
 
   workers = {
     feed_consumer = {
-      schedule_expression = "rate(480 minutes)"
+      schedule_expression = "rate(240 minutes)"
       memory_size         = 512
       timeout             = 120
     }

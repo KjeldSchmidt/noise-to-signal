@@ -8,19 +8,20 @@ from typing import Any
 from n2s_api import ArticleUpsert, FeedItem
 
 from n2s_web_client import upsert_article
+from textutil import clean_text
 
 logger = logging.getLogger(__name__)
 
 
 def enrich_feed_item(item: FeedItem) -> ArticleUpsert:
-    """Placeholder enrichment — full parse/embed lands later."""
+    """Normalize text; location/embed enrichment lands later."""
     # TODO: enrich with coarse location (~city / ~50km) for matching user
     # LocationOfInterest preferences — https://github.com/KjeldSchmidt/noise-to-signal/issues/2
     return ArticleUpsert(
         feed_id=item.feed_id,
         url=item.link,
-        title=item.title,
-        summary=item.description,
+        title=clean_text(item.title)[:300],
+        summary=clean_text(item.description),
         published_at=item.published_at,
         image_url=item.thumbnail,
     )

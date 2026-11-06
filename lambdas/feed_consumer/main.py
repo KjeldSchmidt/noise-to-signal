@@ -41,14 +41,13 @@ def _entry_thumbnail(entry: Any) -> str:
 
 
 def _entry_description(entry: Any) -> str:
-    title = getattr(entry, "title", "") or ""
     summary = getattr(entry, "summary", None)
     if summary:
-        return f"{title} - {summary}"
+        return str(summary)
     detail = getattr(entry, "summary_detail", None)
     if detail is not None and getattr(detail, "value", None):
-        return f"{title} - {detail.value}"
-    return title
+        return str(detail.value)
+    return ""
 
 
 def collect_feed_items() -> list[FeedItem]:
