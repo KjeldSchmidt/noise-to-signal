@@ -38,6 +38,8 @@ class Feed(models.Model):
 
 
 class Subscription(models.Model):
+    """Legacy opt-in rows; superseded by FeedMute (catalog is on by default)."""
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -58,6 +60,47 @@ class Subscription(models.Model):
         return f"{self.user} → {self.feed}"
 
 
+class FeedMute(models.Model):
+    """Opt-out: catalog (and custom) feeds are enabled unless muted."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="feed_mutes",
+    )
+    feed = models.ForeignKey(
+        Feed,
+        on_delete=models.CASCADE,
+        related_name="mutes",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "feed")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user} muted {self.feed}"
+
+
+class LocationOfInterest(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="locations_of_interest",
+    )
+    label = models.CharField(max_length=200)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["label", "id"]
+
+    def __str__(self) -> str:
+        return self.label
+
+
 class Article(models.Model):
     feed = models.ForeignKey(
         Feed,
@@ -67,6 +110,7 @@ class Article(models.Model):
     title = models.CharField(max_length=300)
     url = models.URLField()
     summary = models.TextField(blank=True)
+    image_url = models.URLField(blank=True, max_length=1000)
     published_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 

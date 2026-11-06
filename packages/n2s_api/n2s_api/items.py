@@ -43,6 +43,7 @@ class ArticleUpsert(BaseModel):
     title: str
     summary: str
     published_at: str  # ISO-8601
+    image_url: str = ""
 
 
 class ArticleUpsertResponse(BaseModel):

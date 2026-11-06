@@ -18,7 +18,25 @@ logger = logging.getLogger(__name__)
 def _entry_thumbnail(entry: Any) -> str:
     thumbs = getattr(entry, "media_thumbnail", None) or []
     if thumbs and isinstance(thumbs[0], dict):
-        return str(thumbs[0].get("url") or "")
+        url = str(thumbs[0].get("url") or "")
+        if url:
+            return url
+    for media in getattr(entry, "media_content", None) or []:
+        if not isinstance(media, dict):
+            continue
+        if str(media.get("medium") or "") == "image" or str(
+            media.get("type") or ""
+        ).startswith("image/"):
+            url = str(media.get("url") or "")
+            if url:
+                return url
+    for enc in getattr(entry, "enclosures", None) or []:
+        if not isinstance(enc, dict):
+            continue
+        if str(enc.get("type") or "").startswith("image/"):
+            url = str(enc.get("href") or enc.get("url") or "")
+            if url:
+                return url
     return ""
 
 

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Stories{% endblock %}
+{% block content %}
+<section class="page-head stories-head">
+  <h1>Stories</h1>
+  <p class="muted">
+    Recent articles from your enabled feeds
+    {% if feed_count %}({{ feed_count }}){% endif %}.
+    Use the Brief for ranked review.
+  </p>
+</section>
+
+{% if not articles %}
+<div class="empty">
+  <p>No stories yet. Check Settings if feeds are muted, or wait for the next ingest.</p>
+  <a class="btn ghost" href="{% url 'settings' %}">Open settings</a>
+</div>
+{% else %}
+<div class="story-grid">
+  {% for article in articles %}
+  <article class="story-card{% if article.image_url %} has-image{% endif %}">
+    <a class="story-media" href="{{ article.url }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+      {% if article.image_url %}
+      <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+      {% else %}
+      <span class="story-media-fallback" data-feed="{{ article.feed.title|slice:':1' }}"></span>
+      {% endif %}
+    </a>
+    <div class="story-body">
+      <p class="tag">{{ article.feed.title }}</p>
+      <h2><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h2>
+      {% if article.summary %}
+      <p class="summary">{{ article.summary|striptags|truncatewords:28 }}</p>
+      {% endif %}
+      <p class="muted story-time">{{ article.published_at|date:"M j, Y · H:i" }}</p>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

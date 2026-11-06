@@ -157,6 +157,7 @@ class InternalArticlesApiTests(TestCase):
                 "title": "Hello",
                 "summary": "World",
                 "published_at": "2026-11-04T10:00:00+00:00",
+                "image_url": "https://cdn.example.com/thumb.jpg",
             },
             content_type="application/json",
             headers={"Authorization": "Bearer test-internal-token"},
@@ -164,7 +165,8 @@ class InternalArticlesApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["created"])
-        self.assertTrue(Article.objects.filter(pk=payload["article_id"]).exists())
+        article = Article.objects.get(pk=payload["article_id"])
+        self.assertEqual(article.image_url, "https://cdn.example.com/thumb.jpg")
 
     def test_upsert_is_idempotent(self) -> None:
         first = self.client.post(

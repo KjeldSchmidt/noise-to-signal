@@ -7,7 +7,8 @@ from hashlib import md5
 
 from django.contrib.auth.models import AbstractBaseUser
 
-from news.models import Article, Feed, RelevanceFeedback, Subscription
+from news.models import Article, Feed, FeedMute, RelevanceFeedback
+from news.services.feeds import catalog_feeds, enabled_feed_ids
 
 
 @dataclass
@@ -46,9 +47,9 @@ def _reason_for(user_id: int, article: Article) -> str:
 
 
 def rank_items(user: AbstractBaseUser, articles: list[Article] | None = None) -> list[RankedItem]:
-    """Return placeholder-ranked articles for the user's subscribed feeds."""
+    """Return placeholder-ranked articles for the user's enabled feeds."""
     if articles is None:
-        feed_ids = Subscription.objects.filter(user=user).values_list("feed_id", flat=True)
+        feed_ids = enabled_feed_ids(user)
         articles = list(
             Article.objects.filter(feed_id__in=feed_ids)
             .select_related("feed")
@@ -78,17 +79,13 @@ def rank_items(user: AbstractBaseUser, articles: list[Article] | None = None) ->
 
 
 def recommend_feeds(user: AbstractBaseUser, limit: int = 4) -> list[Feed]:
-    """Suggest curated feeds the user has not subscribed to yet."""
-    subscribed = Subscription.objects.filter(user=user).values_list("feed_id", flat=True)
-    qs = (
-        Feed.objects.filter(is_active=True, kind=Feed.SourceKind.CURATED)
-        .exclude(id__in=subscribed)
-        .exclude(owner__isnull=False)
-    )
+    """Suggest muted catalog feeds the user might re-enable."""
+    muted_ids = FeedMute.objects.filter(user=user).values_list("feed_id", flat=True)
+    qs = catalog_feeds().filter(id__in=muted_ids)
 
-    # Prefer categories the user already follows, then fill with others.
+    enabled = set(enabled_feed_ids(user))
     user_categories = set(
-        Feed.objects.filter(id__in=subscribed).values_list("category", flat=True)
+        Feed.objects.filter(id__in=enabled).values_list("category", flat=True)
     )
     preferred = list(qs.filter(category__in=user_categories)[:limit])
     if len(preferred) < limit:

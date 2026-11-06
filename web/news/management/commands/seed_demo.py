@@ -163,12 +163,15 @@ class Command(BaseCommand):
             feed = feed_map[feed_title]
             for index, (title, summary) in enumerate(items):
                 url = f"https://example.com/demo/{feed.id}/{index}"
+                # Deterministic placeholder images for Stories card previews.
+                image_url = f"https://picsum.photos/seed/n2s-{feed.id}-{index}/800/500"
                 Article.objects.update_or_create(
                     feed=feed,
                     url=url,
                     defaults={
                         "title": title,
                         "summary": summary,
+                        "image_url": image_url,
                         "published_at": now - timedelta(hours=index + 1),
                     },
                 )

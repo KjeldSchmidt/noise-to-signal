@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>Settings</h1>
+  <p class="muted">Locations of interest and which feeds to include. Catalog feeds are on by default.</p>
+</section>
+
+<section class="block" id="locations">
+  <h2>Locations of interest</h2>
+  <p class="muted">Locations you are interested in. We will prioritize stories from these locations.</p>
+
+  {% if locations %}
+  <ul class="location-list">
+    {% for loc in locations %}
+    <li class="location-row">
+      <span class="location-label">{{ loc.label }}</span>{% spaceless %}
+      <form method="post" action="{% url 'delete_location' loc.id %}" class="location-remove">
+        {% csrf_token %}
+        <button type="submit" class="linkish muted" title="Remove {{ loc.label }}">remove</button>
+      </form>{% endspaceless %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No locations yet.</p>
+  {% endif %}
+
+  <h3 class="settings-subhead">Add a location</h3>
+  <p class="muted">Search for a place or use your current position. Coarse city/region is enough.</p>
+
+  <form method="post" class="location-picker" id="location-picker-form"
+        data-reverse-url="{% url 'geocode_reverse' %}"
+        data-search-url="{% url 'geocode_search' %}">
+    {% csrf_token %}
+    <div class="location-entry-row">
+      <div class="stack location-search">
+        <p>
+          <label for="location-search">Search</label>
+          <input type="search" id="location-search" name="location_search" placeholder="e.g. Berlin, Germany" autocomplete="off">
+        </p>
+        <ul class="location-suggestions" id="location-suggestions" hidden></ul>
+      </div>
+      <div class="location-current">
+        <span class="location-current-label" aria-hidden="true">&nbsp;</span>
+        <button type="button" class="btn ghost" id="use-my-location">Use current location</button>
+      </div>
+    </div>
+    <p class="muted geo-status" id="geo-status" aria-live="polite" hidden></p>
+    {{ location_form.label }}
+    {{ location_form.latitude }}
+    {{ location_form.longitude }}
+    <button type="submit" name="add_location" class="btn primary" id="add-location-btn" disabled>Add location</button>
+  </form>
+</section>
+
+{% if recommended %}
+<section class="block">
+  <h2>Muted — suggested to re-enable</h2>
+  <ul class="feed-grid">
+    {% for feed in recommended %}
+    <li class="feed-card">
+      <h3>{{ feed.title }}</h3>
+      <p class="tag">{{ feed.category }}</p>
+      <p>{{ feed.description }}</p>
+      <form method="post" action="{% url 'unmute_feed' feed.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'settings' %}">
+        <button class="btn small primary" type="submit">Unmute</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="block" id="feeds">
+  <h2>Catalog feeds</h2>
+  <p class="muted">Mute sources you never want in Brief or Stories.</p>
+  <ul class="feed-grid">
+    {% for feed in catalog %}
+    <li class="feed-card">
+      <h3>{{ feed.title }}</h3>
+      <p class="tag">{{ feed.category }}</p>
+      <p>{{ feed.description }}</p>
+      {% if feed.id in muted_ids %}
+      <form method="post" action="{% url 'unmute_feed' feed.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'settings' %}">
+        <button class="btn small primary" type="submit">Unmute</button>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'mute_feed' feed.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'settings' %}">
+        <button class="btn small ghost" type="submit">Mute</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="block">
+  <h2>Add a custom RSS feed</h2>
+  <form method="post" class="stack narrow-form">
+    {% csrf_token %}
+    {{ feed_form.as_p }}
+    <button type="submit" name="add_custom" class="btn primary">Add feed</button>
+  </form>
+</section>
+
+{% if custom_feeds %}
+<section class="block">
+  <h2>Your custom feeds</h2>
+  <ul class="feed-grid">
+    {% for feed in custom_feeds %}
+    <li class="feed-card">
+      <h3>{{ feed.title }}</h3>
+      <p class="tag">{{ feed.category|default:"Custom" }}</p>
+      <p class="muted break">{{ feed.url }}</p>
+      {% if feed.id in muted_ids %}
+      <form method="post" action="{% url 'unmute_feed' feed.id %}">
+        {% csrf_token %}
+        <button class="btn small primary" type="submit">Unmute</button>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'mute_feed' feed.id %}">
+        {% csrf_token %}
+        <button class="btn small ghost" type="submit">Mute</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/settings-locations.js' %}" defer></script>
+{% endblock %}

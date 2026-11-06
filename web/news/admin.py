@@ -3,8 +3,10 @@ from django.contrib import admin
 from news.models import (
     Article,
     Feed,
+    FeedMute,
     FollowUpAnswer,
     FollowUpQuestion,
+    LocationOfInterest,
     RelevanceFeedback,
     Subscription,
 )
@@ -21,6 +23,18 @@ class FeedAdmin(admin.ModelAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ("user", "feed", "created_at")
     list_filter = ("feed",)
+
+
+@admin.register(FeedMute)
+class FeedMuteAdmin(admin.ModelAdmin):
+    list_display = ("user", "feed", "created_at")
+    list_filter = ("feed",)
+
+
+@admin.register(LocationOfInterest)
+class LocationOfInterestAdmin(admin.ModelAdmin):
+    list_display = ("label", "user", "latitude", "longitude", "created_at")
+    search_fields = ("label",)
 
 
 @admin.register(Article)

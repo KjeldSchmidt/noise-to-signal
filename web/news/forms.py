@@ -1,6 +1,6 @@
 from django import forms
 
-from news.models import Feed, FollowUpAnswer
+from news.models import Feed, FollowUpAnswer, LocationOfInterest
 
 
 class CustomFeedForm(forms.Form):
@@ -18,6 +18,23 @@ class CustomFeedForm(forms.Form):
         if Feed.objects.filter(url=url).exists():
             raise forms.ValidationError("That feed URL is already in the catalog.")
         return url
+
+
+class LocationOfInterestForm(forms.ModelForm):
+    class Meta:
+        model = LocationOfInterest
+        fields = ("label", "latitude", "longitude")
+        widgets = {
+            "label": forms.HiddenInput(attrs={"id": "id_location_label"}),
+            "latitude": forms.HiddenInput(attrs={"id": "id_location_lat"}),
+            "longitude": forms.HiddenInput(attrs={"id": "id_location_lng"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["latitude"].required = False
+        self.fields["longitude"].required = False
+        self.fields["label"].required = True
 
 
 class FollowUpAnswerForm(forms.ModelForm):

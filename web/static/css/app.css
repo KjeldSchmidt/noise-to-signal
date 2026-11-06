@@ -91,7 +91,6 @@ a:hover { color: var(--accent-2); }
 
 .hero {
   padding: 3rem 0 2rem;
-  animation: rise 0.6s ease both;
 }
 
 .eyebrow {
@@ -141,7 +140,7 @@ h1, h2, h3 {
 .btn.yes { background: var(--ok); color: #fff; }
 .btn.no { background: var(--bad); color: #fff; }
 
-.page-head { margin-bottom: 1.5rem; animation: rise 0.45s ease both; }
+.page-head { margin-bottom: 1.5rem; }
 .page-head h1 { margin: 0 0 0.35rem; font-size: 2rem; }
 .muted { color: var(--muted); }
 .break { word-break: break-all; }
@@ -164,7 +163,7 @@ h1, h2, h3 {
 
 .flash li.error { background: #f7e2de; border-color: #e3b5ad; }
 
-.narrow { width: min(420px, 100%); animation: rise 0.45s ease both; }
+.narrow { width: min(420px, 100%); }
 .narrow-form { max-width: 480px; }
 
 .stack { display: grid; gap: 0.75rem; }
@@ -179,7 +178,7 @@ h1, h2, h3 {
   color: var(--ink);
 }
 
-.block { margin: 2rem 0; animation: rise 0.5s ease both; }
+.block { margin: 2rem 0; }
 .block h2 { font-size: 1.35rem; margin: 0 0 1rem; }
 
 .feed-grid {
@@ -219,7 +218,6 @@ h1, h2, h3 {
   border-radius: 18px;
   padding: 1.15rem 1.25rem;
   box-shadow: var(--shadow);
-  animation: rise 0.5s ease both;
 }
 
 .item h2 { margin: 0.35rem 0 0.5rem; font-size: 1.35rem; }
@@ -253,7 +251,6 @@ h1, h2, h3 {
   border-radius: 14px;
   padding: 1rem 1.15rem;
   margin-bottom: 1.5rem;
-  animation: rise 0.45s ease both;
 }
 
 .empty {
@@ -272,12 +269,255 @@ h1, h2, h3 {
 .answered .q { font-weight: 600; margin: 0 0 0.25rem; }
 .answered .a { margin: 0; color: var(--muted); }
 
-@keyframes rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.main:has(.story-grid) {
+  width: min(1120px, calc(100% - 2rem));
+}
+
+.stories-head { margin-bottom: 1.75rem; }
+
+.story-grid {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.35rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  list-style: none;
+}
+
+.story-card {
+  background: rgba(255, 253, 248, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 48px rgba(26, 34, 24, 0.12);
+}
+
+.story-media {
+  display: block;
+  aspect-ratio: 16 / 10;
+  background:
+    linear-gradient(145deg, #d5e4dc 0%, #e8dfd0 55%, #cfd8c8 100%);
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.story-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.story-media-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: rgba(26, 34, 24, 0.28);
+  letter-spacing: -0.04em;
+}
+
+.story-media-fallback::after {
+  content: attr(data-feed);
+  text-transform: uppercase;
+}
+
+.story-body {
+  padding: 1rem 1.15rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.35rem;
+}
+
+.story-card .tag {
+  margin: 0 0 0.15rem !important;
+}
+
+.story-card h2 {
+  margin: 0;
+  font-size: 1.22rem;
+  line-height: 1.25;
+}
+
+.story-card h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.story-card h2 a:hover { color: var(--accent); }
+
+.story-card .summary {
+  flex: 1;
+  margin: 0.25rem 0 0.55rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.story-time {
+  margin: auto 0 0;
+  font-size: 0.82rem;
+}
+
+.location-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.location-row {
+  display: block;
+  padding: 0.35rem 0;
+  line-height: 1.4;
+}
+
+.location-label {
+  font-weight: 600;
+}
+
+/* Let the remove control sit on the same line as the place name. */
+.location-remove {
+  display: contents;
+}
+
+.location-remove .linkish {
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.55;
+  margin-left: 0.55rem;
+  vertical-align: baseline;
+}
+
+.location-remove .linkish:hover {
+  opacity: 1;
+  color: var(--bad);
+}
+
+.settings-subhead {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.location-picker {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.85rem;
+  max-width: 640px;
+}
+
+.location-entry-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.location-search {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+}
+
+/* Keep this section above following siblings so the suggestions overlay wins. */
+#locations {
+  position: relative;
+  z-index: 5;
+}
+
+.location-current {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.location-current-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1;
+  height: 0.92rem;
+}
+
+.location-current .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 2.55rem;
+}
+
+.location-suggestions {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  position: absolute;
+  z-index: 1100;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.location-suggestions button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.location-suggestions button:hover {
+  background: #e7f2ee;
+}
+
+.location-picker .btn.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.geo-status[hidden] {
+  display: none;
+}
+
+.geo-status:not([hidden]) {
+  margin: 0;
 }
 
 @media (max-width: 600px) {
   .site-header { align-items: flex-start; flex-direction: column; }
   .main { padding-top: 1.25rem; }
+  .location-entry-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .location-current-label {
+    display: none;
+  }
 }

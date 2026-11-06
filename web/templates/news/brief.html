@@ -4,8 +4,8 @@
 <section class="page-head">
   <h1>Today’s brief</h1>
   <p class="muted">
-    Placeholder ranking over your subscribed feeds
-    {% if subscription_count %}({{ subscription_count }} feed{{ subscription_count|pluralize }}){% endif %}.
+    Placeholder ranking over your enabled feeds
+    {% if feed_count %}({{ feed_count }} feed{{ feed_count|pluralize }}){% endif %}.
     Real LangGraph scoring will replace this later.
   </p>
 </section>
@@ -18,15 +18,15 @@
 </aside>
 {% endif %}
 
-{% if not subscription_count %}
+{% if not feed_count %}
 <div class="empty">
-  <p>No feeds yet. Pick a few from the catalog to fill your brief.</p>
-  <a class="btn primary" href="{% url 'feeds' %}">Browse feeds</a>
+  <p>All catalog feeds are muted. Re-enable some in Settings to fill your brief.</p>
+  <a class="btn primary" href="{% url 'settings' %}">Open settings</a>
 </div>
 {% elif not ranked %}
 <div class="empty">
   <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
-  <a class="btn ghost" href="{% url 'feeds' %}">Manage feeds</a>
+  <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
 </div>
 {% else %}
 <ul class="item-list">

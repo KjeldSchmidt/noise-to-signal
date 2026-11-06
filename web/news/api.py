@@ -125,14 +125,17 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
     if not Feed.objects.filter(id=dto.feed_id).exists():
         return JsonResponse({"error": f"unknown feed_id: {dto.feed_id}"}, status=400)
 
+    defaults = {
+        "title": dto.title[:300],
+        "summary": dto.summary,
+        "published_at": _parse_published_at(dto.published_at),
+    }
+    if dto.image_url:
+        defaults["image_url"] = dto.image_url[:1000]
     article, created = Article.objects.update_or_create(
         feed_id=dto.feed_id,
         url=dto.url,
-        defaults={
-            "title": dto.title[:300],
-            "summary": dto.summary,
-            "published_at": _parse_published_at(dto.published_at),
-        },
+        defaults=defaults,
     )
     return JsonResponse(
         ArticleUpsertResponse(created=created, article_id=article.id).model_dump()

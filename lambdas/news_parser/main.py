@@ -14,12 +14,15 @@ logger = logging.getLogger(__name__)
 
 def enrich_feed_item(item: FeedItem) -> ArticleUpsert:
     """Placeholder enrichment — full parse/embed lands later."""
+    # TODO: enrich with coarse location (~city / ~50km) for matching user
+    # LocationOfInterest preferences — https://github.com/KjeldSchmidt/noise-to-signal/issues/2
     return ArticleUpsert(
         feed_id=item.feed_id,
         url=item.link,
         title=item.title,
         summary=item.description,
         published_at=item.published_at,
+        image_url=item.thumbnail,
     )
 
 

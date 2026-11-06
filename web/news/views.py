@@ -1,20 +1,22 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from news.forms import CustomFeedForm, FollowUpAnswerForm
+from news.forms import CustomFeedForm, FollowUpAnswerForm, LocationOfInterestForm
 from news.models import (
     Article,
     Feed,
+    FeedMute,
     FollowUpAnswer,
     FollowUpQuestion,
+    LocationOfInterest,
     RelevanceFeedback,
-    Subscription,
 )
-from news.services import next_questions, rank_items, recommend_feeds
+from news.services import catalog_feeds, enabled_feed_ids, next_questions, rank_items, recommend_feeds
+from news.services.geocode import reverse_geocode_label, search_places
 
 
 def landing(request: HttpRequest) -> HttpResponse:
@@ -39,78 +41,153 @@ def oauth_popup_done(request: HttpRequest) -> HttpResponse:
 def brief(request: HttpRequest) -> HttpResponse:
     ranked = rank_items(request.user)
     pending_questions = next_questions(request.user, limit=1)
+    feed_count = len(enabled_feed_ids(request.user))
     return render(
         request,
         "news/brief.html",
         {
             "ranked": ranked,
             "pending_question": pending_questions[0] if pending_questions else None,
-            "subscription_count": Subscription.objects.filter(user=request.user).count(),
+            "feed_count": feed_count,
         },
     )
 
 
 @login_required
-def feeds(request: HttpRequest) -> HttpResponse:
-    subscribed_ids = set(
-        Subscription.objects.filter(user=request.user).values_list("feed_id", flat=True)
+def stories(request: HttpRequest) -> HttpResponse:
+    feed_ids = enabled_feed_ids(request.user)
+    articles = (
+        Article.objects.filter(feed_id__in=feed_ids)
+        .select_related("feed")
+        .order_by("-published_at")[:40]
     )
-    catalog = Feed.objects.filter(
-        is_active=True,
-        kind__in=[Feed.SourceKind.CURATED, Feed.SourceKind.RECOMMENDED],
-        owner__isnull=True,
+    return render(
+        request,
+        "news/stories.html",
+        {"articles": articles, "feed_count": len(feed_ids)},
     )
+
+
+@login_required
+def settings_page(request: HttpRequest) -> HttpResponse:
+    muted_ids = set(
+        FeedMute.objects.filter(user=request.user).values_list("feed_id", flat=True)
+    )
+    catalog = catalog_feeds()
     custom = Feed.objects.filter(owner=request.user, is_active=True)
     recommended = recommend_feeds(request.user)
-    form = CustomFeedForm()
+    locations = LocationOfInterest.objects.filter(user=request.user)
+    feed_form = CustomFeedForm()
+    location_form = LocationOfInterestForm()
 
     if request.method == "POST" and "add_custom" in request.POST:
-        form = CustomFeedForm(request.POST)
-        if form.is_valid():
+        feed_form = CustomFeedForm(request.POST)
+        if feed_form.is_valid():
             feed = Feed.objects.create(
-                title=form.cleaned_data["title"],
-                url=form.cleaned_data["url"],
-                site_url=form.cleaned_data.get("site_url") or "",
-                description=form.cleaned_data.get("description") or "",
-                category=form.cleaned_data.get("category") or "Custom",
+                title=feed_form.cleaned_data["title"],
+                url=feed_form.cleaned_data["url"],
+                site_url=feed_form.cleaned_data.get("site_url") or "",
+                description=feed_form.cleaned_data.get("description") or "",
+                category=feed_form.cleaned_data.get("category") or "Custom",
                 kind=Feed.SourceKind.CUSTOM,
                 owner=request.user,
             )
-            Subscription.objects.get_or_create(user=request.user, feed=feed)
-            messages.success(request, f"Added and subscribed to “{feed.title}”.")
-            return redirect("feeds")
+            messages.success(request, f"Added “{feed.title}” (enabled for you).")
+            return redirect("settings")
+
+    if request.method == "POST" and "add_location" in request.POST:
+        location_form = LocationOfInterestForm(request.POST)
+        if location_form.is_valid():
+            loc = location_form.save(commit=False)
+            loc.user = request.user
+            if loc.latitude is None or loc.longitude is None:
+                hits = search_places(loc.label, limit=1)
+                if hits:
+                    loc.latitude = hits[0]["latitude"]
+                    loc.longitude = hits[0]["longitude"]
+                    loc.label = hits[0]["label"]
+            loc.save()
+            messages.success(request, f"Added location “{loc.label}”.")
+            return redirect("settings")
 
     return render(
         request,
-        "news/feeds.html",
+        "news/settings.html",
         {
             "catalog": catalog,
             "custom_feeds": custom,
             "recommended": recommended,
-            "subscribed_ids": subscribed_ids,
-            "form": form,
+            "muted_ids": muted_ids,
+            "feed_form": feed_form,
+            "location_form": location_form,
+            "locations": locations,
         },
     )
 
 
 @login_required
 @require_POST
-def subscribe(request: HttpRequest, feed_id: int) -> HttpResponse:
+def mute_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
     feed = get_object_or_404(Feed, pk=feed_id, is_active=True)
     if feed.owner_id and feed.owner_id != request.user.id:
         messages.error(request, "That feed is private to another user.")
-        return redirect("feeds")
-    Subscription.objects.get_or_create(user=request.user, feed=feed)
-    messages.success(request, f"Subscribed to {feed.title}.")
-    return redirect(request.POST.get("next") or "feeds")
+        return redirect("settings")
+    FeedMute.objects.get_or_create(user=request.user, feed=feed)
+    messages.info(request, f"Muted {feed.title}.")
+    return redirect(request.POST.get("next") or "settings")
 
 
 @login_required
 @require_POST
-def unsubscribe(request: HttpRequest, feed_id: int) -> HttpResponse:
-    Subscription.objects.filter(user=request.user, feed_id=feed_id).delete()
-    messages.info(request, "Unsubscribed.")
-    return redirect(request.POST.get("next") or "feeds")
+def unmute_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
+    FeedMute.objects.filter(user=request.user, feed_id=feed_id).delete()
+    feed = Feed.objects.filter(pk=feed_id).first()
+    messages.success(
+        request, f"Enabled {feed.title}." if feed else "Feed enabled."
+    )
+    return redirect(request.POST.get("next") or "settings")
+
+
+def _request_lang(request: HttpRequest) -> str:
+    return (request.GET.get("lang") or request.LANGUAGE_CODE or "en").strip()
+
+
+@login_required
+def geocode_reverse(request: HttpRequest) -> JsonResponse:
+    """JSON: reverse-geocode lat/lng → place label for the location picker."""
+    try:
+        lat = float(request.GET.get("lat", ""))
+        lng = float(request.GET.get("lng", ""))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "lat and lng required"}, status=400)
+    label = reverse_geocode_label(lat, lng, lang=_request_lang(request))
+    return JsonResponse(
+        {
+            "label": label or f"Near {lat:.2f}, {lng:.2f}",
+            "latitude": lat,
+            "longitude": lng,
+        }
+    )
+
+
+@login_required
+def geocode_search(request: HttpRequest) -> JsonResponse:
+    """JSON: forward-geocode a place query for the location search box."""
+    q = (request.GET.get("q") or "").strip()
+    return JsonResponse(
+        {"results": search_places(q, limit=5, lang=_request_lang(request))}
+    )
+
+
+@login_required
+@require_POST
+def delete_location(request: HttpRequest, location_id: int) -> HttpResponse:
+    deleted, _ = LocationOfInterest.objects.filter(
+        user=request.user, pk=location_id
+    ).delete()
+    if deleted:
+        messages.info(request, "Location removed.")
+    return redirect("settings")
 
 
 @login_required
