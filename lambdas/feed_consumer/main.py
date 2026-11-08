@@ -50,6 +50,25 @@ def _entry_description(entry: Any) -> str:
     return ""
 
 
+def _struct_to_datetime(value: Any) -> datetime | None:
+    """Convert feedparser time.struct_time-like values to aware UTC datetimes."""
+    if not value:
+        return None
+    try:
+        return datetime(*value[:6], tzinfo=timezone.utc)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _entry_published_at(entry: Any) -> datetime:
+    """Prefer RSS/Atom published, then updated/created; last resort ingest time."""
+    for attr in ("published_parsed", "updated_parsed", "created_parsed"):
+        parsed = _struct_to_datetime(getattr(entry, attr, None))
+        if parsed is not None:
+            return parsed
+    return datetime.now(timezone.utc)
+
+
 def collect_feed_items() -> list[FeedItem]:
     """Fetch feed list from the web API and parse each RSS URL."""
     items: list[FeedItem] = []
@@ -60,11 +79,6 @@ def collect_feed_items() -> list[FeedItem]:
         logger.info("Parsing feed %s: %s", feed.id, feed.url)
         parsed = feedparser.parse(feed.url)
         for entry in parsed.entries:
-            published = getattr(entry, "published_parsed", None)
-            if published:
-                date = datetime(*published[:6], tzinfo=timezone.utc)
-            else:
-                date = datetime.now(timezone.utc)
             link = str(getattr(entry, "link", "") or "")
             items.append(
                 FeedItem(
@@ -72,7 +86,7 @@ def collect_feed_items() -> list[FeedItem]:
                     id=str(getattr(entry, "id", None) or link),
                     link=link,
                     thumbnail=_entry_thumbnail(entry),
-                    published_at=date.isoformat(),
+                    published_at=_entry_published_at(entry).isoformat(),
                     title=str(getattr(entry, "title", "") or ""),
                     description=_entry_description(entry),
                 )
