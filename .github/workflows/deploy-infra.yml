@@ -79,7 +79,7 @@ jobs:
           URL="$(cd env/dev/app && terraform output -raw service_url)"
           echo "app_url=$URL" >> "$GITHUB_OUTPUT"
           {
-            echo "### noise-to-signal (CloudFront)"
+            echo "### Dev (CloudFront)"
             echo ""
             echo "**App URL:** $URL"
             echo ""
@@ -91,4 +91,80 @@ jobs:
             cd env/dev/app && terraform output
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice title=App URL (CloudFront)::$URL"
+          echo "::notice title=Dev App URL (CloudFront)::$URL"
+
+  smoke-dev:
+    name: Smoke Dev
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        env:
+          APP_URL: ${{ needs.deploy-dev.outputs.app_url }}
+        run: |
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 5 \
+            "${APP_URL%/}/health"
+
+  deploy-prod:
+    name: Deploy Prod
+    needs: smoke-dev
+    runs-on: ubuntu-latest
+    outputs:
+      app_url: ${{ steps.summary.outputs.app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.3"
+          terraform_wrapper: false
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Apply app stack
+        working-directory: infrastructure
+        run: just apply-app "${{ github.sha }}" prod
+
+      - name: Migrate and seed
+        working-directory: infrastructure
+        run: just setup-remote prod
+
+      - name: Publish App URL
+        id: summary
+        working-directory: infrastructure
+        run: |
+          URL="$(cd env/prod/app && terraform output -raw service_url)"
+          echo "app_url=$URL" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Prod (CloudFront)"
+            echo ""
+            echo "**App URL:** $URL"
+            echo ""
+            echo "Reuses images tagged \`${{ github.sha }}\` from the Dev deploy."
+            echo ""
+            echo '```'
+            cd env/prod/app && terraform output
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Prod App URL (CloudFront)::$URL"
+
+  smoke-prod:
+    name: Smoke Prod
+    needs: deploy-prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        env:
+          APP_URL: ${{ needs.deploy-prod.outputs.app_url }}
+        run: |
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 5 \
+            "${APP_URL%/}/health"

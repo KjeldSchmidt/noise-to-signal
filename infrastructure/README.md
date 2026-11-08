@@ -8,10 +8,16 @@ Django on **Lambda (container image) → Function URL → CloudFront**, image in
 |-------|------|-----------|----------|
 | **shared** | [`env/shared`](env/shared) | `noise-to-signal.shared.tfstate` | ECR + Route 53 (`signal-to-noise.fyi`) + ACM wildcard |
 | **app (dev)** | [`env/dev/app`](env/dev/app) | `noise-to-signal.dev.app.tfstate` | Web Lambda, workers, Function URL, CloudFront, `beta.signal-to-noise.fyi` |
+| **app (prod)** | [`env/prod/app`](env/prod/app) | `noise-to-signal.prod.app.tfstate` | Same shape → apex `signal-to-noise.fyi` |
 
-Environments share ECR + DNS; distinguish releases with **image tags**. Dev public URL: **https://beta.signal-to-noise.fyi/**
+Environments share ECR + DNS; distinguish releases with **image tags**.
 
-Deploy order: **shared → push web + worker images → app**.
+| Env | Public URL |
+|-----|------------|
+| Dev | **https://beta.signal-to-noise.fyi/** |
+| Prod | **https://signal-to-noise.fyi/** |
+
+Deploy order: **shared → push web + worker images → app (dev) → app (prod)** (prod reuses the same image tag).
 
 ## Image tags (one ECR: `noise-to-signal`)
 
@@ -24,7 +30,7 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 
 ## Worker Lambdas
 
-- Module: [`modules/workers`](modules/workers), wired from `env/dev/app`.
+- Module: [`modules/workers`](modules/workers), wired from each `env/<env>/app`.
 - **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
 - **`news_parser`** — SQS (`<project>-<env>-feed-items`); enrich → `POST /api/internal/articles/`.
 - Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN`; web also gets `FEED_ITEMS_QUEUE_URL`.
@@ -69,12 +75,21 @@ just
 | [`modules/workers`](modules/workers) | Per-env worker Lambdas + EventBridge |
 | [`env/shared`](env/shared) | Shared stack root |
 | [`env/dev/app`](env/dev/app) | Dev app → `beta.signal-to-noise.fyi` |
+| [`env/prod/app`](env/prod/app) | Prod app → `signal-to-noise.fyi` |
 
 ## GitHub Actions
 
-[`.github/workflows/deploy-infra.yml`](../.github/workflows/deploy-infra.yml) — OIDC + `just deploy <sha>`.
+[`.github/workflows/deploy-infra.yml`](../.github/workflows/deploy-infra.yml) — OIDC. Job chain:
+
+`deploy-dev` → `smoke-dev` (`GET /health`) → `deploy-prod` (same image SHA, no rebuild) → `smoke-prod` (`GET /health`).
 
 **Repo secret:** `AWS_ROLE_ARN` only.
+
+### First prod apply prerequisites
+
+1. `noise_to_signal_prod` DB exists (`just create-databases`).
+2. Secrets Manager secret `noise-to-signal/prod/google-oauth` exists (`APP_ENV=prod just upsert-google-oauth`).
+3. Google OAuth client allows origin + redirect for `https://signal-to-noise.fyi` (callback `/accounts/google/login/callback/`).
 
 ## State / existing AWS resources
 
