@@ -23,11 +23,23 @@ class CustomFeedForm(forms.Form):
 class LocationOfInterestForm(forms.ModelForm):
     class Meta:
         model = LocationOfInterest
-        fields = ("label", "latitude", "longitude")
+        fields = (
+            "label",
+            "latitude",
+            "longitude",
+            "country_code",
+            "admin1",
+            "locality",
+            "geo_level",
+        )
         widgets = {
             "label": forms.HiddenInput(attrs={"id": "id_location_label"}),
             "latitude": forms.HiddenInput(attrs={"id": "id_location_lat"}),
             "longitude": forms.HiddenInput(attrs={"id": "id_location_lng"}),
+            "country_code": forms.HiddenInput(attrs={"id": "id_location_country"}),
+            "admin1": forms.HiddenInput(attrs={"id": "id_location_admin1"}),
+            "locality": forms.HiddenInput(attrs={"id": "id_location_locality"}),
+            "geo_level": forms.HiddenInput(attrs={"id": "id_location_geo_level"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -35,6 +47,8 @@ class LocationOfInterestForm(forms.ModelForm):
         self.fields["latitude"].required = False
         self.fields["longitude"].required = False
         self.fields["label"].required = True
+        for name in ("country_code", "admin1", "locality", "geo_level"):
+            self.fields[name].required = False
 
 
 class FollowUpAnswerForm(forms.ModelForm):

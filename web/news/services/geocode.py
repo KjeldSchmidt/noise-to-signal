@@ -19,7 +19,6 @@ _DEFAULT_LANG = "en"
 def _normalize_lang(lang: str | None) -> str:
     """Build a Nominatim accept-language preference list ending in English."""
     raw = (lang or "").strip() or _DEFAULT_LANG
-    # Allow "de-DE,de;q=0.9" style — take primary tags only.
     parts: list[str] = []
     for token in raw.replace(";", ",").split(","):
         tag = token.strip().split(";")[0].strip()
@@ -47,37 +46,92 @@ def _nominatim_get(path: str, params: dict[str, str]) -> Any | None:
         return None
 
 
-def _label_from_address(address: dict[str, Any], display_name: str = "") -> str | None:
-    locality = (
+def _locality_from_address(address: dict[str, Any]) -> str:
+    return (
         address.get("city")
         or address.get("town")
         or address.get("village")
         or address.get("municipality")
         or address.get("county")
         or address.get("state_district")
+        or ""
     )
-    region = address.get("state") or address.get("region")
-    country = address.get("country")
 
-    parts = [p for p in (locality, region, country) if p]
+
+def _admin1_from_address(address: dict[str, Any]) -> str:
+    return address.get("state") or address.get("region") or ""
+
+
+def hierarchy_from_address(
+    address: dict[str, Any] | None,
+    display_name: str = "",
+    *,
+    scope_hint: str | None = None,
+) -> dict[str, Any]:
+    """Normalize Nominatim address details into country/admin1/locality + geo_level."""
+    address = address or {}
+    country_code = (address.get("country_code") or "").strip().lower()[:2]
+    admin1 = (_admin1_from_address(address) or "").strip()[:120]
+    locality = (_locality_from_address(address) or "").strip()[:120]
+    country_name = (address.get("country") or "").strip()
+
+    parts = [p for p in (locality, admin1, country_name) if p]
     deduped: list[str] = []
     for part in parts:
         if not deduped or deduped[-1].casefold() != part.casefold():
             deduped.append(part)
-    if deduped:
-        return ", ".join(deduped)[:200]
+    label = ", ".join(deduped)[:200] if deduped else ""
+    if not label:
+        bits = [b.strip() for b in (display_name or "").split(",") if b.strip()]
+        label = ", ".join(bits[:3])[:200]
 
-    display = (display_name or "").strip()
-    if display:
-        bits = [b.strip() for b in display.split(",") if b.strip()]
-        return ", ".join(bits[:3])[:200]
-    return None
+    hint = (scope_hint or "").strip().lower()
+    if hint in {"global"} or not country_code:
+        geo_level = "global"
+    elif hint in {"national", "country"} or (country_code and not admin1 and not locality):
+        geo_level = "country"
+    elif hint in {"regional", "admin1"} or (admin1 and not locality):
+        geo_level = "admin1"
+    elif locality:
+        geo_level = "locality"
+    elif admin1:
+        geo_level = "admin1"
+    elif country_code:
+        geo_level = "country"
+    else:
+        geo_level = "global"
+
+    if geo_level == "global":
+        country_code = ""
+        admin1 = ""
+        locality = ""
+
+    return {
+        "label": label,
+        "country_code": country_code,
+        "admin1": admin1,
+        "locality": locality,
+        "geo_level": geo_level,
+    }
+
+
+def _label_from_address(address: dict[str, Any], display_name: str = "") -> str | None:
+    hier = hierarchy_from_address(address, display_name)
+    return hier["label"] or None
 
 
 def reverse_geocode_label(
     latitude: float, longitude: float, *, lang: str | None = None
 ) -> str | None:
     """Return a short place name (city/region/country) or None on failure."""
+    place = reverse_geocode_place(latitude, longitude, lang=lang)
+    return place["label"] if place else None
+
+
+def reverse_geocode_place(
+    latitude: float, longitude: float, *, lang: str | None = None
+) -> dict[str, Any] | None:
+    """Reverse-geocode to hierarchical place fields + coords."""
     payload = _nominatim_get(
         "reverse",
         {
@@ -91,13 +145,22 @@ def reverse_geocode_label(
     )
     if not isinstance(payload, dict):
         return None
-    return _label_from_address(payload.get("address") or {}, payload.get("display_name") or "")
+    hier = hierarchy_from_address(
+        payload.get("address") or {}, payload.get("display_name") or ""
+    )
+    if not hier["label"] and not hier["country_code"]:
+        return None
+    return {
+        **hier,
+        "latitude": latitude,
+        "longitude": longitude,
+    }
 
 
 def search_places(
-    query: str, *, limit: int = 5, lang: str | None = None
+    query: str, *, limit: int = 5, lang: str | None = None, scope_hint: str | None = None
 ) -> list[dict[str, Any]]:
-    """Forward-geocode a place query into labeled lat/lng hits."""
+    """Forward-geocode a place query into labeled hierarchy + lat/lng hits."""
     q = (query or "").strip()
     if len(q) < 2:
         return []
@@ -121,8 +184,18 @@ def search_places(
             lng = float(hit["lon"])
         except (KeyError, TypeError, ValueError):
             continue
-        label = _label_from_address(hit.get("address") or {}, hit.get("display_name") or "")
-        if not label:
+        hier = hierarchy_from_address(
+            hit.get("address") or {},
+            hit.get("display_name") or "",
+            scope_hint=scope_hint,
+        )
+        if not hier["label"] and not hier["country_code"]:
             continue
-        results.append({"label": label, "latitude": lat, "longitude": lng})
+        results.append(
+            {
+                **hier,
+                "latitude": lat,
+                "longitude": lng,
+            }
+        )
     return results

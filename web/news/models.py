@@ -5,6 +5,13 @@ from pgvector.django import VectorField
 EMBEDDING_DIMENSIONS = 1024
 
 
+class GeoLevel(models.TextChoices):
+    GLOBAL = "global", "Global"
+    COUNTRY = "country", "Country"
+    ADMIN1 = "admin1", "Region / state"
+    LOCALITY = "locality", "City / locality"
+
+
 class Feed(models.Model):
     class SourceKind(models.TextChoices):
         CURATED = "curated", "Curated catalog"
@@ -86,6 +93,21 @@ class FeedMute(models.Model):
         return f"{self.user} muted {self.feed}"
 
 
+class Theme(models.Model):
+    """Curated allowlist of article themes (not freestyle tags)."""
+
+    slug = models.SlugField(max_length=64, unique=True)
+    label = models.CharField(max_length=120)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sort_order", "slug"]
+
+    def __str__(self) -> str:
+        return self.label
+
+
 class LocationOfInterest(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -95,6 +117,15 @@ class LocationOfInterest(models.Model):
     label = models.CharField(max_length=200)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    country_code = models.CharField(max_length=2, blank=True, db_index=True)
+    admin1 = models.CharField(max_length=120, blank=True, db_index=True)
+    locality = models.CharField(max_length=120, blank=True, db_index=True)
+    geo_level = models.CharField(
+        max_length=20,
+        choices=GeoLevel.choices,
+        default=GeoLevel.LOCALITY,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -149,6 +180,20 @@ class Article(models.Model):
         on_delete=models.SET_NULL,
         related_name="near_duplicates",
     )
+    geo_level = models.CharField(
+        max_length=20,
+        choices=GeoLevel.choices,
+        default=GeoLevel.GLOBAL,
+        db_index=True,
+    )
+    place_label = models.CharField(max_length=200, blank=True)
+    country_code = models.CharField(max_length=2, blank=True, db_index=True)
+    admin1 = models.CharField(max_length=120, blank=True, db_index=True)
+    locality = models.CharField(max_length=120, blank=True, db_index=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    geo_confidence = models.FloatField(null=True, blank=True)
+    themes = models.ManyToManyField(Theme, blank=True, related_name="articles")
 
     class Meta:
         ordering = ["-published_at"]

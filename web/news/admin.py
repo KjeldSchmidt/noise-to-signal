@@ -9,6 +9,7 @@ from news.models import (
     LocationOfInterest,
     RelevanceFeedback,
     StoryThread,
+    Theme,
     Subscription,
 )
 
@@ -32,10 +33,29 @@ class FeedMuteAdmin(admin.ModelAdmin):
     list_filter = ("feed",)
 
 
+@admin.register(Theme)
+class ThemeAdmin(admin.ModelAdmin):
+    list_display = ("slug", "label", "sort_order", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("slug", "label")
+    prepopulated_fields = {"slug": ("label",)}
+
+
 @admin.register(LocationOfInterest)
 class LocationOfInterestAdmin(admin.ModelAdmin):
-    list_display = ("label", "user", "latitude", "longitude", "created_at")
-    search_fields = ("label",)
+    list_display = (
+        "label",
+        "user",
+        "geo_level",
+        "country_code",
+        "admin1",
+        "locality",
+        "latitude",
+        "longitude",
+        "created_at",
+    )
+    list_filter = ("geo_level", "country_code")
+    search_fields = ("label", "admin1", "locality")
 
 
 @admin.register(StoryThread)
@@ -50,11 +70,14 @@ class ArticleAdmin(admin.ModelAdmin):
         "title",
         "feed",
         "published_at",
+        "geo_level",
+        "place_label",
         "story_thread",
         "embedding_model",
     )
-    list_filter = ("feed", "embedding_model")
-    search_fields = ("title", "summary")
+    list_filter = ("feed", "geo_level", "embedding_model")
+    search_fields = ("title", "summary", "place_label")
+    filter_horizontal = ("themes",)
     raw_id_fields = ("story_thread", "near_duplicate_of")
 
 

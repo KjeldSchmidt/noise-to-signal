@@ -7,6 +7,10 @@
   const labelInput = document.getElementById("id_location_label");
   const latInput = document.getElementById("id_location_lat");
   const lngInput = document.getElementById("id_location_lng");
+  const countryInput = document.getElementById("id_location_country");
+  const admin1Input = document.getElementById("id_location_admin1");
+  const localityInput = document.getElementById("id_location_locality");
+  const geoLevelInput = document.getElementById("id_location_geo_level");
   const searchInput = document.getElementById("location-search");
   const suggestions = document.getElementById("location-suggestions");
   const status = document.getElementById("geo-status");
@@ -44,6 +48,10 @@
     if (labelInput) labelInput.value = "";
     if (latInput) latInput.value = "";
     if (lngInput) lngInput.value = "";
+    if (countryInput) countryInput.value = "";
+    if (admin1Input) admin1Input.value = "";
+    if (localityInput) localityInput.value = "";
+    if (geoLevelInput) geoLevelInput.value = "";
     syncAddEnabled();
   }
 
@@ -52,6 +60,10 @@
     if (labelInput) labelInput.value = hit.label || "";
     if (latInput) latInput.value = hit.latitude != null ? String(hit.latitude) : "";
     if (lngInput) lngInput.value = hit.longitude != null ? String(hit.longitude) : "";
+    if (countryInput) countryInput.value = hit.country_code || "";
+    if (admin1Input) admin1Input.value = hit.admin1 || "";
+    if (localityInput) localityInput.value = hit.locality || "";
+    if (geoLevelInput) geoLevelInput.value = hit.geo_level || "locality";
     if (searchInput) searchInput.value = hit.label || "";
     syncAddEnabled();
   }
@@ -155,11 +167,7 @@
             .then(function (data) {
               useBtn.disabled = false;
               setStatus("");
-              selectPlace({
-                label: data.label,
-                latitude: data.latitude,
-                longitude: data.longitude,
-              });
+              selectPlace(data);
             })
             .catch(function (err) {
               useBtn.disabled = false;
@@ -170,6 +178,10 @@
                   "Near " + Number(lat).toFixed(2) + ", " + Number(lng).toFixed(2),
                 latitude: lat,
                 longitude: lng,
+                country_code: "",
+                admin1: "",
+                locality: "",
+                geo_level: "locality",
               });
             });
         },

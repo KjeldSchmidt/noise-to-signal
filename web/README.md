@@ -59,6 +59,8 @@ DATABASE_SSL=true
 
 Article embeddings need **Postgres + pgvector** (`CREATE EXTENSION vector`). Local SQLite can run the schema for smoke tests but production similarity/thread assignment targets RDS.
 
+Articles also store hierarchical place fields + curated **Theme** M2M (seeded in migration `0005`). Workers call `GET /api/internal/themes/` and `POST /api/internal/geocode/search/`; LOI settings persist the same country/admin1/locality path for containment matching (`news.services.places.places_match`).
+
 ## Deploy on AWS (Lambda container + shared RDS)
 
 See [`../infrastructure/README.md`](../infrastructure/README.md).

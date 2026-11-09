@@ -17,11 +17,17 @@ from n2s_api import (
     FeedItemIngestRequest,
     FeedItemIngestResponse,
     FeedListResponse,
+    GeocodePlace,
+    GeocodeSearchRequest,
+    GeocodeSearchResponse,
+    ThemeDTO,
+    ThemeListResponse,
 )
 from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
-from news.models import Article, Feed
+from news.models import Article, Feed, GeoLevel, Theme
+from news.services.geocode import search_places
 from news.services.threading import assign_story_thread
 from news.sqs import enqueue_feed_items
 
@@ -49,6 +55,57 @@ def list_feeds(request: HttpRequest) -> JsonResponse:
                 is_active=feed.is_active,
             )
             for feed in Feed.objects.order_by("id")
+        ]
+    )
+    return JsonResponse(payload.model_dump())
+
+
+@csrf_exempt
+@require_GET
+@require_internal_token
+def list_themes(request: HttpRequest) -> JsonResponse:
+    """Active theme allowlist for news_parser enrichment prompts."""
+    payload = ThemeListResponse(
+        themes=[
+            ThemeDTO(slug=t.slug, label=t.label)
+            for t in Theme.objects.filter(is_active=True).order_by("sort_order", "slug")
+        ]
+    )
+    return JsonResponse(payload.model_dump())
+
+
+@csrf_exempt
+@require_POST
+@require_internal_token
+def geocode_search(request: HttpRequest) -> JsonResponse:
+    """Forward-geocode for workers (Nominatim hierarchy + coords)."""
+    try:
+        dto = GeocodeSearchRequest.model_validate_json(
+            request.body.decode("utf-8") or "{}"
+        )
+    except ValidationError as exc:
+        return JsonResponse(
+            {"error": "invalid geocode request", "detail": _validation_detail(exc)},
+            status=400,
+        )
+    hits = search_places(
+        dto.q,
+        limit=dto.limit,
+        lang=dto.lang or "en",
+        scope_hint=dto.scope_hint or None,
+    )
+    payload = GeocodeSearchResponse(
+        results=[
+            GeocodePlace(
+                label=h["label"],
+                latitude=h["latitude"],
+                longitude=h["longitude"],
+                country_code=h.get("country_code") or "",
+                admin1=h.get("admin1") or "",
+                locality=h.get("locality") or "",
+                geo_level=h.get("geo_level") or GeoLevel.LOCALITY,
+            )
+            for h in hits
         ]
     )
     return JsonResponse(payload.model_dump())
@@ -142,6 +199,14 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
         "title": dto.title[:300],
         "summary": dto.summary,
         "published_at": _parse_published_at(dto.published_at),
+        "geo_level": dto.geo_level or GeoLevel.GLOBAL,
+        "place_label": (dto.place_label or "")[:200],
+        "country_code": (dto.country_code or "")[:2],
+        "admin1": (dto.admin1 or "")[:120],
+        "locality": (dto.locality or "")[:120],
+        "latitude": dto.latitude,
+        "longitude": dto.longitude,
+        "geo_confidence": dto.geo_confidence,
     }
     if dto.image_url:
         defaults["image_url"] = dto.image_url[:1000]
@@ -154,6 +219,11 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
         url=dto.url,
         defaults=defaults,
     )
+    if dto.theme_slugs:
+        themes = Theme.objects.filter(is_active=True, slug__in=dto.theme_slugs)
+        article.themes.set(themes)
+    else:
+        article.themes.clear()
     if dto.embedding is not None:
         article = assign_story_thread(article)
     return JsonResponse(

@@ -7,6 +7,11 @@ from n2s_api.items import (
     FeedItem,
     FeedItemIngestRequest,
     FeedItemIngestResponse,
+    GeocodePlace,
+    GeocodeSearchRequest,
+    GeocodeSearchResponse,
+    ThemeDTO,
+    ThemeListResponse,
 )
 
 __all__ = [
@@ -17,4 +22,9 @@ __all__ = [
     "FeedItemIngestRequest",
     "FeedItemIngestResponse",
     "FeedListResponse",
+    "GeocodePlace",
+    "GeocodeSearchRequest",
+    "GeocodeSearchResponse",
+    "ThemeDTO",
+    "ThemeListResponse",
 ]

@@ -100,11 +100,19 @@ data "aws_region" "current" {}
 
 data "aws_iam_policy_document" "bedrock_invoke" {
   statement {
-    actions = ["bedrock:InvokeModel"]
+    actions = [
+      "bedrock:InvokeModel",
+      "bedrock:InvokeModelWithResponseStream",
+      "bedrock:Converse",
+      "bedrock:ConverseStream",
+    ]
     resources = [
       "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/cohere.embed-multilingual-v3",
       "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/cohere.embed-multilingual-v3",
       "arn:aws:bedrock:*::foundation-model/cohere.embed-multilingual-v3",
+      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/amazon.nova-micro-v1:0",
+      "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/amazon.nova-micro-v1:0",
+      "arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0",
     ]
   }
 }
@@ -139,7 +147,8 @@ resource "aws_lambda_function" "worker" {
         INTERNAL_API_TOKEN = local.app_secret.INTERNAL_API_TOKEN
       },
       try(each.value.invoke_bedrock, false) ? {
-        BEDROCK_REGION = var.bedrock_region != "" ? var.bedrock_region : data.aws_region.current.name
+        BEDROCK_REGION           = var.bedrock_region != "" ? var.bedrock_region : data.aws_region.current.name
+        BEDROCK_EXTRACT_MODEL_ID = "amazon.nova-micro-v1:0"
       } : {},
     )
   }

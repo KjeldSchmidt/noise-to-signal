@@ -46,6 +46,15 @@ class ArticleUpsert(BaseModel):
     image_url: str = ""
     embedding: list[float] | None = None
     embedding_model: str = ""
+    geo_level: str = "global"
+    place_label: str = ""
+    country_code: str = ""
+    admin1: str = ""
+    locality: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+    geo_confidence: float | None = None
+    theme_slugs: list[str] = Field(default_factory=list)
 
     @field_validator("embedding")
     @classmethod
@@ -56,6 +65,18 @@ class ArticleUpsert(BaseModel):
             raise ValueError("embedding must have exactly 1024 dimensions")
         return value
 
+    @field_validator("country_code")
+    @classmethod
+    def _country_code(cls, value: str) -> str:
+        return (value or "").strip().lower()[:2]
+
+    @field_validator("geo_level")
+    @classmethod
+    def _geo_level(cls, value: str) -> str:
+        allowed = {"global", "country", "admin1", "locality"}
+        v = (value or "global").strip().lower()
+        return v if v in allowed else "global"
+
 
 class ArticleUpsertResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -63,3 +84,43 @@ class ArticleUpsertResponse(BaseModel):
     created: bool
     article_id: int
     story_thread_id: int | None = None
+
+
+class ThemeDTO(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    slug: str
+    label: str
+
+
+class ThemeListResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    themes: list[ThemeDTO] = Field(default_factory=list)
+
+
+class GeocodeSearchRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    q: str
+    limit: int = 5
+    lang: str = "en"
+    scope_hint: str = ""
+
+
+class GeocodePlace(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    label: str
+    latitude: float
+    longitude: float
+    country_code: str = ""
+    admin1: str = ""
+    locality: str = ""
+    geo_level: str = "locality"
+
+
+class GeocodeSearchResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    results: list[GeocodePlace] = Field(default_factory=list)

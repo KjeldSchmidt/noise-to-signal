@@ -23,7 +23,7 @@ from news.services import (
     rank_items,
     recommend_feeds,
 )
-from news.services.geocode import reverse_geocode_label, search_places
+from news.services.geocode import reverse_geocode_place, search_places
 
 
 def landing(request: HttpRequest) -> HttpResponse:
@@ -91,6 +91,28 @@ def settings_page(request: HttpRequest) -> HttpResponse:
     custom = Feed.objects.filter(owner=request.user, is_active=True)
     recommended = recommend_feeds(request.user)
     locations = LocationOfInterest.objects.filter(user=request.user)
+    # One-time hierarchy backfill for LOIs that only have coords/label.
+    for loc in locations:
+        if loc.country_code or loc.latitude is None or loc.longitude is None:
+            continue
+        place = reverse_geocode_place(loc.latitude, loc.longitude)
+        if not place:
+            continue
+        loc.country_code = place.get("country_code") or ""
+        loc.admin1 = place.get("admin1") or ""
+        loc.locality = place.get("locality") or ""
+        loc.geo_level = place.get("geo_level") or loc.geo_level
+        if place.get("label"):
+            loc.label = place["label"]
+        loc.save(
+            update_fields=[
+                "country_code",
+                "admin1",
+                "locality",
+                "geo_level",
+                "label",
+            ]
+        )
     feed_form = CustomFeedForm()
     location_form = LocationOfInterestForm()
 
@@ -114,12 +136,17 @@ def settings_page(request: HttpRequest) -> HttpResponse:
         if location_form.is_valid():
             loc = location_form.save(commit=False)
             loc.user = request.user
-            if loc.latitude is None or loc.longitude is None:
+            if loc.latitude is None or loc.longitude is None or not loc.country_code:
                 hits = search_places(loc.label, limit=1)
                 if hits:
-                    loc.latitude = hits[0]["latitude"]
-                    loc.longitude = hits[0]["longitude"]
-                    loc.label = hits[0]["label"]
+                    hit = hits[0]
+                    loc.latitude = hit["latitude"]
+                    loc.longitude = hit["longitude"]
+                    loc.label = hit["label"]
+                    loc.country_code = hit.get("country_code") or ""
+                    loc.admin1 = hit.get("admin1") or ""
+                    loc.locality = hit.get("locality") or ""
+                    loc.geo_level = hit.get("geo_level") or loc.geo_level
             loc.save()
             messages.success(request, f"Added location “{loc.label}”.")
             return redirect("settings")
@@ -168,20 +195,26 @@ def _request_lang(request: HttpRequest) -> str:
 
 @login_required
 def geocode_reverse(request: HttpRequest) -> JsonResponse:
-    """JSON: reverse-geocode lat/lng → place label for the location picker."""
+    """JSON: reverse-geocode lat/lng → hierarchical place for the location picker."""
     try:
         lat = float(request.GET.get("lat", ""))
         lng = float(request.GET.get("lng", ""))
     except (TypeError, ValueError):
         return JsonResponse({"error": "lat and lng required"}, status=400)
-    label = reverse_geocode_label(lat, lng, lang=_request_lang(request))
-    return JsonResponse(
-        {
-            "label": label or f"Near {lat:.2f}, {lng:.2f}",
-            "latitude": lat,
-            "longitude": lng,
-        }
-    )
+    place = reverse_geocode_place(lat, lng, lang=_request_lang(request))
+    if not place:
+        return JsonResponse(
+            {
+                "label": f"Near {lat:.2f}, {lng:.2f}",
+                "latitude": lat,
+                "longitude": lng,
+                "country_code": "",
+                "admin1": "",
+                "locality": "",
+                "geo_level": "locality",
+            }
+        )
+    return JsonResponse(place)
 
 
 @login_required
