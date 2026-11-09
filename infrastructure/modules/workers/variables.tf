@@ -37,6 +37,7 @@ variable "workers" {
     schedule_expression  = optional(string)
     subscribe_feed_items = optional(bool, false)
     invoke_bedrock       = optional(bool, false)
+    langsmith_agent_id   = optional(string)
     memory_size          = optional(number, 512)
     timeout              = optional(number, 60)
   }))
@@ -47,4 +48,16 @@ variable "bedrock_region" {
   type        = string
   default     = ""
   description = "Optional Bedrock region override (defaults to the Lambda AWS region)."
+}
+
+variable "langsmith_secret_name" {
+  type        = string
+  default     = ""
+  description = "Secrets Manager name for LangSmith API key JSON. Empty → {project}/{environment}/langsmith"
+}
+
+variable "langsmith_endpoint" {
+  type        = string
+  default     = "https://eu.api.smith.langchain.com"
+  description = "LangSmith API endpoint (EU by default)."
 }

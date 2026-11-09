@@ -18,6 +18,30 @@ locals {
     Environment = var.environment
   }
   app_secret = jsondecode(data.aws_secretsmanager_secret_version.app.secret_string)
+
+  langsmith_secret_name = var.langsmith_secret_name != "" ? var.langsmith_secret_name : "${var.project}/${var.environment}/langsmith"
+  langsmith_workers = {
+    for name, cfg in var.workers : name => cfg
+    if try(cfg.langsmith_agent_id, null) != null && cfg.langsmith_agent_id != ""
+  }
+  langsmith_enabled = length(local.langsmith_workers) > 0
+
+  # Map stack env → LangSmith agent environment
+  langsmith_agent_environment = var.environment == "prod" ? "production" : "development"
+}
+
+data "aws_secretsmanager_secret" "langsmith" {
+  count = local.langsmith_enabled ? 1 : 0
+  name  = local.langsmith_secret_name
+}
+
+data "aws_secretsmanager_secret_version" "langsmith" {
+  count     = local.langsmith_enabled ? 1 : 0
+  secret_id = data.aws_secretsmanager_secret.langsmith[0].id
+}
+
+locals {
+  langsmith_secret = local.langsmith_enabled ? jsondecode(data.aws_secretsmanager_secret_version.langsmith[0].secret_string) : {}
 }
 
 data "aws_iam_policy_document" "assume" {
@@ -149,6 +173,13 @@ resource "aws_lambda_function" "worker" {
       try(each.value.invoke_bedrock, false) ? {
         BEDROCK_REGION           = var.bedrock_region != "" ? var.bedrock_region : data.aws_region.current.name
         BEDROCK_EXTRACT_MODEL_ID = "amazon.nova-micro-v1:0"
+      } : {},
+      try(each.value.langsmith_agent_id, null) != null && each.value.langsmith_agent_id != "" ? {
+        LANGSMITH_TRACING           = "true"
+        LANGSMITH_ENDPOINT          = var.langsmith_endpoint
+        LANGSMITH_API_KEY           = local.langsmith_secret.LANGSMITH_API_KEY
+        LANGSMITH_AGENT_ID          = each.value.langsmith_agent_id
+        LANGSMITH_AGENT_ENVIRONMENT = local.langsmith_agent_environment
       } : {},
     )
   }

@@ -67,6 +67,7 @@ module "workers" {
     news_parser = {
       subscribe_feed_items = true
       invoke_bedrock       = true
+      langsmith_agent_id   = "news-parser"
       memory_size          = 512
       timeout              = 120
     }

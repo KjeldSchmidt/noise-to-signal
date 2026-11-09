@@ -1,23 +1,42 @@
 # news_parser
 
-SQS-triggered worker: receives `FeedItem` messages, enriches them, upserts `Article` via Django `POST /api/internal/articles/`.
+SQS-triggered worker: receives `FeedItem` messages, enriches them via a **LangGraph** pipeline, upserts `Article` via Django `POST /api/internal/articles/`.
 
-## Enrichment
+## Enrichment graph
 
-1. Normalize `title` / `summary` to plain text (unescape HTML, strip tags, collapse whitespace).
-2. Embed `title + summary` with **Cohere Embed Multilingual v3** on Bedrock (`cohere.embed-multilingual-v3`, `input_type=clustering`).
-3. Structured place + theme extract via Bedrock Converse (`amazon.nova-micro-v1:0` by default): `geo_scope`, place query, allowlisted `theme_slugs`.
-4. If not global and confidence is high enough → `POST /api/internal/geocode/search/` (Nominatim hierarchy: country / admin1 / locality + coords). Geo failures fall back to `geo_level=global` (article + embedding still upsert).
-5. Upsert article + embedding + place + themes; the web API assigns **near-dup** / **story thread** links and validates theme slugs against the curated `Theme` catalog.
+```
+START → normalize → embed ∥ extract_place → upsert → END
+```
 
-No article-body scraping in this phase (RSS text only). Embedding / hard failures report SQS `batchItemFailures` so the message retries; geo/theme extract soft-fails.
+`embed` and `extract_place` fan out from `normalize` and run in the same LangGraph superstep (concurrently). `upsert` waits for both.
+
+1. **normalize** — plain-text `title` / `summary` (unescape HTML, strip tags, collapse whitespace).
+2. **embed** — Cohere Embed Multilingual v3 on Bedrock (`cohere.embed-multilingual-v3`, `input_type=clustering`).
+3. **extract_place** — Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, allowlisted `theme_slugs`; optional `POST /api/internal/geocode/search/`. Soft-fails → `geo_level=global`.
+4. **upsert** — article + embedding + place + themes; web API assigns near-dup / story thread links.
+
+No article-body scraping in this phase (RSS text only). Embedding / hard failures report SQS `batchItemFailures`; geo/theme soft-fails.
+
+## LangSmith
+
+When `langsmith_agent_id` is set on the worker in Terraform, Lambda gets agent-based tracing:
+
+| Variable | Source |
+|----------|--------|
+| `LANGSMITH_API_KEY` | Secrets Manager `noise-to-signal/<env>/langsmith` (via `just upsert-langsmith`) |
+| `LANGSMITH_TRACING` | `true` |
+| `LANGSMITH_ENDPOINT` | EU endpoint by default |
+| `LANGSMITH_AGENT_ID` | Worker config (`news-parser`) |
+| `LANGSMITH_AGENT_ENVIRONMENT` | `development` (dev) / `production` (prod) |
+
+Do **not** set `LANGSMITH_PROJECT` on this process (conflicts with agent addressing). Create the LangSmith agent `news-parser` once in the UI before expecting traces.
 
 ## Prerequisites
 
-- Bedrock model access for `cohere.embed-multilingual-v3` and the extract model (default Nova Micro) in the worker region (or set `BEDROCK_REGION`).
-- IAM invoke/converse on those models (Terraform: `invoke_bedrock = true` on the worker).
-- Postgres with `pgvector` (`CREATE EXTENSION vector`) on the web DB.
-- Migrated theme seed (`0005_article_place_themes`).
+- Bedrock model access for `cohere.embed-multilingual-v3` and the extract model (default Nova Micro).
+- IAM invoke/converse on those models (Terraform: `invoke_bedrock = true`).
+- Postgres with `pgvector`; migrated theme seed (`0005_article_place_themes`).
+- LangSmith secret upserted before app apply if tracing is enabled: `APP_ENV=dev just upsert-langsmith`.
 
 ## Env
 
@@ -27,6 +46,7 @@ No article-body scraping in this phase (RSS text only). Embedding / hard failure
 | `INTERNAL_API_TOKEN` | Bearer for `/api/internal/*` |
 | `BEDROCK_REGION` | Optional Bedrock region override |
 | `BEDROCK_EXTRACT_MODEL_ID` | Optional; default `amazon.nova-micro-v1:0` |
+| `LANGSMITH_*` | See LangSmith section (when enabled) |
 
 ## Place matching vs `LocationOfInterest`
 

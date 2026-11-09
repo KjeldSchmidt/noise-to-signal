@@ -32,8 +32,8 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 
 - Module: [`modules/workers`](modules/workers), wired from each `env/<env>/app`.
 - **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
-- **`news_parser`** — SQS (`<project>-<env>-feed-items`); Bedrock embed + place/theme extract → geocode via internal API → `POST /api/internal/articles/` (thread assignment on the web).
-- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / `BEDROCK_EXTRACT_MODEL_ID` when `invoke_bedrock`); web also gets `FEED_ITEMS_QUEUE_URL`.
+- **`news_parser`** — SQS (`<project>-<env>-feed-items`); LangGraph enrich (`normalize` → `embed` ∥ `extract_place` → `upsert`) → `POST /api/internal/articles/` (thread assignment on the web).
+- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / `BEDROCK_EXTRACT_MODEL_ID` when `invoke_bedrock`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL`.
 - Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
 
 ## pgvector + Bedrock (embeddings + place/themes)
@@ -76,6 +76,18 @@ CREATE DATABASE noise_to_signal_prod;
 
 Terraform generates `INTERNAL_API_TOKEN` into the per-env app secret (`noise-to-signal/<env>/app`) and injects it into the web Lambda and worker Lambdas. Workers call `https://<public-host>/api/internal/...` with `Authorization: Bearer <token>`.
 
+## LangSmith (worker tracing)
+
+Workers with `langsmith_agent_id` (e.g. `news_parser` → `news-parser`) get agent-based LangSmith tracing. The API key lives in Secrets Manager `noise-to-signal/<env>/langsmith` (JSON `LANGSMITH_API_KEY`), upserted from root `.env`:
+
+```bash
+cd infrastructure
+APP_ENV=dev just upsert-langsmith
+# APP_ENV=prod just upsert-langsmith
+```
+
+Terraform injects `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_ENDPOINT`, `LANGSMITH_AGENT_ID`, and `LANGSMITH_AGENT_ENVIRONMENT` (`development` / `production`). Do not set `LANGSMITH_PROJECT` on those Lambdas. Create each agent once in the LangSmith UI before deploy.
+
 ## Prerequisites
 
 - WSL + AWS SSO: `AWS_PROFILE=AdministratorAccess-465836752303`
@@ -115,7 +127,9 @@ Dev/prod are the same reusable workflow ([`deploy-env.yml`](../.github/workflows
 
 1. `noise_to_signal_prod` DB exists (`just create-databases`).
 2. Secrets Manager secret `noise-to-signal/prod/google-oauth` exists (`APP_ENV=prod just upsert-google-oauth`).
-3. Google OAuth client allows origin + redirect for `https://noise-to-signal.fyi` (callback `/accounts/google/login/callback/`).
+3. Secrets Manager secret `noise-to-signal/prod/langsmith` exists (`APP_ENV=prod just upsert-langsmith`) before workers apply with `langsmith_agent_id`.
+4. Google OAuth client allows origin + redirect for `https://noise-to-signal.fyi` (callback `/accounts/google/login/callback/`).
+5. LangSmith agent `news-parser` exists in the workspace.
 
 ## State / existing AWS resources
 

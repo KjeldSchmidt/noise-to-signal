@@ -133,6 +133,10 @@ create-databases:
 upsert-google-oauth:
     python3 scripts/upsert_google_oauth_secret.py
 
+# Push LANGSMITH_API_KEY from root .env → Secrets Manager noise-to-signal/<APP_ENV>/langsmith
+upsert-langsmith:
+    python3 scripts/upsert_langsmith_secret.py
+
 manage *args:
     #!/usr/bin/env bash
     set -euo pipefail
