@@ -212,12 +212,43 @@ h1, h2, h3 {
 
 .item-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
 
+.brief-toast-host {
+  width: min(880px, calc(100% - 2rem));
+  margin: 0 auto 0.75rem;
+  min-height: 0;
+}
+
+.brief-toast {
+  background: #dff0e4;
+  border: 1px solid #b7d8c2;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  animation: brief-toast-in 0.2s ease;
+}
+
+.brief-toast.error {
+  background: #f7e2de;
+  border-color: #e3b5ad;
+}
+
+@keyframes brief-toast-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .item {
   background: rgba(255, 253, 248, 0.92);
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 1.15rem 1.25rem;
   box-shadow: var(--shadow);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.item.is-leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
 }
 
 .item h2 { margin: 0.35rem 0 0.5rem; font-size: 1.35rem; }

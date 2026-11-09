@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Daily brief{% endblock %}
 {% block content %}
 <section class="page-head">
@@ -9,6 +10,8 @@
     Real LangGraph scoring will replace this later.
   </p>
 </section>
+
+<div class="brief-toast-host" data-brief-toast aria-live="polite"></div>
 
 {% if pending_question %}
 <aside class="callout">
@@ -29,7 +32,13 @@
   <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
 </div>
 {% else %}
-<ul class="item-list">
+<template id="brief-empty-template">
+  <div class="empty">
+    <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
+    <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
+  </div>
+</template>
+<ul class="item-list" data-brief-list>
   {% for item in ranked %}
   <li class="item">
     <div class="item-meta">
@@ -43,12 +52,17 @@
     {% endif %}
     <form method="post" action="{% url 'feedback' item.article.id %}" class="feedback-row">
       {% csrf_token %}
-      <button name="verdict" value="relevant" class="btn small yes">Relevant</button>
-      <button name="verdict" value="not_relevant" class="btn small no">Not for me</button>
-      <button name="verdict" value="skip" class="btn small ghost">Skip</button>
+      <button type="submit" name="verdict" value="relevant" class="btn small yes">Relevant</button>
+      <button type="submit" name="verdict" value="not_relevant" class="btn small no">Not for me</button>
+      <button type="submit" name="verdict" value="skip" class="btn small ghost">Skip</button>
     </form>
   </li>
   {% endfor %}
 </ul>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+{% if ranked %}
+<script src="{% static 'js/brief-feedback.js' %}" defer></script>
 {% endif %}
 {% endblock %}

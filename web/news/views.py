@@ -210,7 +210,13 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
     article = get_object_or_404(Article, pk=article_id)
     verdict = request.POST.get("verdict")
     allowed = {c.value for c in RelevanceFeedback.Verdict}
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
     if verdict not in allowed:
+        if wants_json:
+            return JsonResponse({"ok": False, "error": "Unknown feedback action."}, status=400)
         messages.error(request, "Unknown feedback action.")
         return redirect("brief")
 
@@ -224,7 +230,12 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
         RelevanceFeedback.Verdict.NOT_RELEVANT: "Marked as not relevant",
         RelevanceFeedback.Verdict.SKIP: "Skipped",
     }
-    messages.success(request, labels[verdict])
+    message = labels[verdict]
+    if wants_json:
+        return JsonResponse(
+            {"ok": True, "verdict": verdict, "message": message, "article_id": article.id}
+        )
+    messages.success(request, message)
     return redirect("brief")
 
 
