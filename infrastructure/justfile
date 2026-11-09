@@ -138,7 +138,10 @@ manage *args:
     set -euo pipefail
     env="${DEPLOY_ENV:-dev}"
     tf_dir="{{justfile_directory()}}/env/${env}/app"
-    fn="$(cd "$tf_dir" && terraform output -raw function_name)"
+    pushd "$tf_dir" >/dev/null
+    terraform init -reconfigure -input=false >/dev/null
+    fn="$(terraform output -raw function_name)"
+    popd >/dev/null
     payload="$(python3 -c 'import json,sys; print(json.dumps({"manage": sys.argv[1:]}))' {{args}})"
     out="$(mktemp)"
     aws lambda invoke \
@@ -161,7 +164,10 @@ push-image tag="latest":
     root="$(cd "{{justfile_directory()}}/.." && pwd)"
     tf_dir="{{justfile_directory()}}/env/shared"
     aws_region="${AWS_REGION:-eu-central-1}"
-    repo="$(cd "$tf_dir" && terraform output -raw ecr_repository_url)"
+    pushd "$tf_dir" >/dev/null
+    terraform init -reconfigure -input=false >/dev/null
+    repo="$(terraform output -raw ecr_repository_url)"
+    popd >/dev/null
 
     aws_cli=(aws)
     if [[ -n "${AWS_PROFILE:-}" ]]; then
@@ -198,7 +204,11 @@ push-lambda name tag="latest":
     aws_region="${AWS_REGION:-eu-central-1}"
     name="{{name}}"
     tag="{{tag}}"
-    repo="$(cd "$tf_dir" && terraform output -raw ecr_repository_url)"
+    pushd "$tf_dir" >/dev/null
+    terraform init -reconfigure -input=false >/dev/null
+    repo="$(terraform output -raw ecr_repository_url)"
+    popd >/dev/null
+
 
     if [[ ! -f "$root/lambdas/${name}/pyproject.toml" ]]; then
       echo "Missing lambdas/${name}/pyproject.toml" >&2
