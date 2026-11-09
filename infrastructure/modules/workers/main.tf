@@ -139,6 +139,15 @@ data "aws_iam_policy_document" "bedrock_invoke" {
       "arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0",
     ]
   }
+
+  # Third-party Bedrock models (e.g. Cohere) auto-subscribe via Marketplace on first invoke.
+  statement {
+    actions = [
+      "aws-marketplace:ViewSubscriptions",
+      "aws-marketplace:Subscribe",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "bedrock_invoke" {
