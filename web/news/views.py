@@ -15,7 +15,14 @@ from news.models import (
     LocationOfInterest,
     RelevanceFeedback,
 )
-from news.services import catalog_feeds, enabled_feed_ids, next_questions, rank_items, recommend_feeds
+from news.services import (
+    catalog_feed_ids,
+    catalog_feeds,
+    enabled_feed_ids,
+    next_questions,
+    rank_items,
+    recommend_feeds,
+)
 from news.services.geocode import reverse_geocode_label, search_places
 
 
@@ -53,9 +60,12 @@ def brief(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
 def stories(request: HttpRequest) -> HttpResponse:
-    feed_ids = enabled_feed_ids(request.user)
+    """Non-personalized catalog for guests; enabled feeds (mutes/custom) when signed in."""
+    personalized = request.user.is_authenticated
+    feed_ids = (
+        enabled_feed_ids(request.user) if personalized else catalog_feed_ids()
+    )
     articles = (
         Article.objects.filter(feed_id__in=feed_ids)
         .select_related("feed")
@@ -64,7 +74,11 @@ def stories(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "news/stories.html",
-        {"articles": articles, "feed_count": len(feed_ids)},
+        {
+            "articles": articles,
+            "feed_count": len(feed_ids),
+            "personalized": personalized,
+        },
     )
 
 

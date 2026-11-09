@@ -56,14 +56,6 @@ FEEDS = [
         "kind": Feed.SourceKind.CURATED,
     },
     {
-        "title": "Hacker News Front Page",
-        "url": "https://hnrss.org/frontpage",
-        "site_url": "https://news.ycombinator.com",
-        "category": "Tech",
-        "description": "What builders are upvoting today.",
-        "kind": Feed.SourceKind.RECOMMENDED,
-    },
-    {
         "title": "Associated Press Top News",
         "url": "https://rsshub.app/apnews/topics/apf-topnews",
         "site_url": "https://apnews.com",
@@ -72,6 +64,11 @@ FEEDS = [
         "kind": Feed.SourceKind.RECOMMENDED,
     },
 ]
+
+# Retired from the catalog; deactivate on re-seed so existing DBs drop them.
+RETIRED_FEED_URLS = (
+    "https://hnrss.org/frontpage",
+)
 
 QUESTIONS = [
     "Which topics should almost always surface in your brief?",
@@ -109,6 +106,12 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"{'Created' if created else 'Updated'} feed: {feed.title}"
             )
+
+        retired = Feed.objects.filter(url__in=RETIRED_FEED_URLS, is_active=True)
+        for feed in retired:
+            feed.is_active = False
+            feed.save(update_fields=["is_active"])
+            self.stdout.write(f"Deactivated retired feed: {feed.title}")
 
         for order, prompt in enumerate(QUESTIONS):
             FollowUpQuestion.objects.update_or_create(

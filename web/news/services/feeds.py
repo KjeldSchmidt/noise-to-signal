@@ -16,6 +16,11 @@ def catalog_feeds() -> QuerySet[Feed]:
     )
 
 
+def catalog_feed_ids() -> list[int]:
+    """Active curated/recommended catalog feeds (no personalization)."""
+    return sorted(catalog_feeds().values_list("id", flat=True))
+
+
 def enabled_feed_ids(user: AbstractBaseUser) -> list[int]:
     """Active catalog feeds minus mutes, plus the user's active custom feeds (unless muted)."""
     muted = set(FeedMute.objects.filter(user=user).values_list("feed_id", flat=True))

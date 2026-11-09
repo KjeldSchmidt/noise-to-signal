@@ -14,18 +14,20 @@
 <body>
   <header class="site-header">
     <a class="brand" href="{% if user.is_authenticated %}{% url 'brief' %}{% else %}{% url 'landing' %}{% endif %}">Noise to Signal</a>
-    {% if user.is_authenticated %}
     <nav class="nav">
+      {% if user.is_authenticated %}
       <a href="{% url 'brief' %}" {% if request.resolver_match.url_name == 'brief' %}class="active"{% endif %}>Brief</a>
+      {% endif %}
       <a href="{% url 'stories' %}" {% if request.resolver_match.url_name == 'stories' %}class="active"{% endif %}>Stories</a>
+      {% if user.is_authenticated %}
       <a href="{% url 'followups' %}" {% if request.resolver_match.url_name == 'followups' or request.resolver_match.url_name == 'answer_followup' %}class="active"{% endif %}>Taste</a>
       <a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a>
       <form class="inline" method="post" action="{% url 'account_logout' %}">
         {% csrf_token %}
         <button type="submit" class="linkish">Log out</button>
       </form>
+      {% endif %}
     </nav>
-    {% endif %}
   </header>
 
   {% if messages %}

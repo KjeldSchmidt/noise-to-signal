@@ -334,6 +334,35 @@ h1, h2, h3 {
   text-transform: uppercase;
 }
 
+.story-media-logo {
+  padding: 1.4rem 1.6rem;
+  background: #f4f1ea;
+}
+
+.story-media-logo::after {
+  content: none;
+}
+
+.story-media-logo img {
+  width: min(72%, 220px);
+  height: auto;
+  max-height: 58%;
+  object-fit: contain;
+  display: block;
+}
+
+.story-media-logo[data-source="bbc"] { background: #bb1919; }
+.story-media-logo[data-source="bbc"] img { filter: brightness(0) invert(1); }
+.story-media-logo[data-source="npr"] { background: #f7f7f7; }
+.story-media-logo[data-source="theverge"] { background: #e8ff47; }
+.story-media-logo[data-source="arstechnica"] { background: #111111; }
+.story-media-logo[data-source="arstechnica"] img { filter: brightness(0) invert(1); }
+.story-media-logo[data-source="nature"] { background: #000000; }
+.story-media-logo[data-source="nature"] img { filter: brightness(0) invert(1); }
+.story-media-logo[data-source="guardian"] { background: #052962; }
+.story-media-logo[data-source="guardian"] img { filter: brightness(0) invert(1); }
+.story-media-logo[data-source="ap"] { background: #ffffff; }
+
 .story-body {
   padding: 1rem 1.15rem 1.2rem;
   display: flex;
