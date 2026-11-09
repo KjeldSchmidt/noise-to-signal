@@ -1,0 +1,86 @@
+# Reusable per-env deploy (+ optional image push) and health smoke.
+name: Deploy Env
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: App environment (dev | prod)
+        type: string
+        required: true
+      image_tag:
+        description: ECR image tag (usually github.sha)
+        type: string
+        required: true
+      push_images:
+        description: Build and push web + worker images before apply
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      app_url:
+        description: CloudFront app URL for this environment
+        value: ${{ jobs.deploy.outputs.app_url }}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    outputs:
+      app_url: ${{ steps.publish.outputs.app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup infra
+        uses: ./.github/actions/setup-infra
+        with:
+          aws-role-arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build and push web image
+        if: ${{ inputs.push_images }}
+        working-directory: infrastructure
+        run: just push-image "${{ inputs.image_tag }}"
+
+      - name: Build and push worker images
+        if: ${{ inputs.push_images }}
+        working-directory: infrastructure
+        run: just push-lambdas "${{ inputs.image_tag }}"
+
+      - name: Apply app stack
+        working-directory: infrastructure
+        run: just apply-app "${{ inputs.image_tag }}" "${{ inputs.environment }}"
+
+      - name: Migrate and seed
+        working-directory: infrastructure
+        run: just setup-remote "${{ inputs.environment }}"
+
+      - name: Publish App URL
+        id: publish
+        working-directory: infrastructure
+        run: |
+          URL="$(cd "env/${{ inputs.environment }}/app" && terraform output -raw service_url)"
+          echo "app_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "**${{ inputs.environment }}:** $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=${{ inputs.environment }} App URL::$URL"
+
+  smoke:
+    name: Smoke ${{ inputs.environment }}
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        env:
+          APP_URL: ${{ needs.deploy.outputs.app_url }}
+        run: |
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 5 \
+            "${APP_URL%/}/health"

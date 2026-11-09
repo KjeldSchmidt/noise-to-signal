@@ -103,7 +103,9 @@ just
 
 [`.github/workflows/deploy-infra.yml`](../.github/workflows/deploy-infra.yml) — OIDC. Job chain:
 
-`deploy-shared` (fmt/lint + ECR/DNS/ACM) → `deploy-dev` → `smoke-dev` (`GET /health`) → `deploy-prod` (same image SHA, no rebuild) → `smoke-prod` (`GET /health`).
+`deploy-shared` (fmt/lint + ECR/DNS/ACM) → `deploy-dev` → `deploy-prod`.
+
+Dev/prod are the same reusable workflow ([`deploy-env.yml`](../.github/workflows/deploy-env.yml)): apply + migrate/seed + `GET /health` smoke. Dev also builds/pushes images; prod reuses the same SHA tags.
 
 **Repo secret:** `AWS_ROLE_ARN` only.
 
