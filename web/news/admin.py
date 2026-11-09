@@ -8,6 +8,7 @@ from news.models import (
     FollowUpQuestion,
     LocationOfInterest,
     RelevanceFeedback,
+    StoryThread,
     Subscription,
 )
 
@@ -37,11 +38,24 @@ class LocationOfInterestAdmin(admin.ModelAdmin):
     search_fields = ("label",)
 
 
+@admin.register(StoryThread)
+class StoryThreadAdmin(admin.ModelAdmin):
+    list_display = ("id", "label", "last_published_at", "updated_at")
+    search_fields = ("label",)
+
+
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ("title", "feed", "published_at")
-    list_filter = ("feed",)
+    list_display = (
+        "title",
+        "feed",
+        "published_at",
+        "story_thread",
+        "embedding_model",
+    )
+    list_filter = ("feed", "embedding_model")
     search_fields = ("title", "summary")
+    raw_id_fields = ("story_thread", "near_duplicate_of")
 
 
 @admin.register(RelevanceFeedback)

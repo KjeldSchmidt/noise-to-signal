@@ -80,6 +80,10 @@ locals {
     for name, cfg in var.workers : name => cfg
     if try(cfg.subscribe_feed_items, false)
   }
+  bedrock_invokers = {
+    for name, cfg in var.workers : name => cfg
+    if try(cfg.invoke_bedrock, false)
+  }
 }
 
 resource "aws_iam_role_policy" "sqs_consume" {
@@ -88,6 +92,29 @@ resource "aws_iam_role_policy" "sqs_consume" {
   name   = "sqs-feed-items-consume"
   role   = aws_iam_role.worker[each.key].id
   policy = data.aws_iam_policy_document.sqs_consume.json
+}
+
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+data "aws_iam_policy_document" "bedrock_invoke" {
+  statement {
+    actions = ["bedrock:InvokeModel"]
+    resources = [
+      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/cohere.embed-multilingual-v3",
+      "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/cohere.embed-multilingual-v3",
+      "arn:aws:bedrock:*::foundation-model/cohere.embed-multilingual-v3",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "bedrock_invoke" {
+  for_each = local.bedrock_invokers
+
+  name   = "bedrock-embed-invoke"
+  role   = aws_iam_role.worker[each.key].id
+  policy = data.aws_iam_policy_document.bedrock_invoke.json
 }
 
 resource "aws_lambda_function" "worker" {
@@ -106,10 +133,15 @@ resource "aws_lambda_function" "worker" {
   }
 
   environment {
-    variables = {
-      WEB_API_BASE_URL   = "https://${var.public_hostname}"
-      INTERNAL_API_TOKEN = local.app_secret.INTERNAL_API_TOKEN
-    }
+    variables = merge(
+      {
+        WEB_API_BASE_URL   = "https://${var.public_hostname}"
+        INTERNAL_API_TOKEN = local.app_secret.INTERNAL_API_TOKEN
+      },
+      try(each.value.invoke_bedrock, false) ? {
+        BEDROCK_REGION = var.bedrock_region != "" ? var.bedrock_region : data.aws_region.current.name
+      } : {},
+    )
   }
 
   tags = merge(local.tags, { Worker = each.key })

@@ -32,9 +32,31 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 
 - Module: [`modules/workers`](modules/workers), wired from each `env/<env>/app`.
 - **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
-- **`news_parser`** — SQS (`<project>-<env>-feed-items`); enrich → `POST /api/internal/articles/`.
-- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN`; web also gets `FEED_ITEMS_QUEUE_URL`.
+- **`news_parser`** — SQS (`<project>-<env>-feed-items`); Bedrock Cohere embed → `POST /api/internal/articles/` (thread assignment on the web).
+- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` when `invoke_bedrock`); web also gets `FEED_ITEMS_QUEUE_URL`.
 - Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
+
+## pgvector + Bedrock (article embeddings)
+
+On each app database (once per env), as a role that can create extensions:
+
+```sql
+\c noise_to_signal_dev
+CREATE EXTENSION IF NOT EXISTS vector;
+\c noise_to_signal_prod
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Django migration `0004_article_embedding_storythread` also runs `CREATE EXTENSION IF NOT EXISTS vector` when the vendor is PostgreSQL (no-op on SQLite).
+
+Enable **Cohere Embed Multilingual v3** in Bedrock model access for the account/region used by `news_parser`. Embeddings use `input_type=clustering` on cleaned RSS `title + summary` (no article scrape yet).
+
+Similarity lanes (applied in the web upsert path):
+
+| Lane | Cosine | Time | Role |
+|------|--------|------|------|
+| Near-dup | ≥ 0.92 | ±48h | Multi-source same-day collapse |
+| Story thread | ≥ 0.78 vs open centroid | 45-day activity | Event timeline / continuation |
 
 ## Cost model
 

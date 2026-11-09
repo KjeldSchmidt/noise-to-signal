@@ -57,6 +57,8 @@ DATABASE_URL=postgresql://tckadmin:…@tck-labs-shared.cjmwyu84sg6w.eu-central-1
 DATABASE_SSL=true
 ```
 
+Article embeddings need **Postgres + pgvector** (`CREATE EXTENSION vector`). Local SQLite can run the schema for smoke tests but production similarity/thread assignment targets RDS.
+
 ## Deploy on AWS (Lambda container + shared RDS)
 
 See [`../infrastructure/README.md`](../infrastructure/README.md).

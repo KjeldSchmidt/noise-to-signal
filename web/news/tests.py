@@ -149,6 +149,8 @@ class InternalArticlesApiTests(TestCase):
         )
 
     def test_upsert_creates_article(self) -> None:
+        embedding = [0.0] * 1024
+        embedding[0] = 1.0
         response = self.client.post(
             "/api/internal/articles/",
             data={
@@ -158,6 +160,8 @@ class InternalArticlesApiTests(TestCase):
                 "summary": "World",
                 "published_at": "2026-11-04T10:00:00+00:00",
                 "image_url": "https://cdn.example.com/thumb.jpg",
+                "embedding": embedding,
+                "embedding_model": "cohere.embed-multilingual-v3",
             },
             content_type="application/json",
             headers={"Authorization": "Bearer test-internal-token"},
@@ -165,8 +169,27 @@ class InternalArticlesApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["created"])
+        self.assertIsNotNone(payload["story_thread_id"])
         article = Article.objects.get(pk=payload["article_id"])
         self.assertEqual(article.image_url, "https://cdn.example.com/thumb.jpg")
+        self.assertEqual(article.embedding_model, "cohere.embed-multilingual-v3")
+        self.assertEqual(article.story_thread_id, payload["story_thread_id"])
+
+    def test_upsert_rejects_bad_embedding_size(self) -> None:
+        response = self.client.post(
+            "/api/internal/articles/",
+            data={
+                "feed_id": self.feed.id,
+                "url": "https://www.bbc.com/news/bad-embed",
+                "title": "Hello",
+                "summary": "World",
+                "published_at": "2026-11-04T10:00:00+00:00",
+                "embedding": [0.1, 0.2],
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_upsert_is_idempotent(self) -> None:
         first = self.client.post(

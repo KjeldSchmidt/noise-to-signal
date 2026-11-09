@@ -1,5 +1,8 @@
 from django.conf import settings
 from django.db import models
+from pgvector.django import VectorField
+
+EMBEDDING_DIMENSIONS = 1024
 
 
 class Feed(models.Model):
@@ -101,6 +104,22 @@ class LocationOfInterest(models.Model):
         return self.label
 
 
+class StoryThread(models.Model):
+    """Online cluster of articles covering the same evolving event."""
+
+    label = models.CharField(max_length=300, blank=True)
+    centroid = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
+    last_published_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_published_at"]
+
+    def __str__(self) -> str:
+        return self.label or f"Thread {self.pk}"
+
+
 class Article(models.Model):
     feed = models.ForeignKey(
         Feed,
@@ -113,6 +132,23 @@ class Article(models.Model):
     image_url = models.URLField(blank=True, max_length=1000)
     published_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+    embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
+    embedding_model = models.CharField(max_length=80, blank=True)
+    embedded_at = models.DateTimeField(null=True, blank=True)
+    story_thread = models.ForeignKey(
+        StoryThread,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="articles",
+    )
+    near_duplicate_of = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="near_duplicates",
+    )
 
     class Meta:
         ordering = ["-published_at"]

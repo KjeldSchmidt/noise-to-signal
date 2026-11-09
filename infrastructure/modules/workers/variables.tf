@@ -36,8 +36,15 @@ variable "workers" {
   type = map(object({
     schedule_expression  = optional(string)
     subscribe_feed_items = optional(bool, false)
+    invoke_bedrock       = optional(bool, false)
     memory_size          = optional(number, 512)
     timeout              = optional(number, 60)
   }))
   description = "Map of worker name → config. Name must match lambdas/<name>/ and ECR tag prefix."
+}
+
+variable "bedrock_region" {
+  type        = string
+  default     = ""
+  description = "Optional Bedrock region override (defaults to the Lambda AWS region)."
 }

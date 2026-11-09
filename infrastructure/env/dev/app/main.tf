@@ -66,8 +66,9 @@ module "workers" {
     }
     news_parser = {
       subscribe_feed_items = true
+      invoke_bedrock       = true
       memory_size          = 512
-      timeout              = 60
+      timeout              = 120
     }
   }
 }

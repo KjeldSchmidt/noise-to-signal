@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class FeedItem(BaseModel):
@@ -44,6 +44,17 @@ class ArticleUpsert(BaseModel):
     summary: str
     published_at: str  # ISO-8601
     image_url: str = ""
+    embedding: list[float] | None = None
+    embedding_model: str = ""
+
+    @field_validator("embedding")
+    @classmethod
+    def _embedding_dims(cls, value: list[float] | None) -> list[float] | None:
+        if value is None:
+            return None
+        if len(value) != 1024:
+            raise ValueError("embedding must have exactly 1024 dimensions")
+        return value
 
 
 class ArticleUpsertResponse(BaseModel):
@@ -51,3 +62,4 @@ class ArticleUpsertResponse(BaseModel):
 
     created: bool
     article_id: int
+    story_thread_id: int | None = None

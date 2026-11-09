@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 from django.http import HttpRequest, JsonResponse
+from django.utils import timezone as django_timezone
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -20,7 +22,12 @@ from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
 from news.models import Article, Feed
+from news.services.threading import assign_story_thread
 from news.sqs import enqueue_feed_items
+
+
+def _validation_detail(exc: ValidationError) -> list:
+    return json.loads(exc.json())
 
 
 @csrf_exempt
@@ -57,7 +64,10 @@ def ingest_feed_items(request: HttpRequest) -> JsonResponse:
             request.body.decode("utf-8") or "{}"
         )
     except ValidationError as exc:
-        return JsonResponse({"error": "invalid payload", "detail": exc.errors()}, status=400)
+        return JsonResponse(
+            {"error": "invalid payload", "detail": _validation_detail(exc)},
+            status=400,
+        )
 
     items = list(batch.items)
     if not items:
@@ -118,7 +128,10 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
     try:
         dto = ArticleUpsert.model_validate_json(request.body.decode("utf-8") or "{}")
     except ValidationError as exc:
-        return JsonResponse({"error": "invalid article", "detail": exc.errors()}, status=400)
+        return JsonResponse(
+            {"error": "invalid article", "detail": _validation_detail(exc)},
+            status=400,
+        )
 
     if not dto.url:
         return JsonResponse({"error": "url is required"}, status=400)
@@ -132,11 +145,21 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
     }
     if dto.image_url:
         defaults["image_url"] = dto.image_url[:1000]
+    if dto.embedding is not None:
+        defaults["embedding"] = dto.embedding
+        defaults["embedding_model"] = (dto.embedding_model or "")[:80]
+        defaults["embedded_at"] = django_timezone.now()
     article, created = Article.objects.update_or_create(
         feed_id=dto.feed_id,
         url=dto.url,
         defaults=defaults,
     )
+    if dto.embedding is not None:
+        article = assign_story_thread(article)
     return JsonResponse(
-        ArticleUpsertResponse(created=created, article_id=article.id).model_dump()
+        ArticleUpsertResponse(
+            created=created,
+            article_id=article.id,
+            story_thread_id=article.story_thread_id,
+        ).model_dump()
     )

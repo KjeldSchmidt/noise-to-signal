@@ -1,4 +1,4 @@
-"""news_parser — SQS-triggered enricher (stub enrichment → Article upsert)."""
+"""news_parser — SQS-triggered enricher (embed → Article upsert)."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Any
 
 from n2s_api import ArticleUpsert, FeedItem
 
+from embed import EMBEDDING_MODEL_ID, build_embed_input, embed_text
 from n2s_web_client import upsert_article
 from textutil import clean_text
 
@@ -14,16 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 def enrich_feed_item(item: FeedItem) -> ArticleUpsert:
-    """Normalize text; location/embed enrichment lands later."""
+    """Normalize text and embed title+summary via Bedrock Cohere."""
     # TODO: enrich with coarse location (~city / ~50km) for matching user
     # LocationOfInterest preferences — https://github.com/KjeldSchmidt/noise-to-signal/issues/2
+    title = clean_text(item.title)[:300]
+    summary = clean_text(item.description)
+    embedding = embed_text(build_embed_input(title=title, summary=summary))
     return ArticleUpsert(
         feed_id=item.feed_id,
         url=item.link,
-        title=clean_text(item.title)[:300],
-        summary=clean_text(item.description),
+        title=title,
+        summary=summary,
         published_at=item.published_at,
         image_url=item.thumbnail,
+        embedding=embedding,
+        embedding_model=EMBEDDING_MODEL_ID,
     )
 
 
@@ -35,6 +41,7 @@ def process_feed_item(item: FeedItem) -> dict[str, Any]:
         "url": item.link,
         "created": result.created,
         "article_id": result.article_id,
+        "story_thread_id": result.story_thread_id,
     }
 
 
