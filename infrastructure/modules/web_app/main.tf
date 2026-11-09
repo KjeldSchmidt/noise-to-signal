@@ -131,8 +131,9 @@ resource "aws_sqs_queue" "feed_items_dlq" {
 }
 
 resource "aws_sqs_queue" "feed_items" {
-  name                       = "${local.name_prefix}-feed-items"
-  visibility_timeout_seconds = 120
+  name = "${local.name_prefix}-feed-items"
+  # news_parser timeout is 120s; AWS recommends ≥6× Lambda timeout for SQS.
+  visibility_timeout_seconds = 720
   message_retention_seconds  = 345600
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.feed_items_dlq.arn

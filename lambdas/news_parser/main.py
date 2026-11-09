@@ -36,7 +36,7 @@ def process_feed_item(item: FeedItem) -> dict[str, Any]:
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """SQS event source mapping entrypoint."""
+    """SQS event source mapping entrypoint (ReportBatchItemFailures)."""
     records = event.get("Records") or []
     results: list[dict[str, Any]] = []
     batch_failures: list[dict[str, str]] = []
@@ -50,14 +50,15 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             results.append(process_feed_item(item))
         except Exception:
             logger.exception("Failed to process SQS message %s", message_id)
-            if message_id:
-                batch_failures.append({"itemIdentifier": message_id})
+            # Without messageId Lambda cannot retry just this record; fail the
+            # whole invocation so the batch is not silently acknowledged.
+            if not message_id:
+                raise
+            batch_failures.append({"itemIdentifier": message_id})
 
-    response: dict[str, Any] = {
+    return {
         "ok": len(batch_failures) == 0,
         "processed": len(results),
         "results": results,
+        "batchItemFailures": batch_failures,
     }
-    if batch_failures:
-        response["batchItemFailures"] = batch_failures
-    return response
