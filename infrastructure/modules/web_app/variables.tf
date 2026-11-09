@@ -49,7 +49,7 @@ variable "timeout" {
 
 variable "public_hostname" {
   type        = string
-  description = "Custom hostname for this env (e.g. beta.signal-to-noise.fyi)"
+  description = "Custom hostname for this env (e.g. beta.noise-to-signal.fyi)"
 }
 
 variable "hosted_zone_id" {

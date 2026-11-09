@@ -42,7 +42,7 @@ module "web" {
   db_name             = "noise_to_signal_prod"
   ecr_repository_url  = data.terraform_remote_state.shared.outputs.ecr_repository_url
   image_tag           = var.image_tag
-  public_hostname     = "signal-to-noise.fyi"
+  public_hostname     = "noise-to-signal.fyi"
   hosted_zone_id      = data.terraform_remote_state.shared.outputs.route53_zone_id
   acm_certificate_arn = data.terraform_remote_state.shared.outputs.acm_certificate_arn
 }
@@ -54,7 +54,7 @@ module "workers" {
   environment          = "prod"
   ecr_repository_url   = data.terraform_remote_state.shared.outputs.ecr_repository_url
   image_tag            = var.image_tag
-  public_hostname      = "signal-to-noise.fyi"
+  public_hostname      = "noise-to-signal.fyi"
   app_secret_arn       = module.web.app_secret_arn
   feed_items_queue_arn = module.web.feed_items_queue_arn
 
@@ -102,7 +102,7 @@ output "cloudfront_domain_name" {
 }
 
 output "public_hostname" {
-  value = "signal-to-noise.fyi"
+  value = "noise-to-signal.fyi"
 }
 
 output "app_secret_name" {

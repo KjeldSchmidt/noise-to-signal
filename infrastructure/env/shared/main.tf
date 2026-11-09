@@ -41,7 +41,7 @@ module "dns" {
   }
 
   project     = "noise-to-signal"
-  domain_name = "signal-to-noise.fyi"
+  domain_name = "noise-to-signal.fyi"
 }
 
 output "ecr_repository_url" {
@@ -65,6 +65,6 @@ output "acm_certificate_arn" {
 }
 
 output "name_servers" {
-  description = "Set these NS records at the domain registrar for signal-to-noise.fyi"
+  description = "Set these NS records at the domain registrar for noise-to-signal.fyi"
   value       = module.dns.name_servers
 }

@@ -6,16 +6,16 @@ Django on **Lambda (container image) → Function URL → CloudFront**, image in
 
 | Stack | Path | State key | Contains |
 |-------|------|-----------|----------|
-| **shared** | [`env/shared`](env/shared) | `noise-to-signal.shared.tfstate` | ECR + Route 53 (`signal-to-noise.fyi`) + ACM wildcard |
-| **app (dev)** | [`env/dev/app`](env/dev/app) | `noise-to-signal.dev.app.tfstate` | Web Lambda, workers, Function URL, CloudFront, `beta.signal-to-noise.fyi` |
-| **app (prod)** | [`env/prod/app`](env/prod/app) | `noise-to-signal.prod.app.tfstate` | Same shape → apex `signal-to-noise.fyi` |
+| **shared** | [`env/shared`](env/shared) | `noise-to-signal.shared.tfstate` | ECR + Route 53 (`noise-to-signal.fyi`) + ACM wildcard |
+| **app (dev)** | [`env/dev/app`](env/dev/app) | `noise-to-signal.dev.app.tfstate` | Web Lambda, workers, Function URL, CloudFront, `beta.noise-to-signal.fyi` |
+| **app (prod)** | [`env/prod/app`](env/prod/app) | `noise-to-signal.prod.app.tfstate` | Same shape → apex `noise-to-signal.fyi` |
 
 Environments share ECR + DNS; distinguish releases with **image tags**.
 
 | Env | Public URL |
 |-----|------------|
-| Dev | **https://beta.signal-to-noise.fyi/** |
-| Prod | **https://signal-to-noise.fyi/** |
+| Dev | **https://beta.noise-to-signal.fyi/** |
+| Prod | **https://noise-to-signal.fyi/** |
 
 Deploy order: **shared → push web + worker images → app (dev) → app (prod)** (prod reuses the same image tag).
 
@@ -74,8 +74,8 @@ just
 | [`modules/web_app`](modules/web_app) | Per-env web compute + CloudFront alias |
 | [`modules/workers`](modules/workers) | Per-env worker Lambdas + EventBridge |
 | [`env/shared`](env/shared) | Shared stack root |
-| [`env/dev/app`](env/dev/app) | Dev app → `beta.signal-to-noise.fyi` |
-| [`env/prod/app`](env/prod/app) | Prod app → `signal-to-noise.fyi` |
+| [`env/dev/app`](env/dev/app) | Dev app → `beta.noise-to-signal.fyi` |
+| [`env/prod/app`](env/prod/app) | Prod app → `noise-to-signal.fyi` |
 
 ## GitHub Actions
 
@@ -89,7 +89,7 @@ just
 
 1. `noise_to_signal_prod` DB exists (`just create-databases`).
 2. Secrets Manager secret `noise-to-signal/prod/google-oauth` exists (`APP_ENV=prod just upsert-google-oauth`).
-3. Google OAuth client allows origin + redirect for `https://signal-to-noise.fyi` (callback `/accounts/google/login/callback/`).
+3. Google OAuth client allows origin + redirect for `https://noise-to-signal.fyi` (callback `/accounts/google/login/callback/`).
 
 ## State / existing AWS resources
 

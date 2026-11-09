@@ -19,7 +19,7 @@ variable "ecr_repository_url" {
 
 variable "public_hostname" {
   type        = string
-  description = "Public web hostname (e.g. beta.signal-to-noise.fyi) for WEB_API_BASE_URL"
+  description = "Public web hostname (e.g. beta.noise-to-signal.fyi) for WEB_API_BASE_URL"
 }
 
 variable "app_secret_arn" {

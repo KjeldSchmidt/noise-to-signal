@@ -13,10 +13,10 @@ Request/response shapes live in `packages/n2s_api` (`n2s-api`). Worker Lambdas t
 1. In [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), create an **OAuth 2.0 Client ID** of type **Web application**.
 2. Authorized JavaScript origins:
    - Local: `http://127.0.0.1:8000`
-   - Dev: `https://beta.signal-to-noise.fyi`
+   - Dev: `https://beta.noise-to-signal.fyi`
 3. Authorized redirect URIs (exact):
    - Local: `http://127.0.0.1:8000/accounts/google/login/callback/`
-   - Dev: `https://beta.signal-to-noise.fyi/accounts/google/login/callback/`
+   - Dev: `https://beta.noise-to-signal.fyi/accounts/google/login/callback/`
 4. Put the client ID and secret in **`web/.env`** (local) or Secrets Manager (AWS):
 
 ```
@@ -33,7 +33,7 @@ Also set `SITE_DOMAIN` to match the host (no scheme):
 ```
 SITE_DOMAIN=127.0.0.1:8000
 # AWS:
-SITE_DOMAIN=beta.signal-to-noise.fyi
+SITE_DOMAIN=beta.noise-to-signal.fyi
 ```
 
 ## Local development

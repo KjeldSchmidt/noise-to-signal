@@ -174,7 +174,7 @@ resource "aws_lambda_function" "web" {
       # Host comes from CloudFront via X-Forwarded-Host (see cloudfront_function).
       ALLOWED_HOSTS = join(",", [
         var.public_hostname,
-        ".signal-to-noise.fyi",
+        ".noise-to-signal.fyi",
         ".cloudfront.net",
         ".lambda-url.${var.aws_region}.on.aws",
       ])
