@@ -20,11 +20,9 @@ env:
   AWS_REGION: eu-central-1
 
 jobs:
-  deploy-dev:
-    name: Deploy Dev
+  deploy-shared:
+    name: Deploy Shared
     runs-on: ubuntu-latest
-    outputs:
-      app_url: ${{ steps.summary.outputs.app_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,6 +53,31 @@ jobs:
       - name: Apply shared stack
         working-directory: infrastructure
         run: just apply-shared
+
+  deploy-dev:
+    name: Deploy Dev
+    needs: deploy-shared
+    runs-on: ubuntu-latest
+    outputs:
+      app_url: ${{ steps.summary.outputs.app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.3"
+          terraform_wrapper: false
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
 
       - name: Build and push web image
         working-directory: infrastructure
