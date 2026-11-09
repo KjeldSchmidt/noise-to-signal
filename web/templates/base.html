@@ -16,7 +16,9 @@
     <a class="brand" href="{% if user.is_authenticated %}{% url 'brief' %}{% else %}{% url 'landing' %}{% endif %}">Noise to Signal</a>
     <nav class="nav">
       {% if user.is_authenticated %}
-      <a href="{% url 'brief' %}" {% if request.resolver_match.url_name == 'brief' %}class="active"{% endif %}>Brief</a>
+      <a href="{% url 'brief' %}" {% if request.resolver_match.url_name == 'brief' %}class="active"{% endif %}>Personal Brief</a>
+      {% else %}
+      <a href="{% url 'landing' %}">Personal Brief</a>
       {% endif %}
       <a href="{% url 'stories' %}" {% if request.resolver_match.url_name == 'stories' %}class="active"{% endif %}>Stories</a>
       {% if user.is_authenticated %}
