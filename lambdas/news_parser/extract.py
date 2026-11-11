@@ -47,7 +47,8 @@ def _build_extract_model(allowed_slugs: list[str]):
         return cached
 
     if allowed_slugs:
-        theme_slug_type = Literal[*allowed_slugs]  # type: ignore[valid-type]
+        # Dynamic enum for Bedrock structured output; not a static Literal form.
+        theme_slug_type = Literal[*allowed_slugs]  # ty: ignore[invalid-type-form]
         theme_field = (
             list[theme_slug_type],
             Field(
