@@ -69,7 +69,9 @@ module "workers" {
       invoke_bedrock       = true
       langsmith_agent_id   = "news-parser"
       memory_size          = 512
-      timeout              = 120
+      timeout              = 90
+      # AWS ESM floor is 2; keeps web/Nominatim pressure low on requeue bursts.
+      sqs_maximum_concurrency = 2
     }
   }
 }

@@ -40,6 +40,8 @@ variable "workers" {
     langsmith_agent_id   = optional(string)
     memory_size          = optional(number, 512)
     timeout              = optional(number, 60)
+    # SQS ESM only; AWS minimum is 2. Caps parallel worker invokes for relaxed drain.
+    sqs_maximum_concurrency = optional(number)
   }))
   description = "Map of worker name → config. Name must match lambdas/<name>/ and ECR tag prefix."
 }

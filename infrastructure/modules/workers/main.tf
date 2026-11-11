@@ -243,5 +243,12 @@ resource "aws_lambda_event_source_mapping" "feed_items" {
   function_response_types            = ["ReportBatchItemFailures"]
   maximum_batching_window_in_seconds = 5
 
+  dynamic "scaling_config" {
+    for_each = try(each.value.sqs_maximum_concurrency, null) != null ? [each.value.sqs_maximum_concurrency] : []
+    content {
+      maximum_concurrency = scaling_config.value
+    }
+  }
+
   depends_on = [aws_iam_role_policy.sqs_consume]
 }
