@@ -28,6 +28,8 @@ class ExtractTests(unittest.TestCase):
             theme_slugs=["climate", "energy"],
             suggested_themes=["not-a-real-theme"],
             story_label="",
+            impact_tier="notable",
+            impact_rationale="Acute regional flooding with civic impact.",
         )
         mock_get_model.return_value.with_structured_output.return_value = structured
 
@@ -47,6 +49,8 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(out["mention_basis"], "explicit")
         self.assertEqual(out["theme_slugs"], ["climate", "energy"])
         self.assertEqual(out["suggested_themes"], ["not-a-real-theme"])
+        self.assertEqual(out["impact_tier"], "notable")
+        self.assertEqual(out["impact_rationale"], "Acute regional flooding with civic impact.")
         self.assertNotIn("geo_confidence", out)
 
     @patch("extract.get_extract_model")
@@ -156,6 +160,37 @@ class ExtractTests(unittest.TestCase):
             }
         )
         self.assertEqual(parsed.geo_scope, "global")
+        self.assertEqual(parsed.impact_tier, "ephemeral")
+
+    @patch("extract.get_extract_model")
+    def test_extract_truncates_impact_rationale(self, mock_get_model: MagicMock) -> None:
+        schema = extract_mod._build_extract_model(["markets"])
+        structured = MagicMock()
+        structured.invoke.return_value = schema.model_validate(
+            {
+                "geo_scope": "global",
+                "places": [],
+                "theme_slugs": ["markets"],
+                "suggested_themes": [],
+                "story_label": "",
+                "impact_tier": "ephemeral",
+                "impact_rationale": "x" * 200,
+            }
+        )
+        mock_get_model.return_value.with_structured_output.return_value = structured
+
+        out = extract_mod.extract_place_and_themes(
+            title="Markets mixed",
+            summary="Investors wait.",
+            themes=["markets"],
+        )
+        self.assertEqual(out["impact_tier"], "ephemeral")
+        self.assertEqual(len(out["impact_rationale"]), 160)
+
+    def test_normalize_impact_tier_falls_back(self) -> None:
+        self.assertEqual(extract_mod._normalize_impact_tier("MAJOR"), "major")
+        self.assertEqual(extract_mod._normalize_impact_tier("nope"), "ephemeral")
+        self.assertEqual(extract_mod._normalize_impact_tier(""), "ephemeral")
 
     @patch("extract.get_extract_model")
     def test_suggested_themes_drop_allowlisted_dupes(self, mock_get_model: MagicMock) -> None:

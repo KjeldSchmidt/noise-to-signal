@@ -224,6 +224,28 @@ class InternalArticlesApiTests(TestCase):
         self.assertEqual(Article.objects.count(), 1)
         self.assertEqual(Article.objects.get().title, "Hello updated")
 
+    def test_upsert_persists_impact_tier(self) -> None:
+        response = self.client.post(
+            "/api/internal/articles/",
+            data={
+                "feed_id": self.feed.id,
+                "url": "https://www.bbc.com/news/impact",
+                "title": "Midterms: Blue Tsunami turns Texas Democrat",
+                "summary": "Historic shift in Texas politics.",
+                "published_at": "2026-11-04T10:00:00+00:00",
+                "impact_tier": "major",
+                "impact_rationale": "Major electoral shift with lasting impact.",
+                "enrichment_status": "ok",
+                "extract_model": "eu.amazon.nova-micro-v1:0",
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        article = Article.objects.get(url="https://www.bbc.com/news/impact")
+        self.assertEqual(article.impact_tier, "major")
+        self.assertEqual(article.impact_rationale, "Major electoral shift with lasting impact.")
+
     def test_upsert_sets_themes_and_records_suggestions(self) -> None:
         Theme.objects.update_or_create(
             slug="sports",

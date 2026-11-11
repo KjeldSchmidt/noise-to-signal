@@ -57,6 +57,8 @@ class ArticleUpsert(BaseModel):
     longitude: float | None = None
     geo_confidence: float | None = None
     story_label: str = ""
+    impact_tier: str = ""
+    impact_rationale: str = ""
     theme_slugs: list[str] = Field(default_factory=list)
     suggested_themes: list[str] = Field(default_factory=list)
 
@@ -87,6 +89,18 @@ class ArticleUpsert(BaseModel):
         allowed = {"", "ok", "degraded"}
         v = (value or "").strip().lower()
         return v if v in allowed else ""
+
+    @field_validator("impact_tier")
+    @classmethod
+    def _impact_tier(cls, value: str) -> str:
+        allowed = {"", "commercial", "ephemeral", "notable", "major"}
+        v = (value or "").strip().lower()
+        return v if v in allowed else ""
+
+    @field_validator("impact_rationale")
+    @classmethod
+    def _impact_rationale(cls, value: str) -> str:
+        return (value or "").strip()[:160]
 
 
 class ArticleUpsertResponse(BaseModel):

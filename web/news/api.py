@@ -206,6 +206,8 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
         "longitude": dto.longitude,
         "geo_confidence": dto.geo_confidence,
         "story_label": (dto.story_label or "")[:120],
+        "impact_tier": (dto.impact_tier or "")[:20],
+        "impact_rationale": (dto.impact_rationale or "")[:160],
     }
     if dto.image_url:
         defaults["image_url"] = dto.image_url[:1000]

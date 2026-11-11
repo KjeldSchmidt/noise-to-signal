@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 GeoScope = Literal["local", "regional", "national", "global"]
 MentionBasis = Literal["explicit", "none"]
+ImpactTier = Literal["commercial", "ephemeral", "notable", "major"]
 
 _structured_cache: dict[tuple[str, ...], Any] = {}
 
@@ -53,6 +54,17 @@ def _normalize_suggestion(raw: str) -> str:
 def _normalize_country_hint(raw: str) -> str:
     code = re.sub(r"[^A-Za-z]", "", (raw or "").strip())[:2]
     return code.upper() if len(code) == 2 else ""
+
+
+def _normalize_impact_tier(raw: str) -> ImpactTier:
+    v = (raw or "").strip().lower()
+    if v == "commercial":
+        return "commercial"
+    if v == "notable":
+        return "notable"
+    if v == "major":
+        return "major"
+    return "ephemeral"
 
 
 def _build_extract_model(allowed_slugs: list[str]):
@@ -130,6 +142,25 @@ def _build_extract_model(allowed_slugs: list[str]):
                 ),
             ),
         ),
+        impact_tier=(
+            ImpactTier,
+            Field(
+                default="ephemeral",
+                description=(
+                    "User-agnostic lasting importance: commercial (promo/deal/gift guide), "
+                    "ephemeral (short half-life), notable (domain-significant), or major "
+                    "(international/lasting civic or systemic). When unsure, choose the "
+                    "lower tier."
+                ),
+            ),
+        ),
+        impact_rationale=(
+            str,
+            Field(
+                default="",
+                description=("One short sentence explaining the impact_tier choice (admin debug)."),
+            ),
+        ),
         __base__=BaseModel,
     )
     _structured_cache[key] = model
@@ -167,28 +198,63 @@ Rules for story_label:
 - A short generic event name (about 3–6 words), not the full headline.
 - Empty string when there is no clear ongoing story to cluster on.
 
+Rules for impact (user-agnostic lasting importance — not personal taste):
+- commercial: promo, deal, gift guide, affiliate-shaped selling.
+- ephemeral: real-ish content with short half-life and little structural weight \
+(routine updates, soft lifestyle without lasting stakes).
+- notable: acute or domain-significant; worth knowing if you follow the topic \
+(including culturally huge niche subjects).
+- major: international / lasting civic or systemic importance (elections, wars, \
+major policy or market structure shifts, large disasters).
+- Judge event substance, not outlet prestige, urgency language, or virality.
+- Prefer commercial when the piece is primarily selling.
+- When unsure between two tiers, choose the lower one (precision for major).
+
 Examples:
 - Title: "Spain's king and queen attend memorial service for rail crash victims" \
 → geo_scope=national, \
 places=[{"query":"Spain","mention_basis":"explicit","country_hint":"ES"}], \
-theme_slugs=["disaster"], story_label="Spanish Rail Crash"
+theme_slugs=["disaster"], story_label="Spanish Rail Crash", \
+impact_tier=notable, impact_rationale="National disaster aftermath with civic weight."
 - Title: "Flood warnings issued as Rhine rises in Cologne" \
 → geo_scope=local, \
 places=[{"query":"Cologne, Germany","mention_basis":"explicit","country_hint":"DE"}], \
-theme_slugs=["climate"], story_label=""
+theme_slugs=["climate"], story_label="", \
+impact_tier=notable, impact_rationale="Acute local hazard with real consequences."
+- Title: "The 37 best Christmas gifts in the UK for tweens – chosen by 10- to 12-year-olds" \
+→ geo_scope=global, places=[], theme_slugs=[], story_label="", \
+impact_tier=commercial, impact_rationale="Seasonal gift guide primarily selling products."
+- Title: "Sharge's eye-catching MacBook charger is over 25 percent off" \
+→ geo_scope=global, places=[], theme_slugs=[], story_label="", \
+impact_tier=commercial, impact_rationale="Product discount promo."
+- Title: "How years of research built Grand Theft Auto VI's obsessively detailed world" \
+→ geo_scope=global, places=[], theme_slugs=[], story_label="", \
+impact_tier=notable, \
+impact_rationale="Domain feature on a culturally massive game release."
+- Title: "Midterms: Blue Tsunami turns Texas Democrat" \
+→ geo_scope=national, \
+places=[{"query":"United States","mention_basis":"explicit","country_hint":"US"}], \
+theme_slugs=["politics"], story_label="US Midterm Elections", \
+impact_tier=major, \
+impact_rationale="Major electoral shift with lasting national political impact."
 - Title: "COP31 kicks off as planet faces imminent overshoot of 1.5°C climate target" \
-→ geo_scope=global, places=[], theme_slugs=["climate"], story_label="COP31 Climate Summit"
+→ geo_scope=global, places=[], theme_slugs=["climate"], story_label="COP31 Climate Summit", \
+impact_tier=notable, impact_rationale="Ongoing climate diplomacy of broad interest."
 - Title: "He spent a year on 'Mars': NASA science officer emerges from mock mission" \
-→ geo_scope=global, places=[], theme_slugs=[], story_label="NASA Mars Mock Mission"
+→ geo_scope=global, places=[], theme_slugs=[], story_label="NASA Mars Mock Mission", \
+impact_tier=ephemeral, impact_rationale="Human-interest science feature, short half-life."
 - Title: "UK social media ban expansion for under-16s could cover YouTube Kids" \
 → geo_scope=national, \
 places=[{"query":"United Kingdom","mention_basis":"explicit","country_hint":"GB"}], \
-theme_slugs=["media","politics"], story_label="UK Under-16 Social Media Ban"
+theme_slugs=["media","politics"], story_label="UK Under-16 Social Media Ban", \
+impact_tier=notable, impact_rationale="National policy change with durable media effects."
 - Title: "House votes to effectively end the impeachment effort against Pete Hegseth" \
 → geo_scope=global, places=[], theme_slugs=["politics"], \
-story_label="Pete Hegseth Impeachment"
+story_label="Pete Hegseth Impeachment", \
+impact_tier=notable, impact_rationale="Significant US political process development."
 - Title: "Global stock markets mixed as investors await central bank signals" \
-→ geo_scope=global, places=[], theme_slugs=["markets"], story_label=""
+→ geo_scope=global, places=[], theme_slugs=["markets"], story_label="", \
+impact_tier=ephemeral, impact_rationale="Routine market chatter without structural change."
 """
 
 
@@ -198,7 +264,7 @@ def extract_place_and_themes(
     summary: str,
     themes: list[dict[str, str]] | list[str],
 ) -> dict[str, Any]:
-    """Return geo_scope, place candidate, allowlisted themes, suggestions, story_label.
+    """Return geo_scope, place candidate, themes, story_label, and impact tier.
 
     ``themes`` may be ``[{"slug","label"}, ...]`` or bare slug strings.
     Failures raise; callers may catch and fall back to global / no themes.
@@ -279,6 +345,9 @@ def extract_place_and_themes(
 
     story_label = str(data.get("story_label") or "").strip()[:120]
 
+    impact_tier = _normalize_impact_tier(str(data.get("impact_tier") or ""))
+    impact_rationale = str(data.get("impact_rationale") or "").strip()[:160]
+
     return {
         "geo_scope": scope,
         "place_query": place_query,
@@ -287,4 +356,6 @@ def extract_place_and_themes(
         "theme_slugs": themes_out,
         "suggested_themes": suggestions,
         "story_label": story_label,
+        "impact_tier": impact_tier,
+        "impact_rationale": impact_rationale,
     }

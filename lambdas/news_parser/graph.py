@@ -70,6 +70,8 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         "theme_slugs": list(extracted.get("theme_slugs") or []),
         "suggested_themes": list(extracted.get("suggested_themes") or []),
         "story_label": (extracted.get("story_label") or "")[:120],
+        "impact_tier": (extracted.get("impact_tier") or "ephemeral")[:20],
+        "impact_rationale": (extracted.get("impact_rationale") or "")[:160],
         "extract_model": EXTRACT_MODEL_ID,
         "enrichment_status": "ok",
     }
@@ -148,6 +150,8 @@ def upsert(state: EnrichState) -> dict[str, Any]:
         longitude=state.get("longitude"),
         geo_confidence=state.get("geo_confidence"),
         story_label=state.get("story_label") or "",
+        impact_tier=state.get("impact_tier") or "",
+        impact_rationale=state.get("impact_rationale") or "",
         theme_slugs=list(state.get("theme_slugs") or []),
         suggested_themes=list(state.get("suggested_themes") or []),
     )

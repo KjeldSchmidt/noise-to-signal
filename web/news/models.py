@@ -26,6 +26,13 @@ class EnrichmentStatus(models.TextChoices):
     DEGRADED = "degraded", "Degraded"
 
 
+class ImpactTier(models.TextChoices):
+    COMMERCIAL = "commercial", "Commercial"
+    EPHEMERAL = "ephemeral", "Ephemeral"
+    NOTABLE = "notable", "Notable"
+    MAJOR = "major", "Major"
+
+
 class Feed(TimeStampedModel):
     class SourceKind(models.TextChoices):
         CURATED = "curated", "Curated catalog"
@@ -233,6 +240,22 @@ class Article(TimeStampedModel):
         max_length=120,
         blank=True,
         help_text="Short generic event name from extract (e.g. Spanish Rail Crash).",
+    )
+    impact_tier = models.CharField(
+        max_length=20,
+        choices=ImpactTier.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text=(
+            "User-agnostic lasting importance from extract "
+            "(commercial / ephemeral / notable / major)."
+        ),
+    )
+    impact_rationale = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Short extract rationale for impact_tier (admin debug).",
     )
     themes = models.ManyToManyField(Theme, blank=True, related_name="articles")
 

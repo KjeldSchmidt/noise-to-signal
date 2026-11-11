@@ -12,10 +12,23 @@ START → normalize → embed ∥ extract_place → upsert → END
 
 1. **normalize** — plain-text `title` / `summary` (unescape HTML, strip tags, collapse whitespace).
 2. **embed** — LangChain `BedrockEmbeddings` for Cohere Embed Multilingual v3 (`cohere.embed-multilingual-v3`, `input_type=clustering`).
-3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`eu.amazon.nova-micro-v1:0` inference profile by default) for `geo_scope`, place query, enum-constrained `theme_slugs` (curated catalog), free-form `suggested_themes`, and `story_label`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
-4. **upsert** — article + embedding + place + themes; web API increments `ThemeSuggestion` counters for suggestions and assigns near-dup / story thread links.
+3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`eu.amazon.nova-micro-v1:0` inference profile by default) for `geo_scope`, place query, enum-constrained `theme_slugs` (curated catalog), free-form `suggested_themes`, `story_label`, and `impact_tier` / `impact_rationale`; geocodes explicit place candidates (`POST /api/internal/geocode/search/`) then applies a keep/discard attach policy. Soft geocode failures → `geo_level=global` with `enrichment_status=degraded`.
+4. **upsert** — article + embedding + place + themes + impact; web API increments `ThemeSuggestion` counters for suggestions and assigns near-dup / story thread links.
 
-No article-body scraping in this phase (RSS text only). Embedding **and extract LLM** failures raise → SQS `batchItemFailures` / DLQ. Geocode misses soft-fail with `enrichment_status=degraded` (themes/story_label still saved).
+No article-body scraping in this phase (RSS text only). Embedding **and extract LLM** failures raise → SQS `batchItemFailures` / DLQ. Geocode misses soft-fail with `enrichment_status=degraded` (themes/story_label/impact still saved).
+
+## Impact tiers
+
+User-agnostic lasting importance (not personal taste — distinct from `RelevanceFeedback`):
+
+| Tier | Meaning |
+|------|---------|
+| `commercial` | Promo, deal, gift guide, affiliate-shaped |
+| `ephemeral` | Short half-life; little structural weight |
+| `notable` | Acute or domain-significant |
+| `major` | International / lasting civic or systemic importance |
+
+Stored on `Article.impact_tier` (+ short `impact_rationale` for admin). Later: story page / brief ranking consumers; thread rollup = max of member tiers.
 
 ## LangSmith
 

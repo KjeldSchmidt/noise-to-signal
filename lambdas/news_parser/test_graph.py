@@ -77,6 +77,8 @@ def test_extract_place_llm_failure_raises(
         "theme_slugs": ["tech"],
         "suggested_themes": [],
         "story_label": "",
+        "impact_tier": "notable",
+        "impact_rationale": "Acute local hazard.",
     },
 )
 @patch("graph.geocode_search")
@@ -118,6 +120,8 @@ def test_extract_place_geocodes_when_explicit(
     assert out["theme_slugs"] == ["tech"]
     assert out["latitude"] == 50.94
     assert out["geo_confidence"] == 1.0
+    assert out["impact_tier"] == "notable"
+    assert out["impact_rationale"] == "Acute local hazard."
     assert out["enrichment_status"] == "ok"
     assert out["extract_model"]
 
@@ -136,6 +140,8 @@ def test_extract_place_geocodes_when_explicit(
         "theme_slugs": ["politics"],
         "suggested_themes": ["royal-news"],
         "story_label": "Spanish Rail Crash",
+        "impact_tier": "notable",
+        "impact_rationale": "National disaster aftermath.",
     },
 )
 @patch("graph.geocode_search")
@@ -193,6 +199,8 @@ def test_extract_place_geocodes_despite_global_scope(
         "theme_slugs": ["climate"],
         "suggested_themes": [],
         "story_label": "COP31 Climate Summit",
+        "impact_tier": "notable",
+        "impact_rationale": "Ongoing climate diplomacy.",
     },
 )
 @patch("graph.geocode_search")
@@ -217,6 +225,7 @@ def test_extract_place_skips_geocode_when_not_explicit(
     assert out["geo_level"] == "global"
     assert out["place_label"] == ""
     assert out["geo_confidence"] is None
+    assert out["impact_tier"] == "notable"
     assert out["enrichment_status"] == "ok"
     assert out["story_label"] == "COP31 Climate Summit"
 
@@ -232,6 +241,8 @@ def test_extract_place_skips_geocode_when_not_explicit(
         "theme_slugs": ["tech"],
         "suggested_themes": [],
         "story_label": "",
+        "impact_tier": "ephemeral",
+        "impact_rationale": "Human-interest science feature.",
     },
 )
 @patch("graph.geocode_search")
@@ -286,6 +297,8 @@ def test_extract_place_policy_discard_stays_ok_not_degraded(
         "theme_slugs": ["tech"],
         "suggested_themes": [],
         "story_label": "",
+        "impact_tier": "notable",
+        "impact_rationale": "Acute local hazard.",
     },
 )
 @patch("graph.geocode_search", side_effect=RuntimeError("nominatim down"))
@@ -335,9 +348,14 @@ def test_upsert_builds_article_and_returns_ids(mock_upsert: MagicMock) -> None:
         "longitude": None,
         "geo_confidence": None,
         "theme_slugs": [],
+        "impact_tier": "major",
+        "impact_rationale": "Electoral shift with lasting weight.",
     }
     out = upsert(state)  # ty: ignore[invalid-argument-type]
     mock_upsert.assert_called_once()
+    article = mock_upsert.call_args.args[0]
+    assert article.impact_tier == "major"
+    assert article.impact_rationale == "Electoral shift with lasting weight."
     assert out == {
         "created": True,
         "article_id": 42,

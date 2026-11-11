@@ -83,6 +83,7 @@ class ArticleAdmin(admin.ModelAdmin):
         "title",
         "feed",
         "published_at",
+        "impact_tier",
         "geo_level",
         "place_label",
         "story_thread",
@@ -91,8 +92,21 @@ class ArticleAdmin(admin.ModelAdmin):
         "embedding_model",
         "enriched_at",
     )
-    list_filter = ("feed", "geo_level", "enrichment_status", "embedding_model")
-    search_fields = ("title", "summary", "place_label", "extract_model")
+    list_filter = (
+        "feed",
+        "impact_tier",
+        "geo_level",
+        "enrichment_status",
+        "embedding_model",
+    )
+    search_fields = (
+        "title",
+        "summary",
+        "place_label",
+        "extract_model",
+        "impact_rationale",
+    )
+    readonly_fields = ("impact_rationale",)
     filter_horizontal = ("themes",)
     raw_id_fields = ("story_thread", "near_duplicate_of")
     change_list_template = "admin/news/article_change_list.html"
