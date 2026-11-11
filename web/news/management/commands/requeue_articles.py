@@ -35,6 +35,15 @@ class Command(BaseCommand):
             help="Only articles published within the last N hours.",
         )
         parser.add_argument(
+            "--enriched-before-hours",
+            type=int,
+            default=None,
+            help=(
+                "Only articles never enriched or last enriched more than N hours ago "
+                "(skips a recent test requeue)."
+            ),
+        )
+        parser.add_argument(
             "--clear-threads",
             action="store_true",
             help=(
@@ -60,6 +69,9 @@ class Command(BaseCommand):
         since_hours = options.get("since_hours")
         if since_hours is not None and since_hours < 1:
             raise CommandError("--since-hours must be >= 1")
+        enriched_before_hours = options.get("enriched_before_hours")
+        if enriched_before_hours is not None and enriched_before_hours < 1:
+            raise CommandError("--enriched-before-hours must be >= 1")
 
         try:
             qs = articles_for_requeue(
@@ -67,6 +79,7 @@ class Command(BaseCommand):
                 unthreaded=bool(options["unthreaded"]),
                 ids=ids,
                 since_hours=since_hours,
+                enriched_before_hours=enriched_before_hours,
             )
         except ValueError as exc:
             raise CommandError(str(exc)) from exc

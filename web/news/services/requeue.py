@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from n2s_api import FeedItem
 
@@ -18,7 +18,14 @@ def articles_for_requeue(
     unthreaded: bool = False,
     ids: list[int] | None = None,
     since_hours: int | None = None,
+    enriched_before_hours: int | None = None,
 ) -> QuerySet[Article]:
+    """Select articles for requeue.
+
+    ``enriched_before_hours`` is a refinement (not a sole selector): keep rows that
+    were never enriched or last enriched more than N hours ago — skips a recent
+    test pass when widening the publish window.
+    """
     qs = Article.objects.all().order_by("id")
     selected = False
     if all_articles:
@@ -34,6 +41,9 @@ def articles_for_requeue(
         selected = True
     if not selected:
         raise ValueError("Select articles with all, unthreaded, ids, and/or since_hours")
+    if enriched_before_hours is not None:
+        cutoff = timezone.now() - timedelta(hours=enriched_before_hours)
+        qs = qs.filter(Q(enriched_at__isnull=True) | Q(enriched_at__lt=cutoff))
     return qs.select_related("feed")
 
 

@@ -33,6 +33,16 @@ class RequeueForm(forms.Form):
         label="Published within last N hours",
         help_text="e.g. 24 for the last day, 168 for the last week",
     )
+    enriched_before_hours = forms.IntegerField(
+        required=False,
+        min_value=1,
+        label="Enriched before last N hours",
+        help_text=(
+            "Skip articles enriched within the last N hours (never-enriched still "
+            "included). Use after a test pass, e.g. publish window 72 + enriched "
+            "before 1 to widen without redoing the last hour."
+        ),
+    )
     clear_threads = forms.BooleanField(
         required=False,
         label="Clear story threads before enqueue",
@@ -102,6 +112,7 @@ def news_ops_view(request):
                         unthreaded=bool(data.get("unthreaded")),
                         ids=ids,
                         since_hours=data.get("since_hours"),
+                        enriched_before_hours=data.get("enriched_before_hours"),
                     )
                 except ValueError as exc:
                     messages.error(request, str(exc))
