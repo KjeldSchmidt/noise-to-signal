@@ -1,8 +1,7 @@
 # Expanded curated theme catalog + ThemeSuggestion counters
 
-from django.db import migrations, models
 import django.utils.timezone
-
+from django.db import migrations, models
 
 CURATED_THEMES = [
     ("politics", "Politics", 10),

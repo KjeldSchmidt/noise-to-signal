@@ -41,7 +41,7 @@ jobs:
       DATABASE_SSL: "false"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup quality
         uses: ./.github/actions/setup-quality
@@ -50,7 +50,7 @@ jobs:
         run: just fmt-check
 
       - name: Lint
-        run: just lint
+        run: just lint-check
 
       - name: Typecheck
         run: just typecheck

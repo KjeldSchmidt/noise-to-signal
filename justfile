@@ -26,6 +26,7 @@ fmt-check:
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api fmt-check
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client fmt-check
 
+# Auto-fix lint issues (manual / agent; not CI)
 lint:
     just --justfile web/justfile --working-directory web lint
     just --justfile runner/justfile --working-directory runner lint
@@ -33,6 +34,14 @@ lint:
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser lint
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api lint
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client lint
+
+lint-check:
+    just --justfile web/justfile --working-directory web lint-check
+    just --justfile runner/justfile --working-directory runner lint-check
+    just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer lint-check
+    just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser lint-check
+    just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api lint-check
+    just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client lint-check
 
 typecheck:
     just --justfile web/justfile --working-directory web typecheck
@@ -51,4 +60,4 @@ test:
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client test
 
 # Full quality gate (CI / PR / local on demand)
-check: fmt-check lint typecheck test
+check: fmt-check lint-check typecheck test

@@ -18,10 +18,10 @@ runs:
         aws-region: ${{ inputs.aws-region }}
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
       with:
         terraform_version: "1.13.3"
         terraform_wrapper: false
 
     - name: Setup just
-      uses: extractions/setup-just@v2
+      uses: extractions/setup-just@v4

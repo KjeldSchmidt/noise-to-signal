@@ -29,8 +29,8 @@ from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
 from news.models import Article, Feed, GeoLevel, Theme
-from news.services.themes import record_theme_suggestions
 from news.services.geocode import search_places
+from news.services.themes import record_theme_suggestions
 from news.services.threading import assign_story_thread
 from news.sqs import enqueue_feed_items
 

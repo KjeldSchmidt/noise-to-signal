@@ -38,7 +38,7 @@ jobs:
       app_url: ${{ steps.publish.outputs.app_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup infra
         uses: ./.github/actions/setup-infra
