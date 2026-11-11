@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.35.0",
+    "langchain[aws]>=1.4.0",
     "langgraph>=1.2.11",
     "langsmith>=0.14.9",
     "n2s-web-client",

@@ -70,11 +70,14 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
     out["geo_confidence"] = extracted.get("geo_confidence")
     place_query = (extracted.get("place_query") or "").strip()
     scope = extracted.get("geo_scope") or "global"
-    if not place_query or scope == "global":
+    # Geocode whenever we have a place query. Skip "global" as scope_hint —
+    # Nominatim would otherwise force geo_level=global even for real countries.
+    if not place_query:
         return out
+    scope_hint = None if scope == "global" else scope
 
     try:
-        hits = geocode_search(place_query, limit=1, scope_hint=scope)
+        hits = geocode_search(place_query, limit=1, scope_hint=scope_hint)
     except Exception:
         logger.exception("Geocode failed for %r; keeping global", place_query)
         return out

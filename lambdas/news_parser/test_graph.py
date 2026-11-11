@@ -108,6 +108,52 @@ def test_extract_place_geocodes_when_confident(
     assert out["latitude"] == 50.94
 
 
+@patch("graph._active_theme_slugs", return_value=["politics"])
+@patch(
+    "graph.extract_place_and_themes",
+    return_value={
+        "geo_scope": "global",
+        "place_query": "Spain",
+        "geo_confidence": 0.9,
+        "theme_slugs": ["politics"],
+    },
+)
+@patch("graph.geocode_search")
+def test_extract_place_geocodes_despite_global_scope(
+    mock_geocode: MagicMock,
+    _mock_extract: MagicMock,
+    _mock_themes: MagicMock,
+) -> None:
+    hit = MagicMock()
+    hit.geo_level = "country"
+    hit.label = "Spain"
+    hit.country_code = "es"
+    hit.admin1 = ""
+    hit.locality = ""
+    hit.latitude = 40.0
+    hit.longitude = -3.0
+    mock_geocode.return_value = [hit]
+
+    out = extract_place(
+        {
+            "feed_id": 1,
+            "url": "https://example.com/a",
+            "raw_title": "t",
+            "raw_description": "d",
+            "published_at": "2026-01-01T00:00:00Z",
+            "image_url": "",
+            "title": "Spain memorial",
+            "summary": "Leaders gathered after the crash.",
+        }
+    )
+    mock_geocode.assert_called_once_with("Spain", limit=1, scope_hint=None)
+    assert out["geo_level"] == "country"
+    assert out["place_label"] == "Spain"
+    assert out["country_code"] == "es"
+    assert out["latitude"] == 40.0
+
+
+
 @patch("graph.upsert_article")
 def test_upsert_builds_article_and_returns_ids(mock_upsert: MagicMock) -> None:
     mock_upsert.return_value = MagicMock(

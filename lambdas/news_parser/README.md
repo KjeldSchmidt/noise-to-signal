@@ -12,14 +12,14 @@ START → normalize → embed ∥ extract_place → upsert → END
 
 1. **normalize** — plain-text `title` / `summary` (unescape HTML, strip tags, collapse whitespace).
 2. **embed** — Cohere Embed Multilingual v3 on Bedrock (`cohere.embed-multilingual-v3`, `input_type=clustering`).
-3. **extract_place** — Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, allowlisted `theme_slugs`; optional `POST /api/internal/geocode/search/`. Soft-fails → `geo_level=global`.
+3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, allowlisted `theme_slugs`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
 4. **upsert** — article + embedding + place + themes; web API assigns near-dup / story thread links.
 
 No article-body scraping in this phase (RSS text only). Embedding / hard failures report SQS `batchItemFailures`; geo/theme soft-fails.
 
 ## LangSmith
 
-When `langsmith_agent_id` is set on the worker in Terraform, Lambda gets agent-based tracing:
+When `langsmith_agent_id` is set on the worker in Terraform, Lambda gets agent-based tracing. The LangChain extract call appears as an LLM child run under `extract_place` (prompt + structured result), not only the node final state.
 
 | Variable | Source |
 |----------|--------|

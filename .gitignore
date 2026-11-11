@@ -9,6 +9,7 @@ web/staticfiles/
 *.egg-info/
 .DS_Store
 runner/langgraph.db
+.idea/
 
 # Terraform
 infrastructure/**/.terraform/
