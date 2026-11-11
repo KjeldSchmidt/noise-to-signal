@@ -1,0 +1,25 @@
+---
+description: App Django models inherit TimeStampedModel for created_at/updated_at
+globs: web/**/models*.py
+alwaysApply: false
+---
+
+# Django timestamps
+
+Concrete Django models in this project inherit `TimeStampedModel` for ORM-managed `created_at` / `updated_at`.
+
+## Do
+
+- Subclass `TimeStampedModel` (from `news.models` or the app’s shared base) for new concrete models
+- Rely on the base fields; do not re-declare `created_at` / `updated_at`
+- When using `save(update_fields=[...])`, include `"updated_at"` if the bump should apply
+
+## Don't
+
+- Skip timestamps on app-owned concrete models without a reason
+- Re-declare duplicate timestamp fields by hand
+- Apply this to Django built-in apps or unmanaged models
+
+## Exception
+
+Omit `TimeStampedModel` only with a one-line comment explaining why (e.g. unmanaged / read-only proxy).

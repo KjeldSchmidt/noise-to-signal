@@ -6,6 +6,14 @@ from pgvector.django import VectorField
 EMBEDDING_DIMENSIONS = 1024
 
 
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
 class GeoLevel(models.TextChoices):
     GLOBAL = "global", "Global"
     COUNTRY = "country", "Country"
@@ -13,7 +21,7 @@ class GeoLevel(models.TextChoices):
     LOCALITY = "locality", "City / locality"
 
 
-class Feed(models.Model):
+class Feed(TimeStampedModel):
     class SourceKind(models.TextChoices):
         CURATED = "curated", "Curated catalog"
         CUSTOM = "custom", "User-added"
@@ -39,7 +47,6 @@ class Feed(models.Model):
         help_text="Set for custom feeds owned by a single user.",
     )
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["category", "title"]
@@ -48,7 +55,7 @@ class Feed(models.Model):
         return self.title
 
 
-class Subscription(models.Model):
+class Subscription(TimeStampedModel):
     """Legacy opt-in rows; superseded by FeedMute (catalog is on by default)."""
 
     user = models.ForeignKey(
@@ -61,7 +68,6 @@ class Subscription(models.Model):
         on_delete=models.CASCADE,
         related_name="subscriptions",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "feed")
@@ -71,7 +77,7 @@ class Subscription(models.Model):
         return f"{self.user} → {self.feed}"
 
 
-class FeedMute(models.Model):
+class FeedMute(TimeStampedModel):
     """Opt-out: catalog (and custom) feeds are enabled unless muted."""
 
     user = models.ForeignKey(
@@ -84,7 +90,6 @@ class FeedMute(models.Model):
         on_delete=models.CASCADE,
         related_name="mutes",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "feed")
@@ -94,7 +99,7 @@ class FeedMute(models.Model):
         return f"{self.user} muted {self.feed}"
 
 
-class Theme(models.Model):
+class Theme(TimeStampedModel):
     """Curated allowlist of article themes (not freestyle tags)."""
 
     slug = models.SlugField(max_length=64, unique=True)
@@ -109,7 +114,7 @@ class Theme(models.Model):
         return self.label
 
 
-class ThemeSuggestion(models.Model):
+class ThemeSuggestion(TimeStampedModel):
     """Rejected free-form theme ideas from extract (promotion candidates)."""
 
     raw = models.SlugField(max_length=64, unique=True)
@@ -124,7 +129,7 @@ class ThemeSuggestion(models.Model):
         return f"{self.raw} ({self.count})"
 
 
-class LocationOfInterest(models.Model):
+class LocationOfInterest(TimeStampedModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -142,7 +147,6 @@ class LocationOfInterest(models.Model):
         default=GeoLevel.LOCALITY,
         blank=True,
     )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["label", "id"]
@@ -151,14 +155,12 @@ class LocationOfInterest(models.Model):
         return self.label
 
 
-class StoryThread(models.Model):
+class StoryThread(TimeStampedModel):
     """Online cluster of articles covering the same evolving event."""
 
     label = models.CharField(max_length=300, blank=True)
     centroid = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
     last_published_at = models.DateTimeField(db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-last_published_at"]
@@ -167,7 +169,7 @@ class StoryThread(models.Model):
         return self.label or f"Thread {self.pk}"
 
 
-class Article(models.Model):
+class Article(TimeStampedModel):
     feed = models.ForeignKey(
         Feed,
         on_delete=models.CASCADE,
@@ -178,7 +180,6 @@ class Article(models.Model):
     summary = models.TextField(blank=True)
     image_url = models.URLField(blank=True, max_length=1000)
     published_at = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
     embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
     embedding_model = models.CharField(max_length=80, blank=True)
     embedded_at = models.DateTimeField(null=True, blank=True)
@@ -224,7 +225,7 @@ class Article(models.Model):
         return self.title
 
 
-class RelevanceFeedback(models.Model):
+class RelevanceFeedback(TimeStampedModel):
     class Verdict(models.TextChoices):
         RELEVANT = "relevant", "Relevant"
         NOT_RELEVANT = "not_relevant", "Not relevant"
@@ -241,7 +242,6 @@ class RelevanceFeedback(models.Model):
         related_name="feedback",
     )
     verdict = models.CharField(max_length=20, choices=Verdict.choices)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "article")
@@ -251,7 +251,7 @@ class RelevanceFeedback(models.Model):
         return f"{self.user}: {self.article} → {self.verdict}"
 
 
-class FollowUpQuestion(models.Model):
+class FollowUpQuestion(TimeStampedModel):
     """Catalog of taste-discovery questions (seeded / placeholder AI)."""
 
     prompt = models.TextField()
@@ -265,7 +265,7 @@ class FollowUpQuestion(models.Model):
         return self.prompt[:80]
 
 
-class FollowUpAnswer(models.Model):
+class FollowUpAnswer(TimeStampedModel):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -277,8 +277,6 @@ class FollowUpAnswer(models.Model):
         related_name="answers",
     )
     answer = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("user", "question")
