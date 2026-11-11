@@ -129,6 +129,9 @@ class GeocodePlace(BaseModel):
     admin1: str = ""
     locality: str = ""
     geo_level: str = "locality"
+    osm_class: str = ""
+    osm_type: str = ""
+    importance: float | None = None
 
 
 class GeocodeSearchResponse(BaseModel):

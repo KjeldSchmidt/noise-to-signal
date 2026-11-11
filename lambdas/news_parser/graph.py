@@ -12,6 +12,7 @@ from n2s_web_client import geocode_search, list_themes, upsert_article
 from embed import EMBEDDING_MODEL_ID, build_embed_input, embed_text
 from extract import extract_place_and_themes
 from llm_model import EXTRACT_MODEL_ID
+from place_attach import decide_attach
 from state import EnrichState
 from textutil import clean_text
 
@@ -45,7 +46,8 @@ def embed(state: EnrichState) -> dict[str, Any]:
 def extract_place(state: EnrichState) -> dict[str, Any]:
     """Extract place/themes via Bedrock; LLM failures raise (SQS retry / DLQ).
 
-    Geocode misses soft-fail to global place fields with enrichment_status=degraded.
+    Geocode transport failures soft-fail to global with enrichment_status=degraded.
+    Policy rejects (ambiguous / weak / mismatch) leave global with status=ok.
     """
     title = state["title"]
     summary = state["summary"]
@@ -64,7 +66,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         "locality": "",
         "latitude": None,
         "longitude": None,
-        "geo_confidence": extracted.get("geo_confidence"),
+        "geo_confidence": None,
         "theme_slugs": list(extracted.get("theme_slugs") or []),
         "suggested_themes": list(extracted.get("suggested_themes") or []),
         "story_label": (extracted.get("story_label") or "")[:120],
@@ -73,15 +75,17 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
     }
 
     place_query = (extracted.get("place_query") or "").strip()
+    country_hint = (extracted.get("country_hint") or "").strip()
+    mention_basis = (extracted.get("mention_basis") or "none").strip().lower()
     scope = extracted.get("geo_scope") or "global"
-    # Geocode whenever we have a place query. Skip "global" as scope_hint —
+    # Geocode only explicit candidates. Skip "global" as scope_hint —
     # Nominatim would otherwise force geo_level=global even for real countries.
-    if not place_query:
+    if mention_basis != "explicit" or not place_query or not country_hint:
         return out
     scope_hint = "" if scope == "global" else str(scope)
 
     try:
-        hits = geocode_search(place_query, limit=1, scope_hint=scope_hint)
+        hits = geocode_search(place_query, limit=5, scope_hint=scope_hint)
     except Exception:
         logger.exception("Geocode failed for %r; keeping global (degraded)", place_query)
         out["enrichment_status"] = "degraded"
@@ -91,7 +95,22 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         out["enrichment_status"] = "degraded"
         return out
 
-    hit = hits[0]
+    decision = decide_attach(
+        place_query=place_query,
+        country_hint=country_hint,
+        geo_scope=str(scope),
+        hits=hits,
+    )
+    if not decision.keep or decision.hit is None:
+        logger.info(
+            "Discarding place attach for %r (hint=%s): %s",
+            place_query,
+            country_hint,
+            decision.reason,
+        )
+        return out
+
+    hit = decision.hit
     out.update(
         {
             "geo_level": hit.geo_level or "global",
@@ -101,6 +120,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
             "locality": hit.locality or "",
             "latitude": hit.latitude,
             "longitude": hit.longitude,
+            "geo_confidence": 1.0,
             "enrichment_status": "ok",
         }
     )

@@ -14,9 +14,8 @@ from llm_model import get_extract_model
 
 logger = logging.getLogger(__name__)
 
-_PLACE_CONFIDENCE_MIN = 0.55
-
 GeoScope = Literal["local", "regional", "national", "global"]
+MentionBasis = Literal["explicit", "none"]
 
 _structured_cache: dict[tuple[str, ...], Any] = {}
 
@@ -25,11 +24,23 @@ class PlaceMention(BaseModel):
     query: str = Field(
         description=(
             "English place query for OpenStreetMap Nominatim, e.g. "
-            "'Cologne, Germany' or 'Spain'. Empty string if none."
+            "'Cologne, Germany' or 'Spain'. Empty string if none. "
+            "Sub-national places must be country-qualified."
         )
     )
-    confidence: float = Field(
-        description="Confidence that this is the primary event location, 0.0–1.0."
+    mention_basis: MentionBasis = Field(
+        default="none",
+        description=(
+            "'explicit' only when the primary event location is named in the "
+            "title/summary as a real Earth place. Use 'none' when omitting."
+        ),
+    )
+    country_hint: str = Field(
+        default="",
+        description=(
+            "ISO 3166-1 alpha-2 country code for the place (e.g. 'DE', 'ES'). "
+            "Required when mention_basis is explicit; empty otherwise."
+        ),
     )
 
 
@@ -37,6 +48,11 @@ def _normalize_suggestion(raw: str) -> str:
     s = (raw or "").strip().lower()
     s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
     return s[:64]
+
+
+def _normalize_country_hint(raw: str) -> str:
+    code = re.sub(r"[^A-Za-z]", "", (raw or "").strip())[:2]
+    return code.upper() if len(code) == 2 else ""
 
 
 def _build_extract_model(allowed_slugs: list[str]):
@@ -87,7 +103,8 @@ def _build_extract_model(allowed_slugs: list[str]):
                 default_factory=list,
                 description=(
                     "Primary event location(s). Prefer one best place. Empty when "
-                    "geo_scope is global and no place applies."
+                    "geo_scope is global and no place applies, or when the locus is "
+                    "not an explicit real-world place named in the text."
                 ),
             ),
         ),
@@ -123,13 +140,22 @@ _SYSTEM_PROMPT = """\
 You classify news articles for a personal news filter.
 
 Rules for geography:
-- Tag the primary EVENT location, not the outlet's home country.
+- Tag the primary EVENT location only when it is an explicit real-world Earth place \
+named in the title or summary.
+- Prefer omit (geo_scope=global, places=[]) over a guessed or invented place. \
+Wrong place is worse than no place.
+- Do NOT invent host cities for conferences, summits, or acronyms (e.g. COP31).
+- Do NOT treat celestial bodies, mission names, metaphors, brands, or fictional \
+places as geography (e.g. a "Mars" mock mission is not a place on Earth).
 - If a specific country or city is where the story takes place, set geo_scope to \
 national/regional/local and include that place — even when coverage is international.
-- Use geo_scope=global ONLY when there is no meaningful geographic focus \
-(e.g. abstract markets, pure science with no setting).
+- Use geo_scope=global when there is no meaningful geographic focus \
+(e.g. abstract markets, pure science with no Earth setting, global climate talks).
 - Place queries must be English and Nominatim-friendly \
 (e.g. "Cologne, Germany", "Spain", "United Kingdom").
+- Sub-national queries MUST be country-qualified ("Cologne, Germany", not "Cologne").
+- When emitting a place, set mention_basis=explicit and country_hint to the ISO-2 \
+code (e.g. ES, GB, DE). National places use that country's own code.
 
 Rules for themes:
 - Pick 1–3 theme_slugs from the allowed enum when the story clearly fits a ressort.
@@ -143,15 +169,24 @@ Rules for story_label:
 
 Examples:
 - Title: "Spain's king and queen attend memorial service for rail crash victims" \
-→ geo_scope=national, places=[{"query":"Spain","confidence":0.9}], \
+→ geo_scope=national, \
+places=[{"query":"Spain","mention_basis":"explicit","country_hint":"ES"}], \
 theme_slugs=["disaster"], story_label="Spanish Rail Crash"
+- Title: "Flood warnings issued as Rhine rises in Cologne" \
+→ geo_scope=local, \
+places=[{"query":"Cologne, Germany","mention_basis":"explicit","country_hint":"DE"}], \
+theme_slugs=["climate"], story_label=""
+- Title: "COP31 kicks off as planet faces imminent overshoot of 1.5°C climate target" \
+→ geo_scope=global, places=[], theme_slugs=["climate"], story_label="COP31 Climate Summit"
+- Title: "He spent a year on 'Mars': NASA science officer emerges from mock mission" \
+→ geo_scope=global, places=[], theme_slugs=[], story_label="NASA Mars Mock Mission"
 - Title: "UK social media ban expansion for under-16s could cover YouTube Kids" \
-→ geo_scope=national, places=[{"query":"United Kingdom","confidence":0.9}], \
+→ geo_scope=national, \
+places=[{"query":"United Kingdom","mention_basis":"explicit","country_hint":"GB"}], \
 theme_slugs=["media","politics"], story_label="UK Under-16 Social Media Ban"
 - Title: "House votes to effectively end the impeachment effort against Pete Hegseth" \
-→ theme_slugs=["politics"], story_label="Pete Hegseth Impeachment"
-- Title: "Real Madrid's Vinícius Jr sends surprise message to boy who lost his legs \
-in Sudan's war" → theme_slugs=["sports","conflict"], suggested_themes=[]
+→ geo_scope=global, places=[], theme_slugs=["politics"], \
+story_label="Pete Hegseth Impeachment"
 - Title: "Global stock markets mixed as investors await central bank signals" \
 → geo_scope=global, places=[], theme_slugs=["markets"], story_label=""
 """
@@ -163,10 +198,13 @@ def extract_place_and_themes(
     summary: str,
     themes: list[dict[str, str]] | list[str],
 ) -> dict[str, Any]:
-    """Return geo_scope, place, allowlisted themes, suggestions, story_label.
+    """Return geo_scope, place candidate, allowlisted themes, suggestions, story_label.
 
     ``themes`` may be ``[{"slug","label"}, ...]`` or bare slug strings.
     Failures raise; callers may catch and fall back to global / no themes.
+
+    Place candidates are emitted only for explicit mentions with a country hint.
+    ``geo_confidence`` is not set here — the attach policy sets it after geocode.
     """
     pairs: list[tuple[str, str]] = []
     for item in themes:
@@ -210,19 +248,20 @@ def extract_place_and_themes(
         scope = "global"
 
     place_query = ""
-    confidence = 0.0
+    country_hint = ""
+    mention_basis: MentionBasis = "none"
     places = data.get("places") or []
     if isinstance(places, list) and places:
         first = places[0] if isinstance(places[0], dict) else {}
         place_query = str(first.get("query") or "").strip()
-        try:
-            confidence = float(first.get("confidence") or 0.0)
-        except (TypeError, ValueError):
-            confidence = 0.0
+        raw_basis = str(first.get("mention_basis") or "none").strip().lower()
+        mention_basis = "explicit" if raw_basis == "explicit" else "none"
+        country_hint = _normalize_country_hint(str(first.get("country_hint") or ""))
 
-    if not place_query or confidence < _PLACE_CONFIDENCE_MIN:
+    if mention_basis != "explicit" or not place_query or not country_hint:
         place_query = ""
-        confidence = 0.0
+        country_hint = ""
+        mention_basis = "none"
 
     themes_out: list[str] = []
     for slug in data.get("theme_slugs") or []:
@@ -243,7 +282,8 @@ def extract_place_and_themes(
     return {
         "geo_scope": scope,
         "place_query": place_query,
-        "geo_confidence": confidence if place_query else None,
+        "country_hint": country_hint,
+        "mention_basis": mention_basis,
         "theme_slugs": themes_out,
         "suggested_themes": suggestions,
         "story_label": story_label,

@@ -187,11 +187,19 @@ def search_places(
         )
         if not hier["label"] and not hier["country_code"]:
             continue
+        importance: float | None
+        try:
+            importance = float(hit["importance"]) if hit.get("importance") is not None else None
+        except (TypeError, ValueError):
+            importance = None
         results.append(
             {
                 **hier,
                 "latitude": lat,
                 "longitude": lng,
+                "osm_class": str(hit.get("category") or hit.get("class") or "").strip(),
+                "osm_type": str(hit.get("type") or "").strip(),
+                "importance": importance,
             }
         )
     return results

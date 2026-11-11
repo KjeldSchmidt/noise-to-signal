@@ -105,6 +105,9 @@ def geocode_search(request: HttpRequest) -> JsonResponse:
                 admin1=h.get("admin1") or "",
                 locality=h.get("locality") or "",
                 geo_level=h.get("geo_level") or GeoLevel.LOCALITY,
+                osm_class=h.get("osm_class") or "",
+                osm_type=h.get("osm_type") or "",
+                importance=h.get("importance"),
             )
             for h in hits
         ]
