@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.dateparse import parse_datetime
 
 from news.services.requeue import articles_for_requeue, requeue_articles
 
@@ -30,10 +29,10 @@ class Command(BaseCommand):
             help="Comma-separated article primary keys.",
         )
         parser.add_argument(
-            "--since",
-            type=str,
-            default="",
-            help="Only articles with published_at >= this ISO datetime.",
+            "--since-hours",
+            type=int,
+            default=None,
+            help="Only articles published within the last N hours.",
         )
         parser.add_argument(
             "--clear-threads",
@@ -58,19 +57,16 @@ class Command(BaseCommand):
             except ValueError as exc:
                 raise CommandError("--ids must be comma-separated integers") from exc
 
-        since = None
-        since_raw = (options["since"] or "").strip()
-        if since_raw:
-            since = parse_datetime(since_raw)
-            if since is None:
-                raise CommandError("--since must be an ISO datetime")
+        since_hours = options.get("since_hours")
+        if since_hours is not None and since_hours < 1:
+            raise CommandError("--since-hours must be >= 1")
 
         try:
             qs = articles_for_requeue(
                 all_articles=bool(options["all"]),
                 unthreaded=bool(options["unthreaded"]),
                 ids=ids,
-                since=since,
+                since_hours=since_hours,
             )
         except ValueError as exc:
             raise CommandError(str(exc)) from exc

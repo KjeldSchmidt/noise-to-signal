@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from pgvector.django import VectorField
 
 EMBEDDING_DIMENSIONS = 1024
@@ -106,6 +107,21 @@ class Theme(models.Model):
 
     def __str__(self) -> str:
         return self.label
+
+
+class ThemeSuggestion(models.Model):
+    """Rejected free-form theme ideas from extract (promotion candidates)."""
+
+    raw = models.SlugField(max_length=64, unique=True)
+    count = models.PositiveIntegerField(default=0)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    last_example_title = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["-count", "raw"]
+
+    def __str__(self) -> str:
+        return f"{self.raw} ({self.count})"
 
 
 class LocationOfInterest(models.Model):

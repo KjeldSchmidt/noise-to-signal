@@ -29,6 +29,7 @@ from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
 from news.models import Article, Feed, GeoLevel, Theme
+from news.services.themes import record_theme_suggestions
 from news.services.geocode import search_places
 from news.services.threading import assign_story_thread
 from news.sqs import enqueue_feed_items
@@ -219,6 +220,11 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
         article.themes.set(themes)
     else:
         article.themes.clear()
+    if dto.suggested_themes:
+        record_theme_suggestions(
+            list(dto.suggested_themes),
+            example_title=article.title,
+        )
     if dto.embedding is not None:
         article = assign_story_thread(article)
     return JsonResponse(

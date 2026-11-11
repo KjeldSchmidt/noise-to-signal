@@ -11,7 +11,7 @@ from n2s_api import (
     FeedListResponse,
 )
 
-from news.models import Article, Feed
+from news.models import Article, Feed, Theme, ThemeSuggestion
 
 
 @override_settings(INTERNAL_API_TOKEN="test-internal-token")
@@ -223,3 +223,36 @@ class InternalArticlesApiTests(TestCase):
         self.assertEqual(first.json()["article_id"], second.json()["article_id"])
         self.assertEqual(Article.objects.count(), 1)
         self.assertEqual(Article.objects.get().title, "Hello updated")
+
+    def test_upsert_sets_themes_and_records_suggestions(self) -> None:
+        Theme.objects.update_or_create(
+            slug="sports",
+            defaults={"label": "Sports", "sort_order": 1, "is_active": True},
+        )
+        Theme.objects.update_or_create(
+            slug="conflict",
+            defaults={"label": "Conflict", "sort_order": 2, "is_active": True},
+        )
+        response = self.client.post(
+            "/api/internal/articles/",
+            data={
+                "feed_id": self.feed.id,
+                "url": "https://www.bbc.com/news/themes",
+                "title": "Vinicius message from Sudan war",
+                "summary": "Footballer reaches out.",
+                "published_at": "2026-11-04T10:00:00+00:00",
+                "theme_slugs": ["sports", "conflict"],
+                "suggested_themes": ["war-crimes", "sports"],
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        article = Article.objects.get(url="https://www.bbc.com/news/themes")
+        self.assertEqual(
+            set(article.themes.values_list("slug", flat=True)),
+            {"sports", "conflict"},
+        )
+        suggestion = ThemeSuggestion.objects.get(raw="war-crimes")
+        self.assertEqual(suggestion.count, 1)
+        self.assertFalse(ThemeSuggestion.objects.filter(raw="sports").exists())

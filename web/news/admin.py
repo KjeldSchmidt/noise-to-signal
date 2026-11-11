@@ -12,6 +12,7 @@ from news.models import (
     StoryThread,
     Subscription,
     Theme,
+    ThemeSuggestion,
 )
 
 patch_admin_urls()
@@ -42,6 +43,14 @@ class ThemeAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     search_fields = ("slug", "label")
     prepopulated_fields = {"slug": ("label",)}
+
+
+@admin.register(ThemeSuggestion)
+class ThemeSuggestionAdmin(admin.ModelAdmin):
+    list_display = ("raw", "count", "last_seen_at", "last_example_title")
+    search_fields = ("raw", "last_example_title")
+    readonly_fields = ("raw", "count", "last_seen_at", "last_example_title")
+    ordering = ("-count", "raw")
 
 
 @admin.register(LocationOfInterest)

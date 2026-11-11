@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import timedelta
 
 from django.db.models import QuerySet
+from django.utils import timezone
 from n2s_api import FeedItem
 
 from news.models import Article
@@ -16,7 +17,7 @@ def articles_for_requeue(
     all_articles: bool = False,
     unthreaded: bool = False,
     ids: list[int] | None = None,
-    since: datetime | None = None,
+    since_hours: int | None = None,
 ) -> QuerySet[Article]:
     qs = Article.objects.all().order_by("id")
     selected = False
@@ -28,11 +29,11 @@ def articles_for_requeue(
     if ids:
         qs = qs.filter(id__in=ids)
         selected = True
-    if since is not None:
-        qs = qs.filter(published_at__gte=since)
+    if since_hours is not None:
+        qs = qs.filter(published_at__gte=timezone.now() - timedelta(hours=since_hours))
         selected = True
     if not selected:
-        raise ValueError("Select articles with all, unthreaded, ids, and/or since")
+        raise ValueError("Select articles with all, unthreaded, ids, and/or since_hours")
     return qs.select_related("feed")
 
 

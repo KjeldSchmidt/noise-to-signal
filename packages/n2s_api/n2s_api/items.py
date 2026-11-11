@@ -56,6 +56,7 @@ class ArticleUpsert(BaseModel):
     geo_confidence: float | None = None
     story_label: str = ""
     theme_slugs: list[str] = Field(default_factory=list)
+    suggested_themes: list[str] = Field(default_factory=list)
 
     @field_validator("embedding")
     @classmethod

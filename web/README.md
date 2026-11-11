@@ -59,7 +59,7 @@ DATABASE_SSL=true
 
 Article embeddings need **Postgres + pgvector** (`CREATE EXTENSION vector`). Local SQLite can run the schema for smoke tests but production similarity/thread assignment targets RDS.
 
-Articles also store hierarchical place fields + curated **Theme** M2M (seeded in migration `0005`). Workers call `GET /api/internal/themes/` and `POST /api/internal/geocode/search/`; LOI settings persist the same country/admin1/locality path for containment matching (`news.services.places.places_match`).
+Articles also store hierarchical place fields + curated **Theme** M2M (~21 ressorts; migration `0007`). Extract assigns only allowlisted slugs (structured enum); free-form rejects land in **ThemeSuggestion** counters (admin) for possible promotion. Workers call `GET /api/internal/themes/` and `POST /api/internal/geocode/search/`; LOI settings persist the same country/admin1/locality path for containment matching (`news.services.places.places_match`). After deploy, re-enrich via News ops if older articles lack themes.
 
 Story threads are optional (no singleton threads). Ops via CLI (`dissolve_singleton_threads`, `reconcile_story_threads`, `requeue_articles`) or staff admin **News ops** at `/admin/news/ops/` (linked from Article / Story thread changelists). Assignment uses a Postgres advisory lock — **SCALING HOTSPOT** documented in `news/services/threading.py`.
 

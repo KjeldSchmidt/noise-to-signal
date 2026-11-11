@@ -16,14 +16,14 @@ from textutil import clean_text
 
 logger = logging.getLogger(__name__)
 
-_theme_slug_cache: list[str] | None = None
+_theme_cache: list[dict[str, str]] | None = None
 
 
-def _active_theme_slugs() -> list[str]:
-    global _theme_slug_cache
-    if _theme_slug_cache is None:
-        _theme_slug_cache = [t.slug for t in list_themes()]
-    return _theme_slug_cache
+def _active_themes() -> list[dict[str, str]]:
+    global _theme_cache
+    if _theme_cache is None:
+        _theme_cache = [{"slug": t.slug, "label": t.label} for t in list_themes()]
+    return _theme_cache
 
 
 def normalize(state: EnrichState) -> dict[str, Any]:
@@ -53,6 +53,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         "longitude": None,
         "geo_confidence": None,
         "theme_slugs": [],
+        "suggested_themes": [],
         "story_label": "",
     }
     title = state["title"]
@@ -61,13 +62,14 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         extracted = extract_place_and_themes(
             title=title,
             summary=summary,
-            theme_slugs=_active_theme_slugs(),
+            themes=_active_themes(),
         )
     except Exception:
         logger.exception("Place/theme extraction failed; using global")
         return out
 
     out["theme_slugs"] = list(extracted.get("theme_slugs") or [])
+    out["suggested_themes"] = list(extracted.get("suggested_themes") or [])
     out["story_label"] = (extracted.get("story_label") or "")[:120]
     out["geo_confidence"] = extracted.get("geo_confidence")
     place_query = (extracted.get("place_query") or "").strip()
@@ -121,6 +123,7 @@ def upsert(state: EnrichState) -> dict[str, Any]:
         geo_confidence=state.get("geo_confidence"),
         story_label=state.get("story_label") or "",
         theme_slugs=list(state.get("theme_slugs") or []),
+        suggested_themes=list(state.get("suggested_themes") or []),
     )
     result = upsert_article(article)
     return {

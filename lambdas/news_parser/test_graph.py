@@ -42,7 +42,7 @@ def test_embed_writes_vector_and_model(mock_embed: MagicMock) -> None:
     assert out["embedding_model"] == "cohere.embed-multilingual-v3"
 
 
-@patch("graph._active_theme_slugs", return_value=["tech"])
+@patch("graph._active_themes", return_value=[{"slug": "tech", "label": "Technology"}])
 @patch("graph.extract_place_and_themes", side_effect=RuntimeError("bedrock down"))
 def test_extract_place_soft_fails_to_global(
     _mock_extract: MagicMock, _mock_themes: MagicMock
@@ -64,7 +64,7 @@ def test_extract_place_soft_fails_to_global(
     assert out["latitude"] is None
 
 
-@patch("graph._active_theme_slugs", return_value=["tech"])
+@patch("graph._active_themes", return_value=[{"slug": "tech", "label": "Technology"}])
 @patch(
     "graph.extract_place_and_themes",
     return_value={
@@ -72,6 +72,8 @@ def test_extract_place_soft_fails_to_global(
         "place_query": "Cologne, Germany",
         "geo_confidence": 0.9,
         "theme_slugs": ["tech"],
+        "suggested_themes": [],
+        "story_label": "",
     },
 )
 @patch("graph.geocode_search")
@@ -108,7 +110,10 @@ def test_extract_place_geocodes_when_confident(
     assert out["latitude"] == 50.94
 
 
-@patch("graph._active_theme_slugs", return_value=["politics"])
+@patch(
+    "graph._active_themes",
+    return_value=[{"slug": "politics", "label": "Politics"}],
+)
 @patch(
     "graph.extract_place_and_themes",
     return_value={
@@ -116,6 +121,8 @@ def test_extract_place_geocodes_when_confident(
         "place_query": "Spain",
         "geo_confidence": 0.9,
         "theme_slugs": ["politics"],
+        "suggested_themes": ["royal-news"],
+        "story_label": "Spanish Rail Crash",
     },
 )
 @patch("graph.geocode_search")
@@ -151,6 +158,8 @@ def test_extract_place_geocodes_despite_global_scope(
     assert out["place_label"] == "Spain"
     assert out["country_code"] == "es"
     assert out["latitude"] == 40.0
+    assert out["suggested_themes"] == ["royal-news"]
+    assert out["story_label"] == "Spanish Rail Crash"
 
 
 @patch("graph.upsert_article")

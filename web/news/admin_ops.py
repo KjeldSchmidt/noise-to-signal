@@ -6,7 +6,6 @@ from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
-from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_http_methods
 
 from news.services.requeue import articles_for_requeue, requeue_articles
@@ -28,11 +27,11 @@ class RequeueForm(forms.Form):
         help_text="Comma-separated primary keys",
         widget=forms.TextInput(attrs={"size": 40}),
     )
-    since = forms.CharField(
+    since_hours = forms.IntegerField(
         required=False,
-        label="Published since",
-        help_text="ISO datetime, e.g. 2026-11-01T00:00:00+00:00",
-        widget=forms.TextInput(attrs={"size": 40}),
+        min_value=1,
+        label="Published within last N hours",
+        help_text="e.g. 24 for the last day, 168 for the last week",
     )
     clear_threads = forms.BooleanField(
         required=False,
@@ -97,19 +96,12 @@ def news_ops_view(request):
                     except ValueError:
                         messages.error(request, "Article IDs must be comma-separated integers.")
                         return redirect("admin:news_ops")
-                since = None
-                since_raw = (data.get("since") or "").strip()
-                if since_raw:
-                    since = parse_datetime(since_raw)
-                    if since is None:
-                        messages.error(request, "Published since must be an ISO datetime.")
-                        return redirect("admin:news_ops")
                 try:
                     qs = articles_for_requeue(
                         all_articles=bool(data.get("all_articles")),
                         unthreaded=bool(data.get("unthreaded")),
                         ids=ids,
-                        since=since,
+                        since_hours=data.get("since_hours"),
                     )
                 except ValueError as exc:
                     messages.error(request, str(exc))

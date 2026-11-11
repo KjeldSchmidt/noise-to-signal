@@ -12,8 +12,8 @@ START → normalize → embed ∥ extract_place → upsert → END
 
 1. **normalize** — plain-text `title` / `summary` (unescape HTML, strip tags, collapse whitespace).
 2. **embed** — LangChain `BedrockEmbeddings` for Cohere Embed Multilingual v3 (`cohere.embed-multilingual-v3`, `input_type=clustering`).
-3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, allowlisted `theme_slugs`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
-4. **upsert** — article + embedding + place + themes; web API assigns near-dup / story thread links.
+3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, enum-constrained `theme_slugs` (curated catalog), free-form `suggested_themes`, and `story_label`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
+4. **upsert** — article + embedding + place + themes; web API increments `ThemeSuggestion` counters for suggestions and assigns near-dup / story thread links.
 
 No article-body scraping in this phase (RSS text only). Embedding / hard failures report SQS `batchItemFailures`; geo/theme soft-fails.
 
