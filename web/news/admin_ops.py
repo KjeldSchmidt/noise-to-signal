@@ -74,9 +74,7 @@ def news_ops_view(request):
         if action == "reconcile":
             reconcile_form = ReconcileForm(request.POST, prefix="reconcile")
             if reconcile_form.is_valid():
-                stats = reconcile_story_threads(
-                    limit=reconcile_form.cleaned_data.get("limit")
-                )
+                stats = reconcile_story_threads(limit=reconcile_form.cleaned_data.get("limit"))
                 messages.success(
                     request,
                     "Reconcile: "
@@ -95,13 +93,9 @@ def news_ops_view(request):
                 ids: list[int] | None = None
                 if ids_raw:
                     try:
-                        ids = [
-                            int(x.strip()) for x in ids_raw.split(",") if x.strip()
-                        ]
+                        ids = [int(x.strip()) for x in ids_raw.split(",") if x.strip()]
                     except ValueError:
-                        messages.error(
-                            request, "Article IDs must be comma-separated integers."
-                        )
+                        messages.error(request, "Article IDs must be comma-separated integers.")
                         return redirect("admin:news_ops")
                 since = None
                 since_raw = (data.get("since") or "").strip()

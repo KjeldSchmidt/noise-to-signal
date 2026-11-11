@@ -100,9 +100,7 @@ def geocode_search(
     """POST /api/internal/geocode/search/ — Nominatim hierarchy + coords."""
     base, auth = _base_and_token(base_url, token)
     body = (
-        GeocodeSearchRequest(
-            q=query, limit=limit, lang=lang, scope_hint=scope_hint
-        )
+        GeocodeSearchRequest(q=query, limit=limit, lang=lang, scope_hint=scope_hint)
         .model_dump_json()
         .encode("utf-8")
     )
@@ -151,9 +149,7 @@ def ingest_feed_items(
                 part = FeedItemIngestResponse.model_validate_json(response.read())
         except urllib.error.HTTPError as exc:
             err_body = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(
-                f"ingest_feed_items failed ({exc.code}): {err_body}"
-            ) from exc
+            raise RuntimeError(f"ingest_feed_items failed ({exc.code}): {err_body}") from exc
 
         totals = FeedItemIngestResponse(
             accepted=totals.accepted + part.accepted,

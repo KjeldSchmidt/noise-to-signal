@@ -31,9 +31,7 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(out["geo_confidence"], 0.9)
 
     @patch("extract.get_extract_model")
-    def test_extract_low_confidence_clears_place(
-        self, mock_get_model: MagicMock
-    ) -> None:
+    def test_extract_low_confidence_clears_place(self, mock_get_model: MagicMock) -> None:
         structured = MagicMock()
         structured.invoke.return_value = PlaceThemeExtract(
             geo_scope="local",
@@ -52,9 +50,7 @@ class ExtractTests(unittest.TestCase):
         self.assertIsNone(out["geo_confidence"])
 
     @patch("extract.get_extract_model")
-    def test_global_scope_keeps_high_confidence_place(
-        self, mock_get_model: MagicMock
-    ) -> None:
+    def test_global_scope_keeps_high_confidence_place(self, mock_get_model: MagicMock) -> None:
         structured = MagicMock()
         structured.invoke.return_value = PlaceThemeExtract(
             geo_scope="global",

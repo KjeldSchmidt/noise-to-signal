@@ -4,7 +4,10 @@ import os
 from pathlib import Path
 
 import dj_database_url
+import django_stubs_ext
 from dotenv import load_dotenv
+
+django_stubs_ext.monkeypatch()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 # override=True so edited .env values apply after a process restart
@@ -25,9 +28,7 @@ DEBUG = os.environ.get("DEBUG", "true").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get(
-        "ALLOWED_HOSTS", "localhost,127.0.0.1,testserver"
-    ).split(",")
+    for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
     if host.strip()
 ]
 
@@ -102,8 +103,7 @@ DATABASES = {
         _db_url,
         conn_max_age=_conn_max_age,
         ssl_require=_db_url.startswith("postgres")
-        and os.environ.get("DATABASE_SSL", "true").lower()
-        in ("1", "true", "yes"),
+        and os.environ.get("DATABASE_SSL", "true").lower() in ("1", "true", "yes"),
     )
 }
 

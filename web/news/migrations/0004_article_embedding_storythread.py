@@ -19,7 +19,6 @@ def drop_vector_extension(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("news", "0003_article_image_url"),
     ]

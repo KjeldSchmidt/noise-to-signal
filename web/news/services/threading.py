@@ -246,23 +246,19 @@ def _join_or_create_with_peer(
 def dissolve_singleton_threads() -> tuple[int, int]:
     """Clear sole-member threads and delete empty threads. Returns (articles, threads)."""
     singleton_ids = list(
-        StoryThread.objects.annotate(n=Count("articles"))
-        .filter(n=1)
-        .values_list("id", flat=True)
+        StoryThread.objects.annotate(n=Count("articles")).filter(n=1).values_list("id", flat=True)
     )
     articles_cleared = 0
     if singleton_ids:
-        articles_cleared = Article.objects.filter(
-            story_thread_id__in=singleton_ids
-        ).update(story_thread_id=None)
+        articles_cleared = Article.objects.filter(story_thread_id__in=singleton_ids).update(
+            story_thread_id=None
+        )
         deleted, _ = StoryThread.objects.filter(id__in=singleton_ids).delete()
     else:
         deleted = 0
 
     empty_ids = list(
-        StoryThread.objects.annotate(n=Count("articles"))
-        .filter(n=0)
-        .values_list("id", flat=True)
+        StoryThread.objects.annotate(n=Count("articles")).filter(n=0).values_list("id", flat=True)
     )
     if empty_ids:
         extra, _ = StoryThread.objects.filter(id__in=empty_ids).delete()
@@ -273,9 +269,8 @@ def dissolve_singleton_threads() -> tuple[int, int]:
 def reconcile_story_threads(*, limit: int | None = None) -> dict[str, int]:
     """No-AI repair: dissolve singletons, then assign unthreaded articles with embeddings."""
     cleared, dissolved = dissolve_singleton_threads()
-    qs = (
-        Article.objects.filter(embedding__isnull=False, story_thread__isnull=True)
-        .order_by("published_at", "id")
+    qs = Article.objects.filter(embedding__isnull=False, story_thread__isnull=True).order_by(
+        "published_at", "id"
     )
     if limit is not None:
         qs = qs[:limit]

@@ -1,0 +1,26 @@
+name: Setup quality gates
+description: just, uv, and Terraform (for fmt-check) — no AWS
+runs:
+  using: composite
+  steps:
+    - name: Setup just
+      uses: extractions/setup-just@v2
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.13.3"
+        terraform_wrapper: false
+
+    - name: Sync Python projects
+      shell: bash
+      run: |
+        set -euo pipefail
+        for dir in web runner lambdas/feed_consumer lambdas/news_parser packages/n2s_api packages/n2s_web_client; do
+          (cd "$dir" && uv sync --group dev)
+        done

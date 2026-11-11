@@ -24,9 +24,7 @@ def _normalize_lang(lang: str | None) -> str:
         tag = token.strip().split(";")[0].strip()
         if tag and tag not in parts:
             parts.append(tag)
-    if _DEFAULT_LANG not in parts and not any(
-        p.lower().startswith("en") for p in parts
-    ):
+    if _DEFAULT_LANG not in parts and not any(p.lower().startswith("en") for p in parts):
         parts.append(_DEFAULT_LANG)
     return ",".join(parts) or _DEFAULT_LANG
 
@@ -145,9 +143,7 @@ def reverse_geocode_place(
     )
     if not isinstance(payload, dict):
         return None
-    hier = hierarchy_from_address(
-        payload.get("address") or {}, payload.get("display_name") or ""
-    )
+    hier = hierarchy_from_address(payload.get("address") or {}, payload.get("display_name") or "")
     if not hier["label"] and not hier["country_code"]:
         return None
     return {

@@ -63,9 +63,7 @@ def brief(request: HttpRequest) -> HttpResponse:
 def stories(request: HttpRequest) -> HttpResponse:
     """Non-personalized catalog for guests; enabled feeds (mutes/custom) when signed in."""
     personalized = request.user.is_authenticated
-    feed_ids = (
-        enabled_feed_ids(request.user) if personalized else catalog_feed_ids()
-    )
+    feed_ids = enabled_feed_ids(request.user) if personalized else catalog_feed_ids()
     articles = (
         Article.objects.filter(feed_id__in=feed_ids)
         .select_related("feed")
@@ -84,9 +82,7 @@ def stories(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def settings_page(request: HttpRequest) -> HttpResponse:
-    muted_ids = set(
-        FeedMute.objects.filter(user=request.user).values_list("feed_id", flat=True)
-    )
+    muted_ids = set(FeedMute.objects.filter(user=request.user).values_list("feed_id", flat=True))
     catalog = catalog_feeds()
     custom = Feed.objects.filter(owner=request.user, is_active=True)
     recommended = recommend_feeds(request.user)
@@ -183,9 +179,7 @@ def mute_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
 def unmute_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
     FeedMute.objects.filter(user=request.user, feed_id=feed_id).delete()
     feed = Feed.objects.filter(pk=feed_id).first()
-    messages.success(
-        request, f"Enabled {feed.title}." if feed else "Feed enabled."
-    )
+    messages.success(request, f"Enabled {feed.title}." if feed else "Feed enabled.")
     return redirect(request.POST.get("next") or "settings")
 
 
@@ -221,17 +215,13 @@ def geocode_reverse(request: HttpRequest) -> JsonResponse:
 def geocode_search(request: HttpRequest) -> JsonResponse:
     """JSON: forward-geocode a place query for the location search box."""
     q = (request.GET.get("q") or "").strip()
-    return JsonResponse(
-        {"results": search_places(q, limit=5, lang=_request_lang(request))}
-    )
+    return JsonResponse({"results": search_places(q, limit=5, lang=_request_lang(request))})
 
 
 @login_required
 @require_POST
 def delete_location(request: HttpRequest, location_id: int) -> HttpResponse:
-    deleted, _ = LocationOfInterest.objects.filter(
-        user=request.user, pk=location_id
-    ).delete()
+    deleted, _ = LocationOfInterest.objects.filter(user=request.user, pk=location_id).delete()
     if deleted:
         messages.info(request, "Location removed.")
     return redirect("settings")
@@ -243,10 +233,9 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
     article = get_object_or_404(Article, pk=article_id)
     verdict = request.POST.get("verdict")
     allowed = {c.value for c in RelevanceFeedback.Verdict}
-    wants_json = (
-        request.headers.get("X-Requested-With") == "XMLHttpRequest"
-        or "application/json" in (request.headers.get("Accept") or "")
-    )
+    wants_json = request.headers.get(
+        "X-Requested-With"
+    ) == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or "")
     if verdict not in allowed:
         if wants_json:
             return JsonResponse({"ok": False, "error": "Unknown feedback action."}, status=400)
@@ -301,9 +290,7 @@ def answer_followup(request: HttpRequest, question_id: int) -> HttpResponse:
             messages.success(request, "Saved — that will shape future filtering.")
             return redirect("followups")
     else:
-        existing = FollowUpAnswer.objects.filter(
-            user=request.user, question=question
-        ).first()
+        existing = FollowUpAnswer.objects.filter(user=request.user, question=question).first()
         form = FollowUpAnswerForm(instance=existing)
     return render(
         request,

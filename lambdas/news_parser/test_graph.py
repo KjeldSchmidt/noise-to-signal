@@ -146,19 +146,16 @@ def test_extract_place_geocodes_despite_global_scope(
             "summary": "Leaders gathered after the crash.",
         }
     )
-    mock_geocode.assert_called_once_with("Spain", limit=1, scope_hint=None)
+    mock_geocode.assert_called_once_with("Spain", limit=1, scope_hint="")
     assert out["geo_level"] == "country"
     assert out["place_label"] == "Spain"
     assert out["country_code"] == "es"
     assert out["latitude"] == 40.0
 
 
-
 @patch("graph.upsert_article")
 def test_upsert_builds_article_and_returns_ids(mock_upsert: MagicMock) -> None:
-    mock_upsert.return_value = MagicMock(
-        created=True, article_id=42, story_thread_id=7
-    )
+    mock_upsert.return_value = MagicMock(created=True, article_id=42, story_thread_id=7)
     state: dict[str, Any] = {
         "feed_id": 1,
         "url": "https://example.com/a",
@@ -180,7 +177,7 @@ def test_upsert_builds_article_and_returns_ids(mock_upsert: MagicMock) -> None:
         "geo_confidence": None,
         "theme_slugs": [],
     }
-    out = upsert(state)  # type: ignore[arg-type]
+    out = upsert(state)  # ty: ignore[invalid-argument-type]
     mock_upsert.assert_called_once()
     assert out == {
         "created": True,

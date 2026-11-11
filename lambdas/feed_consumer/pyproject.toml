@@ -12,3 +12,20 @@ dependencies = [
 
 [tool.uv.sources]
 n2s-web-client = { path = "../../packages/n2s_web_client", editable = false }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.4",
+    "ty>=0.0.100",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"

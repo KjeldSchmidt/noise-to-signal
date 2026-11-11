@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from n2s_api import (
     Feed as FeedDTO,
+)
+from n2s_api import (
     FeedItem,
     FeedItemIngestRequest,
     FeedListResponse,
@@ -123,7 +125,7 @@ class InternalFeedItemsApiTests(TestCase):
             title="Hello",
             url=self.item.link,
             summary="World",
-            published_at=datetime(2026, 11, 4, 10, 0, tzinfo=timezone.utc),
+            published_at=datetime(2026, 11, 4, 10, 0, tzinfo=UTC),
         )
         response = self.client.post(
             "/api/internal/feed-items/",

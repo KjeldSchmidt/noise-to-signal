@@ -1,0 +1,20 @@
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
+
+default:
+    @just --list
+
+fmt:
+    uv run ruff format .
+
+fmt-check:
+    uv run ruff format --check .
+
+lint:
+    uv run ruff check .
+
+typecheck:
+    uv run ty check
+
+# No unit tests in this package yet
+test:
+    @echo "n2s_web_client: no tests"

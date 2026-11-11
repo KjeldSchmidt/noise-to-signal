@@ -1,0 +1,20 @@
+---
+description: All Python code must be typed; verify with ty
+alwaysApply: true
+---
+
+# Typed Python
+
+All **new and changed** Python must be fully typed. Prefer gradual typing only when fixing legacy call sites in the same change.
+
+## Do
+
+- Annotate parameters, return types, and non-obvious locals on public functions/methods
+- Use `list[T]`, `dict[K, V]`, `|` unions, and `TypedDict` / pydantic models where they fit
+- Run `just typecheck` (or the project’s `uv run ty check`) before finishing Python work
+
+## Don't
+
+- Leave public APIs unannotated
+- Use bare `Any` to silence the checker without a short comment explaining why
+- Skip `ty` failures and rely on runtime-only discovery

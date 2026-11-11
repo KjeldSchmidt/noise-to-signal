@@ -12,7 +12,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         cleared, deleted = dissolve_singleton_threads()
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Cleared {cleared} article(s); deleted {deleted} thread(s)."
-            )
+            self.style.SUCCESS(f"Cleared {cleared} article(s); deleted {deleted} thread(s).")
         )

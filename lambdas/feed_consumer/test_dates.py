@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from time import struct_time
 from types import SimpleNamespace
 
@@ -16,9 +16,7 @@ def test_prefers_published_parsed() -> None:
         published_parsed=_st(2024, 1, 2, 3, 4, 5),
         updated_parsed=_st(2025, 6, 7, 8, 9, 10),
     )
-    assert _entry_published_at(entry) == datetime(
-        2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc
-    )
+    assert _entry_published_at(entry) == datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
 
 
 def test_falls_back_to_updated_parsed() -> None:
@@ -26,9 +24,7 @@ def test_falls_back_to_updated_parsed() -> None:
         published_parsed=None,
         updated_parsed=_st(2025, 6, 7, 8, 9, 10),
     )
-    assert _entry_published_at(entry) == datetime(
-        2025, 6, 7, 8, 9, 10, tzinfo=timezone.utc
-    )
+    assert _entry_published_at(entry) == datetime(2025, 6, 7, 8, 9, 10, tzinfo=UTC)
 
 
 def test_falls_back_to_created_parsed() -> None:
@@ -37,9 +33,7 @@ def test_falls_back_to_created_parsed() -> None:
         updated_parsed=None,
         created_parsed=_st(2023, 3, 4, 5, 6, 7),
     )
-    assert _entry_published_at(entry) == datetime(
-        2023, 3, 4, 5, 6, 7, tzinfo=timezone.utc
-    )
+    assert _entry_published_at(entry) == datetime(2023, 3, 4, 5, 6, 7, tzinfo=UTC)
 
 
 def test_last_resort_is_now() -> None:
@@ -48,7 +42,7 @@ def test_last_resort_is_now() -> None:
         updated_parsed=None,
         created_parsed=None,
     )
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     result = _entry_published_at(entry)
-    after = datetime.now(timezone.utc)
+    after = datetime.now(UTC)
     assert before <= result <= after

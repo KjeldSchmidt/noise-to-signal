@@ -1,7 +1,7 @@
 from .feeds import catalog_feed_ids, catalog_feeds, enabled_feed_ids
 from .followups import next_questions, unanswered_questions
 from .places import place_dict_match, places_match
-from .ranking import RankedItem, recommend_feeds, rank_items
+from .ranking import RankedItem, rank_items, recommend_feeds
 from .threading import (
     assign_story_thread,
     cosine_similarity,

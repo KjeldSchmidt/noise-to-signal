@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from django.test import TestCase
 
@@ -26,7 +26,7 @@ class ThreadingTests(TestCase):
             url="https://feeds.bbci.co.uk/news/world/rss.xml",
             kind=Feed.SourceKind.CURATED,
         )
-        self.now = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
+        self.now = datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
 
     def test_cosine_similarity_identical(self) -> None:
         v = _vec(1.0)

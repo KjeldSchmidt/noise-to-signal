@@ -9,9 +9,7 @@ from news.models import FollowUpAnswer, FollowUpQuestion
 
 
 def unanswered_questions(user: AbstractBaseUser) -> QuerySet[FollowUpQuestion]:
-    answered_ids = FollowUpAnswer.objects.filter(user=user).values_list(
-        "question_id", flat=True
-    )
+    answered_ids = FollowUpAnswer.objects.filter(user=user).values_list("question_id", flat=True)
     return FollowUpQuestion.objects.filter(is_active=True).exclude(id__in=answered_ids)
 
 

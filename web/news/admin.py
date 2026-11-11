@@ -10,8 +10,8 @@ from news.models import (
     LocationOfInterest,
     RelevanceFeedback,
     StoryThread,
-    Theme,
     Subscription,
+    Theme,
 )
 
 patch_admin_urls()

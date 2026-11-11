@@ -5,12 +5,9 @@ from __future__ import annotations
 import hmac
 from collections.abc import Callable
 from functools import wraps
-from typing import TypeVar
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
-
-F = TypeVar("F", bound=Callable[..., HttpResponse])
 
 
 def _extract_bearer_token(request: HttpRequest) -> str:
@@ -20,11 +17,11 @@ def _extract_bearer_token(request: HttpRequest) -> str:
     return request.headers.get("X-Internal-Token", "").strip()
 
 
-def require_internal_token(view: F) -> F:
+def require_internal_token[F: Callable[..., HttpResponse]](view: F) -> F:
     """Reject requests that lack a valid INTERNAL_API_TOKEN bearer/header."""
 
     @wraps(view)
-    def wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def wrapped(request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         expected = (getattr(settings, "INTERNAL_API_TOKEN", None) or "").strip()
         if not expected:
             return JsonResponse({"error": "internal API not configured"}, status=503)

@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-
 SEED_THEMES = [
     ("climate", "Climate", 10),
     ("energy", "Energy", 20),
@@ -34,7 +33,6 @@ def unseed_themes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("news", "0004_article_embedding_storythread"),
     ]
@@ -144,9 +142,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="article",
             name="themes",
-            field=models.ManyToManyField(
-                blank=True, related_name="articles", to="news.theme"
-            ),
+            field=models.ManyToManyField(blank=True, related_name="articles", to="news.theme"),
         ),
         migrations.RunPython(seed_themes, unseed_themes),
     ]

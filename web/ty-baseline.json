@@ -1,0 +1,191 @@
+{
+  "version": 0,
+  "files": {
+    "config/lambda_handler.py": [
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 17,
+        "endColumn": 28,
+        "lineCount": 1
+      }
+    ],
+    "news/admin_ops.py": [
+      {
+        "rule": "missing-attribute",
+        "startColumn": 4,
+        "endColumn": 37,
+        "lineCount": 1
+      }
+    ],
+    "news/api.py": [
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 12,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      }
+    ],
+    "news/internal_auth.py": [
+      {
+        "rule": "invalid-return-type",
+        "startColumn": 11,
+        "endColumn": 18,
+        "lineCount": 1
+      }
+    ],
+    "news/test_admin_ops.py": [
+      {
+        "rule": "missing-attribute",
+        "startColumn": 21,
+        "endColumn": 45,
+        "lineCount": 1
+      }
+    ],
+    "news/views.py": [
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 24,
+        "endColumn": 36,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 39,
+        "endColumn": 51,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 38,
+        "endColumn": 50,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 32,
+        "endColumn": 44,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 34,
+        "endColumn": 46,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 14,
+        "endColumn": 20,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 31,
+        "endColumn": 43,
+        "lineCount": 1
+      }
+    ]
+  }
+}

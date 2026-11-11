@@ -1,6 +1,7 @@
-from llm_model import get_model
-from state import ShoppingState
 from langgraph.types import interrupt
+
+from state import ShoppingState
+
 
 def human_review(state: ShoppingState) -> dict:
     evaluation = state["current_item"]
@@ -10,10 +11,10 @@ def human_review(state: ShoppingState) -> dict:
     Reason: {evaluation.reason}
 
     Pros: ✅
-    { "\n-".join(evaluation.pro_arguments) }
+    {"\n-".join(evaluation.pro_arguments)}
 
     Cons: 🟨
-    { "\n-".join(evaluation.con_arguments) }
+    {"\n-".join(evaluation.con_arguments)}
 
     So what do you think?
     """

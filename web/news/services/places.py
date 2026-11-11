@@ -31,17 +31,12 @@ def _norm(value: str | None) -> str:
     return (value or "").strip().casefold()
 
 
-def haversine_km(
-    lat1: float, lon1: float, lat2: float, lon2: float
-) -> float:
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlmb = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dphi / 2) ** 2
-        + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
-    )
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
     return 2 * r * math.asin(math.sqrt(a))
 
 
@@ -64,11 +59,7 @@ def places_match(article: PlaceLike, loi: PlaceLike) -> float:
     a_loc = _norm(article.locality)
     u_loc = _norm(loi.locality)
     u_level = (loi.geo_level or "").strip() or (
-        GeoLevel.LOCALITY
-        if u_loc
-        else GeoLevel.ADMIN1
-        if u_admin
-        else GeoLevel.COUNTRY
+        GeoLevel.LOCALITY if u_loc else GeoLevel.ADMIN1 if u_admin else GeoLevel.COUNTRY
     )
 
     # Downward: article coarser than / equal country covers all LOIs in country.

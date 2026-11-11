@@ -86,7 +86,5 @@ class Command(BaseCommand):
         if result["cleared"]:
             self.stdout.write(f"Cleared threads on {result['cleared']} article(s).")
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Enqueued {result['enqueued']} / {result['count']} message(s)."
-            )
+            self.style.SUCCESS(f"Enqueued {result['enqueued']} / {result['count']} message(s).")
         )

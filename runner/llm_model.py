@@ -1,14 +1,15 @@
 from langchain.chat_models import init_chat_model
-from langchain.tools import tool
 
 _model = None
+
 
 def get_model():
     global _model
     if _model is None:
         _model = init_model()
-    
+
     return _model
+
 
 def init_model():
     model = init_chat_model(

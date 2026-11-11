@@ -7,10 +7,10 @@ from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 from n2s_api import ArticleUpsert
+from n2s_web_client import geocode_search, list_themes, upsert_article
 
 from embed import EMBEDDING_MODEL_ID, build_embed_input, embed_text
 from extract import extract_place_and_themes
-from n2s_web_client import geocode_search, list_themes, upsert_article
 from state import EnrichState
 from textutil import clean_text
 
@@ -76,7 +76,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
     # Nominatim would otherwise force geo_level=global even for real countries.
     if not place_query:
         return out
-    scope_hint = None if scope == "global" else scope
+    scope_hint = "" if scope == "global" else str(scope)
 
     try:
         hits = geocode_search(place_query, limit=1, scope_hint=scope_hint)
@@ -131,7 +131,8 @@ def upsert(state: EnrichState) -> dict[str, Any]:
 
 
 def build_graph():
-    builder = StateGraph(EnrichState)
+    # ty: LangGraph StateT bound doesn't yet accept TypedDict+NotRequired forms.
+    builder = StateGraph(EnrichState)  # ty: ignore[invalid-argument-type]
     builder.add_node("normalize", normalize)
     builder.add_node("embed", embed)
     builder.add_node("extract_place", extract_place)

@@ -21,17 +21,11 @@ def subscriptions_to_mutes(apps, schema_editor):
     if not catalog:
         return
 
-    user_ids = (
-        Subscription.objects.order_by()
-        .values_list("user_id", flat=True)
-        .distinct()
-    )
+    user_ids = Subscription.objects.order_by().values_list("user_id", flat=True).distinct()
     mutes = []
     for user_id in user_ids:
         subscribed = set(
-            Subscription.objects.filter(user_id=user_id).values_list(
-                "feed_id", flat=True
-            )
+            Subscription.objects.filter(user_id=user_id).values_list("feed_id", flat=True)
         )
         for feed_id in catalog:
             if feed_id not in subscribed:
@@ -46,38 +40,68 @@ def reverse_mutes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('news', '0001_initial'),
+        ("news", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='LocationOfInterest',
+            name="LocationOfInterest",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('label', models.CharField(max_length=200)),
-                ('latitude', models.FloatField(blank=True, null=True)),
-                ('longitude', models.FloatField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='locations_of_interest', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("label", models.CharField(max_length=200)),
+                ("latitude", models.FloatField(blank=True, null=True)),
+                ("longitude", models.FloatField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="locations_of_interest",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['label', 'id'],
+                "ordering": ["label", "id"],
             },
         ),
         migrations.CreateModel(
-            name='FeedMute',
+            name="FeedMute",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('feed', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='mutes', to='news.feed')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='feed_mutes', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "feed",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="mutes",
+                        to="news.feed",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="feed_mutes",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'unique_together': {('user', 'feed')},
+                "ordering": ["-created_at"],
+                "unique_together": {("user", "feed")},
             },
         ),
         migrations.RunPython(subscriptions_to_mutes, reverse_mutes),

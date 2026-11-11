@@ -20,3 +20,28 @@ dependencies = [
 
 [tool.uv.sources]
 n2s-api = { path = "../packages/n2s_api", editable = false }
+
+[dependency-groups]
+dev = [
+    "django-stubs>=6.1.2",
+    "django-stubs-ext>=6.1.2",
+    "ruff>=0.17.4",
+    "ty>=0.0.100",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty]
+# Grandfather Django decorator/stub friction; new diagnostics still fail CI.
+baseline = "ty-baseline.json"
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+exclude = ["**/migrations/**"]

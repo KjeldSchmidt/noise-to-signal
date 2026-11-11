@@ -12,3 +12,30 @@ dependencies = [
     "pydantic>=2.13.5",
     "python-dotenv>=1.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.4",
+    "ty>=0.0.100",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# load_dotenv before imports; long Field/demo strings are intentional
+"main.py" = ["E402"]
+"data.py" = ["E501"]
+"state.py" = ["E501"]
+"evaluate_user_preference.py" = ["E501"]
+
+[tool.ty]
+# Prototype LangGraph app — grandfather stub friction; new diagnostics still fail.
+baseline = "ty-baseline.json"
+
+[tool.ty.environment]
+python-version = "3.13"

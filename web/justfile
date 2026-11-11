@@ -32,9 +32,24 @@ run host="127.0.0.1:8000":
 shell:
     uv run python manage.py shell
 
-# System checks
-check:
+# Django system checks (not the repo quality gate — use root `just check`)
+django-check:
     uv run python manage.py check
+
+fmt:
+    uv run ruff format .
+
+fmt-check:
+    uv run ruff format --check .
+
+lint:
+    uv run ruff check .
+
+typecheck:
+    uv run ty check
+
+test:
+    uv run python manage.py test
 
 # Create a Django admin superuser (ops only; product auth is Google)
 createsuperuser:

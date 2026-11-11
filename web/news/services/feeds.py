@@ -25,7 +25,5 @@ def enabled_feed_ids(user: AbstractBaseUser) -> list[int]:
     """Active catalog feeds minus mutes, plus the user's active custom feeds (unless muted)."""
     muted = set(FeedMute.objects.filter(user=user).values_list("feed_id", flat=True))
     catalog_ids = set(catalog_feeds().values_list("id", flat=True))
-    custom_ids = set(
-        Feed.objects.filter(owner=user, is_active=True).values_list("id", flat=True)
-    )
+    custom_ids = set(Feed.objects.filter(owner=user, is_active=True).values_list("id", flat=True))
     return sorted((catalog_ids | custom_ids) - muted)

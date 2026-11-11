@@ -103,8 +103,7 @@ def extract_place_and_themes(
     """
     allowed = sorted({s.strip() for s in theme_slugs if s.strip()})
     user = (
-        f"Allowed theme_slugs: {json.dumps(allowed)}\n\n"
-        f"Title: {title}\n\nSummary: {summary[:1500]}"
+        f"Allowed theme_slugs: {json.dumps(allowed)}\n\nTitle: {title}\n\nSummary: {summary[:1500]}"
     )
     structured = get_extract_model().with_structured_output(PlaceThemeExtract)
     result = structured.invoke(

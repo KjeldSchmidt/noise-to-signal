@@ -4,6 +4,8 @@
 #   env/shared     — ECR + Route53 zone + ACM (shared across envs)
 #   env/<env>/app  — web Lambda + workers + Function URL + CloudFront + DNS alias
 
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
+
 default:
     @just --list
 

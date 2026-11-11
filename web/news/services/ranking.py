@@ -56,9 +56,7 @@ def rank_items(user: AbstractBaseUser, articles: list[Article] | None = None) ->
             .order_by("-published_at")[:40]
         )
 
-    judged = set(
-        RelevanceFeedback.objects.filter(user=user).values_list("article_id", flat=True)
-    )
+    judged = set(RelevanceFeedback.objects.filter(user=user).values_list("article_id", flat=True))
 
     ranked: list[RankedItem] = []
     for article in articles:
@@ -84,13 +82,9 @@ def recommend_feeds(user: AbstractBaseUser, limit: int = 4) -> list[Feed]:
     qs = catalog_feeds().filter(id__in=muted_ids)
 
     enabled = set(enabled_feed_ids(user))
-    user_categories = set(
-        Feed.objects.filter(id__in=enabled).values_list("category", flat=True)
-    )
+    user_categories = set(Feed.objects.filter(id__in=enabled).values_list("category", flat=True))
     preferred = list(qs.filter(category__in=user_categories)[:limit])
     if len(preferred) < limit:
         preferred_ids = {f.id for f in preferred}
-        preferred.extend(
-            list(qs.exclude(id__in=preferred_ids)[: limit - len(preferred)])
-        )
+        preferred.extend(list(qs.exclude(id__in=preferred_ids)[: limit - len(preferred)]))
     return preferred

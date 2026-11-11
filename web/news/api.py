@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone as django_timezone
@@ -13,7 +13,6 @@ from django.views.decorators.http import require_GET, require_POST
 from n2s_api import (
     ArticleUpsert,
     ArticleUpsertResponse,
-    Feed as FeedDTO,
     FeedItemIngestRequest,
     FeedItemIngestResponse,
     FeedListResponse,
@@ -22,6 +21,9 @@ from n2s_api import (
     GeocodeSearchResponse,
     ThemeDTO,
     ThemeListResponse,
+)
+from n2s_api import (
+    Feed as FeedDTO,
 )
 from pydantic import ValidationError
 
@@ -80,9 +82,7 @@ def list_themes(request: HttpRequest) -> JsonResponse:
 def geocode_search(request: HttpRequest) -> JsonResponse:
     """Forward-geocode for workers (Nominatim hierarchy + coords)."""
     try:
-        dto = GeocodeSearchRequest.model_validate_json(
-            request.body.decode("utf-8") or "{}"
-        )
+        dto = GeocodeSearchRequest.model_validate_json(request.body.decode("utf-8") or "{}")
     except ValidationError as exc:
         return JsonResponse(
             {"error": "invalid geocode request", "detail": _validation_detail(exc)},
@@ -117,9 +117,7 @@ def geocode_search(request: HttpRequest) -> JsonResponse:
 def ingest_feed_items(request: HttpRequest) -> JsonResponse:
     """Dedup FeedItems against Article(feed, url); enqueue only new ones to SQS."""
     try:
-        batch = FeedItemIngestRequest.model_validate_json(
-            request.body.decode("utf-8") or "{}"
-        )
+        batch = FeedItemIngestRequest.model_validate_json(request.body.decode("utf-8") or "{}")
     except ValidationError as exc:
         return JsonResponse(
             {"error": "invalid payload", "detail": _validation_detail(exc)},
@@ -129,9 +127,7 @@ def ingest_feed_items(request: HttpRequest) -> JsonResponse:
     items = list(batch.items)
     if not items:
         return JsonResponse(
-            FeedItemIngestResponse(
-                accepted=0, skipped_existing=0, enqueued=0
-            ).model_dump()
+            FeedItemIngestResponse(accepted=0, skipped_existing=0, enqueued=0).model_dump()
         )
 
     for item in items:
@@ -139,9 +135,7 @@ def ingest_feed_items(request: HttpRequest) -> JsonResponse:
             return JsonResponse({"error": "feed_id and link are required"}, status=400)
 
     feed_ids = {item.feed_id for item in items}
-    existing_feeds = set(
-        Feed.objects.filter(id__in=feed_ids).values_list("id", flat=True)
-    )
+    existing_feeds = set(Feed.objects.filter(id__in=feed_ids).values_list("id", flat=True))
     unknown = feed_ids - existing_feeds
     if unknown:
         return JsonResponse(
@@ -152,9 +146,9 @@ def ingest_feed_items(request: HttpRequest) -> JsonResponse:
     urls = [item.link for item in items]
     existing_keys = {
         (feed_id, url)
-        for feed_id, url in Article.objects.filter(
-            feed_id__in=feed_ids, url__in=urls
-        ).values_list("feed_id", "url")
+        for feed_id, url in Article.objects.filter(feed_id__in=feed_ids, url__in=urls).values_list(
+            "feed_id", "url"
+        )
     }
 
     new_items = [item for item in items if (item.feed_id, item.link) not in existing_keys]
@@ -173,7 +167,7 @@ def ingest_feed_items(request: HttpRequest) -> JsonResponse:
 def _parse_published_at(value: str) -> datetime:
     parsed = parse_datetime(value) if value else None
     if parsed is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     return parsed
 
 

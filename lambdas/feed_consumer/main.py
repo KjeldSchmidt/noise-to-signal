@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import feedparser
 from dotenv import load_dotenv
 from n2s_api import FeedItem
-
 from n2s_web_client import ingest_feed_items, list_feeds
 
 logger = logging.getLogger(__name__)
@@ -24,9 +23,9 @@ def _entry_thumbnail(entry: Any) -> str:
     for media in getattr(entry, "media_content", None) or []:
         if not isinstance(media, dict):
             continue
-        if str(media.get("medium") or "") == "image" or str(
-            media.get("type") or ""
-        ).startswith("image/"):
+        if str(media.get("medium") or "") == "image" or str(media.get("type") or "").startswith(
+            "image/"
+        ):
             url = str(media.get("url") or "")
             if url:
                 return url
@@ -55,7 +54,7 @@ def _struct_to_datetime(value: Any) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime(*value[:6], tzinfo=timezone.utc)
+        return datetime(*value[:6], tzinfo=UTC)
     except (TypeError, ValueError, OverflowError):
         return None
 
@@ -66,7 +65,7 @@ def _entry_published_at(entry: Any) -> datetime:
         parsed = _struct_to_datetime(getattr(entry, attr, None))
         if parsed is not None:
             return parsed
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def collect_feed_items() -> list[FeedItem]:

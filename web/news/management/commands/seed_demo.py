@@ -5,7 +5,6 @@ from django.core.management.base import BaseCommand
 
 from news.models import Feed, FollowUpQuestion
 
-
 FEEDS = [
     {
         "title": "BBC World",
@@ -66,9 +65,7 @@ FEEDS = [
 ]
 
 # Retired from the catalog; deactivate on re-seed so existing DBs drop them.
-RETIRED_FEED_URLS = (
-    "https://hnrss.org/frontpage",
-)
+RETIRED_FEED_URLS = ("https://hnrss.org/frontpage",)
 
 QUESTIONS = [
     "Which topics should almost always surface in your brief?",
@@ -103,9 +100,7 @@ class Command(BaseCommand):
                     "owner": None,
                 },
             )
-            self.stdout.write(
-                f"{'Created' if created else 'Updated'} feed: {feed.title}"
-            )
+            self.stdout.write(f"{'Created' if created else 'Updated'} feed: {feed.title}")
 
         retired = Feed.objects.filter(url__in=RETIRED_FEED_URLS, is_active=True)
         for feed in retired:

@@ -9,9 +9,13 @@ on:
       - "web/**"
       - "lambdas/**"
       - "packages/**"
+      - "runner/**"
+      - "justfile"
       - ".github/workflows/deploy-infra.yml"
       - ".github/workflows/deploy-env.yml"
+      - ".github/workflows/quality.yml"
       - ".github/actions/setup-infra/**"
+      - ".github/actions/setup-quality/**"
   workflow_dispatch:
 
 permissions:
@@ -47,6 +51,45 @@ jobs:
         working-directory: infrastructure
         run: just apply-shared
 
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: n2s
+          POSTGRES_PASSWORD: n2s
+          POSTGRES_DB: n2s_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U n2s -d n2s_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://n2s:n2s@localhost:5432/n2s_test
+      DATABASE_SSL: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup quality
+        uses: ./.github/actions/setup-quality
+
+      - name: Format check
+        run: just fmt-check
+
+      - name: Lint
+        run: just lint
+
+      - name: Typecheck
+        run: just typecheck
+
+      - name: Test
+        run: just test
+
   deploy-dev:
     name: Deploy Dev
     needs: deploy-shared
@@ -59,7 +102,7 @@ jobs:
 
   deploy-prod:
     name: Deploy Prod
-    needs: deploy-dev
+    needs: [deploy-dev, quality]
     uses: ./.github/workflows/deploy-env.yml
     with:
       environment: prod

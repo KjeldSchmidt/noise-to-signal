@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -15,91 +14,202 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='FollowUpQuestion',
+            name="FollowUpQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('prompt', models.TextField()),
-                ('sort_order', models.PositiveIntegerField(default=0)),
-                ('is_active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("prompt", models.TextField()),
+                ("sort_order", models.PositiveIntegerField(default=0)),
+                ("is_active", models.BooleanField(default=True)),
             ],
             options={
-                'ordering': ['sort_order', 'id'],
+                "ordering": ["sort_order", "id"],
             },
         ),
         migrations.CreateModel(
-            name='Feed',
+            name="Feed",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('url', models.URLField(unique=True)),
-                ('site_url', models.URLField(blank=True)),
-                ('description', models.TextField(blank=True)),
-                ('category', models.CharField(blank=True, db_index=True, max_length=80)),
-                ('kind', models.CharField(choices=[('curated', 'Curated catalog'), ('custom', 'User-added'), ('recommended', 'Recommended')], db_index=True, default='curated', max_length=20)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('owner', models.ForeignKey(blank=True, help_text='Set for custom feeds owned by a single user.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='custom_feeds', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("title", models.CharField(max_length=200)),
+                ("url", models.URLField(unique=True)),
+                ("site_url", models.URLField(blank=True)),
+                ("description", models.TextField(blank=True)),
+                ("category", models.CharField(blank=True, db_index=True, max_length=80)),
+                (
+                    "kind",
+                    models.CharField(
+                        choices=[
+                            ("curated", "Curated catalog"),
+                            ("custom", "User-added"),
+                            ("recommended", "Recommended"),
+                        ],
+                        db_index=True,
+                        default="curated",
+                        max_length=20,
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Set for custom feeds owned by a single user.",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="custom_feeds",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['category', 'title'],
+                "ordering": ["category", "title"],
             },
         ),
         migrations.CreateModel(
-            name='Article',
+            name="Article",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=300)),
-                ('url', models.URLField()),
-                ('summary', models.TextField(blank=True)),
-                ('published_at', models.DateTimeField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('feed', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='articles', to='news.feed')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("title", models.CharField(max_length=300)),
+                ("url", models.URLField()),
+                ("summary", models.TextField(blank=True)),
+                ("published_at", models.DateTimeField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "feed",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="articles",
+                        to="news.feed",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-published_at'],
-                'unique_together': {('feed', 'url')},
+                "ordering": ["-published_at"],
+                "unique_together": {("feed", "url")},
             },
         ),
         migrations.CreateModel(
-            name='FollowUpAnswer',
+            name="FollowUpAnswer",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('answer', models.TextField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='followup_answers', to=settings.AUTH_USER_MODEL)),
-                ('question', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='answers', to='news.followupquestion')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("answer", models.TextField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="followup_answers",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="answers",
+                        to="news.followupquestion",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-updated_at'],
-                'unique_together': {('user', 'question')},
+                "ordering": ["-updated_at"],
+                "unique_together": {("user", "question")},
             },
         ),
         migrations.CreateModel(
-            name='RelevanceFeedback',
+            name="RelevanceFeedback",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('verdict', models.CharField(choices=[('relevant', 'Relevant'), ('not_relevant', 'Not relevant'), ('skip', 'Skip')], max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('article', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='feedback', to='news.article')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='relevance_feedback', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                (
+                    "verdict",
+                    models.CharField(
+                        choices=[
+                            ("relevant", "Relevant"),
+                            ("not_relevant", "Not relevant"),
+                            ("skip", "Skip"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "article",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="feedback",
+                        to="news.article",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="relevance_feedback",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'unique_together': {('user', 'article')},
+                "ordering": ["-created_at"],
+                "unique_together": {("user", "article")},
             },
         ),
         migrations.CreateModel(
-            name='Subscription',
+            name="Subscription",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('feed', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subscriptions', to='news.feed')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subscriptions', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "feed",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="subscriptions",
+                        to="news.feed",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="subscriptions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'unique_together': {('user', 'feed')},
+                "ordering": ["-created_at"],
+                "unique_together": {("user", "feed")},
             },
         ),
     ]

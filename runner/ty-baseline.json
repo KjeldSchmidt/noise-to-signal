@@ -1,0 +1,269 @@
+{
+  "version": 0,
+  "files": {
+    "data.py": [
+      {
+        "rule": "invalid-return-type",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 5,
+        "lineCount": 20
+      },
+      {
+        "rule": "invalid-return-type",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 37,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 32,
+        "endColumn": 36,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-return-type",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 15,
+        "endColumn": 75,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 32,
+        "endColumn": 36,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-return-type",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 76,
+        "lineCount": 1
+      }
+    ],
+    "evaluate_user_preference.py": [
+      {
+        "rule": "invalid-return-type",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      },
+      {
+        "rule": "missing-typed-dict-key",
+        "startColumn": 11,
+        "endColumn": 38,
+        "lineCount": 1
+      }
+    ],
+    "main.py": [
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 19,
+        "endColumn": 32,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 9,
+        "endColumn": 1,
+        "lineCount": 5
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 13,
+        "endColumn": 90,
+        "lineCount": 1
+      }
+    ]
+  }
+}
