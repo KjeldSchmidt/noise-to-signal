@@ -9,19 +9,14 @@ def test_build_embed_input_joins_title_and_summary() -> None:
     assert build_embed_input(title="", summary="World") == "World"
 
 
-@patch("embed.boto3.client")
-def test_embed_text_parses_bedrock_response(mock_client: MagicMock) -> None:
+@patch("embed.get_embeddings")
+def test_embed_text_uses_langchain_embeddings(mock_get: MagicMock) -> None:
     vector = [0.01] * 1024
-    body = MagicMock()
-    body.read.return_value = b'{"embeddings": [' + str(vector).encode() + b"]}"
-    # JSON needs proper floats — rebuild with json
-    import json
-
-    body.read.return_value = json.dumps({"embeddings": [vector]}).encode()
-    mock_client.return_value.invoke_model.return_value = {"body": body}
+    mock_embeddings = MagicMock()
+    mock_embeddings.embed_documents.return_value = [vector]
+    mock_get.return_value = mock_embeddings
 
     out = embed_text("hello world")
     assert len(out) == 1024
-    mock_client.return_value.invoke_model.assert_called_once()
-    kwargs = mock_client.return_value.invoke_model.call_args.kwargs
-    assert kwargs["modelId"] == "cohere.embed-multilingual-v3"
+    mock_get.assert_called_once_with(input_type="clustering")
+    mock_embeddings.embed_documents.assert_called_once_with(["hello world"])

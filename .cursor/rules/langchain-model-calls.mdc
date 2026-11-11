@@ -20,12 +20,19 @@ from langchain.chat_models import init_chat_model
 model = init_chat_model(..., model_provider="bedrock_converse")
 structured = model.with_structured_output(MySchema)
 structured.invoke([...])
+
+# Embeddings (Cohere on Bedrock)
+from langchain_aws import BedrockEmbeddings
+BedrockEmbeddings(
+    model_id="cohere.embed-multilingual-v3",
+    model_kwargs={"input_type": "clustering", "truncate": "END"},
+)
 ```
 
 ## Don't
 
 ```python
-# ❌ Raw Bedrock for chat or embeddings when a LangChain path exists
+# ❌ Raw Bedrock for chat or embeddings
 boto3.client("bedrock-runtime").converse(...)
 boto3.client("bedrock-runtime").invoke_model(...)
 ```
@@ -33,4 +40,3 @@ boto3.client("bedrock-runtime").invoke_model(...)
 ## Exceptions
 
 - **Non-model AWS I/O** (SQS, S3, Secrets Manager, etc.) may use `boto3` directly
-- Legacy `news_parser/embed.py` still uses boto for Cohere Bedrock embed; migrate to a LangChain embeddings API when touching that path

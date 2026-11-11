@@ -11,7 +11,7 @@ START → normalize → embed ∥ extract_place → upsert → END
 `embed` and `extract_place` fan out from `normalize` and run in the same LangGraph superstep (concurrently). `upsert` waits for both.
 
 1. **normalize** — plain-text `title` / `summary` (unescape HTML, strip tags, collapse whitespace).
-2. **embed** — Cohere Embed Multilingual v3 on Bedrock (`cohere.embed-multilingual-v3`, `input_type=clustering`).
+2. **embed** — LangChain `BedrockEmbeddings` for Cohere Embed Multilingual v3 (`cohere.embed-multilingual-v3`, `input_type=clustering`).
 3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, allowlisted `theme_slugs`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
 4. **upsert** — article + embedding + place + themes; web API assigns near-dup / story thread links.
 

@@ -1,16 +1,40 @@
-"""Cohere Embed Multilingual v3 via Amazon Bedrock."""
+"""Cohere Embed Multilingual v3 via LangChain BedrockEmbeddings."""
 
 from __future__ import annotations
 
-import json
 import os
-from typing import Any
 
-import boto3
+from langchain_aws import BedrockEmbeddings
 
 EMBEDDING_MODEL_ID = "cohere.embed-multilingual-v3"
 # Cohere Embed v3: ~512 tokens / ~2048 characters per text.
 _MAX_CHARS = 2000
+
+_embeddings_cache: dict[str, BedrockEmbeddings] = {}
+
+
+def _bedrock_region() -> str:
+    return (
+        os.environ.get("BEDROCK_REGION")
+        or os.environ.get("AWS_REGION")
+        or os.environ.get("AWS_DEFAULT_REGION")
+        or "eu-central-1"
+    )
+
+
+def get_embeddings(*, input_type: str = "clustering") -> BedrockEmbeddings:
+    """Cached BedrockEmbeddings; model_kwargs override Cohere input_type."""
+    cached = _embeddings_cache.get(input_type)
+    if cached is not None:
+        return cached
+    embeddings = BedrockEmbeddings(
+        model_id=EMBEDDING_MODEL_ID,
+        region_name=_bedrock_region(),
+        # Overrides LangChain's default search_document / search_query.
+        model_kwargs={"input_type": input_type, "truncate": "END"},
+    )
+    _embeddings_cache[input_type] = embeddings
+    return embeddings
 
 
 def embed_text(text: str, *, input_type: str = "clustering") -> list[float]:
@@ -28,26 +52,7 @@ def embed_texts(
         return []
 
     truncated = [(t or "")[:_MAX_CHARS] for t in texts]
-    region = (
-        os.environ.get("BEDROCK_REGION")
-        or os.environ.get("AWS_REGION")
-        or os.environ.get("AWS_DEFAULT_REGION")
-        or "eu-central-1"
-    )
-    client = boto3.client("bedrock-runtime", region_name=region)
-    body = {
-        "texts": truncated,
-        "input_type": input_type,
-        "truncate": "END",
-    }
-    response = client.invoke_model(
-        modelId=EMBEDDING_MODEL_ID,
-        contentType="application/json",
-        accept="application/json",
-        body=json.dumps(body),
-    )
-    payload: dict[str, Any] = json.loads(response["body"].read())
-    embeddings = payload.get("embeddings")
+    embeddings = get_embeddings(input_type=input_type).embed_documents(truncated)
     if not isinstance(embeddings, list) or len(embeddings) != len(truncated):
         raise RuntimeError("unexpected Bedrock embed response shape")
     out: list[list[float]] = []
