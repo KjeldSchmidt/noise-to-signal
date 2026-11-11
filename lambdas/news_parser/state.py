@@ -34,6 +34,8 @@ class EnrichState(TypedDict):
     theme_slugs: NotRequired[list[str]]
     suggested_themes: NotRequired[list[str]]
     story_label: NotRequired[str]
+    extract_model: NotRequired[str]
+    enrichment_status: NotRequired[str]
 
     # upsert result
     created: NotRequired[bool]

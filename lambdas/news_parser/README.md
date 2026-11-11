@@ -12,10 +12,10 @@ START → normalize → embed ∥ extract_place → upsert → END
 
 1. **normalize** — plain-text `title` / `summary` (unescape HTML, strip tags, collapse whitespace).
 2. **embed** — LangChain `BedrockEmbeddings` for Cohere Embed Multilingual v3 (`cohere.embed-multilingual-v3`, `input_type=clustering`).
-3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`amazon.nova-micro-v1:0` by default) for `geo_scope`, place query, enum-constrained `theme_slugs` (curated catalog), free-form `suggested_themes`, and `story_label`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
+3. **extract_place** — LangChain `with_structured_output` via Bedrock Converse (`eu.amazon.nova-micro-v1:0` inference profile by default) for `geo_scope`, place query, enum-constrained `theme_slugs` (curated catalog), free-form `suggested_themes`, and `story_label`; geocodes whenever a place query is present (`POST /api/internal/geocode/search/`). Soft-fails → `geo_level=global`.
 4. **upsert** — article + embedding + place + themes; web API increments `ThemeSuggestion` counters for suggestions and assigns near-dup / story thread links.
 
-No article-body scraping in this phase (RSS text only). Embedding / hard failures report SQS `batchItemFailures`; geo/theme soft-fails.
+No article-body scraping in this phase (RSS text only). Embedding **and extract LLM** failures raise → SQS `batchItemFailures` / DLQ. Geocode misses soft-fail with `enrichment_status=degraded` (themes/story_label still saved).
 
 ## LangSmith
 
@@ -33,7 +33,7 @@ Do **not** set `LANGSMITH_PROJECT` on this process (conflicts with agent address
 
 ## Prerequisites
 
-- Bedrock model access for `cohere.embed-multilingual-v3` and the extract model (default Nova Micro).
+- Bedrock model access for `cohere.embed-multilingual-v3` and the extract inference profile (default `eu.amazon.nova-micro-v1:0`).
 - IAM invoke/converse on those models (Terraform: `invoke_bedrock = true`).
 - Postgres with `pgvector`; migrated theme seed (`0005_article_place_themes`).
 - LangSmith secret upserted before app apply if tracing is enabled: `APP_ENV=dev just upsert-langsmith`.
@@ -45,7 +45,7 @@ Do **not** set `LANGSMITH_PROJECT` on this process (conflicts with agent address
 | `WEB_API_BASE_URL` | Public web origin |
 | `INTERNAL_API_TOKEN` | Bearer for `/api/internal/*` |
 | `BEDROCK_REGION` | Optional Bedrock region override |
-| `BEDROCK_EXTRACT_MODEL_ID` | Optional; default `amazon.nova-micro-v1:0` |
+| `BEDROCK_EXTRACT_MODEL_ID` | Optional; default `eu.amazon.nova-micro-v1:0` (inference profile; bare `amazon.nova-micro-v1:0` fails on-demand) |
 | `LANGSMITH_*` | See LangSmith section (when enabled) |
 
 ## Place matching vs `LocationOfInterest`

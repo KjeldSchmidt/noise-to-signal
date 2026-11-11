@@ -44,24 +44,24 @@ def test_embed_writes_vector_and_model(mock_embed: MagicMock) -> None:
 
 @patch("graph._active_themes", return_value=[{"slug": "tech", "label": "Technology"}])
 @patch("graph.extract_place_and_themes", side_effect=RuntimeError("bedrock down"))
-def test_extract_place_soft_fails_to_global(
+def test_extract_place_llm_failure_raises(
     _mock_extract: MagicMock, _mock_themes: MagicMock
 ) -> None:
-    out = extract_place(
-        {
-            "feed_id": 1,
-            "url": "https://example.com/a",
-            "raw_title": "t",
-            "raw_description": "d",
-            "published_at": "2026-01-01T00:00:00Z",
-            "image_url": "",
-            "title": "Title",
-            "summary": "Summary",
-        }
-    )
-    assert out["geo_level"] == "global"
-    assert out["theme_slugs"] == []
-    assert out["latitude"] is None
+    import pytest
+
+    with pytest.raises(RuntimeError, match="bedrock down"):
+        extract_place(
+            {
+                "feed_id": 1,
+                "url": "https://example.com/a",
+                "raw_title": "t",
+                "raw_description": "d",
+                "published_at": "2026-01-01T00:00:00Z",
+                "image_url": "",
+                "title": "Title",
+                "summary": "Summary",
+            }
+        )
 
 
 @patch("graph._active_themes", return_value=[{"slug": "tech", "label": "Technology"}])
@@ -108,6 +108,8 @@ def test_extract_place_geocodes_when_confident(
     assert out["place_label"] == "Cologne, NRW, Germany"
     assert out["theme_slugs"] == ["tech"]
     assert out["latitude"] == 50.94
+    assert out["enrichment_status"] == "ok"
+    assert out["extract_model"]
 
 
 @patch(
@@ -160,6 +162,42 @@ def test_extract_place_geocodes_despite_global_scope(
     assert out["latitude"] == 40.0
     assert out["suggested_themes"] == ["royal-news"]
     assert out["story_label"] == "Spanish Rail Crash"
+    assert out["enrichment_status"] == "ok"
+
+
+@patch("graph._active_themes", return_value=[{"slug": "tech", "label": "Technology"}])
+@patch(
+    "graph.extract_place_and_themes",
+    return_value={
+        "geo_scope": "local",
+        "place_query": "Cologne, Germany",
+        "geo_confidence": 0.9,
+        "theme_slugs": ["tech"],
+        "suggested_themes": [],
+        "story_label": "",
+    },
+)
+@patch("graph.geocode_search", side_effect=RuntimeError("nominatim down"))
+def test_extract_place_geocode_failure_is_degraded(
+    _mock_geocode: MagicMock,
+    _mock_extract: MagicMock,
+    _mock_themes: MagicMock,
+) -> None:
+    out = extract_place(
+        {
+            "feed_id": 1,
+            "url": "https://example.com/a",
+            "raw_title": "t",
+            "raw_description": "d",
+            "published_at": "2026-01-01T00:00:00Z",
+            "image_url": "",
+            "title": "News from Cologne",
+            "summary": "Something local",
+        }
+    )
+    assert out["geo_level"] == "global"
+    assert out["theme_slugs"] == ["tech"]
+    assert out["enrichment_status"] == "degraded"
 
 
 @patch("graph.upsert_article")

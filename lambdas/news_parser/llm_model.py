@@ -6,7 +6,8 @@ import os
 
 from langchain.chat_models import init_chat_model
 
-EXTRACT_MODEL_ID = os.environ.get("BEDROCK_EXTRACT_MODEL_ID", "amazon.nova-micro-v1:0")
+# On-demand Nova requires an inference profile ID, not the bare foundation-model ID.
+EXTRACT_MODEL_ID = os.environ.get("BEDROCK_EXTRACT_MODEL_ID", "eu.amazon.nova-micro-v1:0")
 
 _model = None
 

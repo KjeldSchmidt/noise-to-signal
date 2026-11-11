@@ -49,7 +49,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 Django migration `0004_article_embedding_storythread` also runs `CREATE EXTENSION IF NOT EXISTS vector` when the vendor is PostgreSQL (no-op on SQLite). Migration `0005_article_place_themes` adds hierarchical place fields, curated `Theme` rows, and article↔theme M2M.
 
-Enable **Cohere Embed Multilingual v3** and the extract model (**Amazon Nova Micro** by default) in Bedrock model access for the account/region used by `news_parser`. Embeddings use `input_type=clustering` on cleaned RSS `title + summary` (no article scrape yet). Place/theme extract is one Converse call with enum-constrained curated themes plus free-form `suggested_themes` (counted in `ThemeSuggestion` for promotion); Nominatim hierarchy via `POST /api/internal/geocode/search/` (fail soft → `global`).
+Enable **Cohere Embed Multilingual v3** and the extract model (**EU Nova Micro inference profile** `eu.amazon.nova-micro-v1:0` by default — bare foundation-model IDs fail on-demand Converse) in Bedrock model access for the account/region used by `news_parser`. Embeddings use `input_type=clustering` on cleaned RSS `title + summary` (no article scrape yet). Place/theme extract is one Converse call with enum-constrained curated themes plus free-form `suggested_themes` (counted in `ThemeSuggestion` for promotion); Nominatim hierarchy via `POST /api/internal/geocode/search/` (fail soft → `global`).
 
 Similarity lanes (applied in the web upsert path). Articles often have **no** story thread; threads emerge when pairs/clusters form:
 

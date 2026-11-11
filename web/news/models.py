@@ -21,6 +21,11 @@ class GeoLevel(models.TextChoices):
     LOCALITY = "locality", "City / locality"
 
 
+class EnrichmentStatus(models.TextChoices):
+    OK = "ok", "OK"
+    DEGRADED = "degraded", "Degraded"
+
+
 class Feed(TimeStampedModel):
     class SourceKind(models.TextChoices):
         CURATED = "curated", "Curated catalog"
@@ -183,6 +188,20 @@ class Article(TimeStampedModel):
     embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
     embedding_model = models.CharField(max_length=80, blank=True)
     embedded_at = models.DateTimeField(null=True, blank=True)
+    enrichment_status = models.CharField(
+        max_length=20,
+        choices=EnrichmentStatus.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="ok = extract succeeded; degraded = extract ok but geocode failed.",
+    )
+    extract_model = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Bedrock/LangChain model id used for place/theme extract.",
+    )
+    enriched_at = models.DateTimeField(null=True, blank=True)
     story_thread = models.ForeignKey(
         StoryThread,
         null=True,

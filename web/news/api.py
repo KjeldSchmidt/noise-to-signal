@@ -28,7 +28,7 @@ from n2s_api import (
 from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
-from news.models import Article, Feed, GeoLevel, Theme
+from news.models import Article, EnrichmentStatus, Feed, GeoLevel, Theme
 from news.services.geocode import search_places
 from news.services.themes import record_theme_suggestions
 from news.services.threading import assign_story_thread
@@ -210,6 +210,11 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
         defaults["embedding"] = dto.embedding
         defaults["embedding_model"] = (dto.embedding_model or "")[:80]
         defaults["embedded_at"] = django_timezone.now()
+    status = (dto.enrichment_status or "").strip().lower()
+    if status in {EnrichmentStatus.OK, EnrichmentStatus.DEGRADED}:
+        defaults["enrichment_status"] = status
+        defaults["extract_model"] = (dto.extract_model or "")[:120]
+        defaults["enriched_at"] = django_timezone.now()
     article, created = Article.objects.update_or_create(
         feed_id=dto.feed_id,
         url=dto.url,

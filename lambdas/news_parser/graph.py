@@ -11,6 +11,7 @@ from n2s_web_client import geocode_search, list_themes, upsert_article
 
 from embed import EMBEDDING_MODEL_ID, build_embed_input, embed_text
 from extract import extract_place_and_themes
+from llm_model import EXTRACT_MODEL_ID
 from state import EnrichState
 from textutil import clean_text
 
@@ -42,7 +43,19 @@ def embed(state: EnrichState) -> dict[str, Any]:
 
 
 def extract_place(state: EnrichState) -> dict[str, Any]:
-    """Best-effort geo + themes; never raises (soft-fail to global)."""
+    """Extract place/themes via Bedrock; LLM failures raise (SQS retry / DLQ).
+
+    Geocode misses soft-fail to global place fields with enrichment_status=degraded.
+    """
+    title = state["title"]
+    summary = state["summary"]
+    # LLM / structured-output errors must propagate — do not soft-fail to "empty".
+    extracted = extract_place_and_themes(
+        title=title,
+        summary=summary,
+        themes=_active_themes(),
+    )
+
     out: dict[str, Any] = {
         "geo_level": "global",
         "place_label": "",
@@ -51,27 +64,14 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         "locality": "",
         "latitude": None,
         "longitude": None,
-        "geo_confidence": None,
-        "theme_slugs": [],
-        "suggested_themes": [],
-        "story_label": "",
+        "geo_confidence": extracted.get("geo_confidence"),
+        "theme_slugs": list(extracted.get("theme_slugs") or []),
+        "suggested_themes": list(extracted.get("suggested_themes") or []),
+        "story_label": (extracted.get("story_label") or "")[:120],
+        "extract_model": EXTRACT_MODEL_ID,
+        "enrichment_status": "ok",
     }
-    title = state["title"]
-    summary = state["summary"]
-    try:
-        extracted = extract_place_and_themes(
-            title=title,
-            summary=summary,
-            themes=_active_themes(),
-        )
-    except Exception:
-        logger.exception("Place/theme extraction failed; using global")
-        return out
 
-    out["theme_slugs"] = list(extracted.get("theme_slugs") or [])
-    out["suggested_themes"] = list(extracted.get("suggested_themes") or [])
-    out["story_label"] = (extracted.get("story_label") or "")[:120]
-    out["geo_confidence"] = extracted.get("geo_confidence")
     place_query = (extracted.get("place_query") or "").strip()
     scope = extracted.get("geo_scope") or "global"
     # Geocode whenever we have a place query. Skip "global" as scope_hint —
@@ -83,9 +83,12 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
     try:
         hits = geocode_search(place_query, limit=1, scope_hint=scope_hint)
     except Exception:
-        logger.exception("Geocode failed for %r; keeping global", place_query)
+        logger.exception("Geocode failed for %r; keeping global (degraded)", place_query)
+        out["enrichment_status"] = "degraded"
         return out
     if not hits:
+        logger.warning("Geocode returned no hits for %r; degraded", place_query)
+        out["enrichment_status"] = "degraded"
         return out
 
     hit = hits[0]
@@ -98,6 +101,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
             "locality": hit.locality or "",
             "latitude": hit.latitude,
             "longitude": hit.longitude,
+            "enrichment_status": "ok",
         }
     )
     return out
@@ -113,6 +117,8 @@ def upsert(state: EnrichState) -> dict[str, Any]:
         image_url=state["image_url"],
         embedding=state["embedding"],
         embedding_model=state["embedding_model"],
+        enrichment_status=state.get("enrichment_status") or "",
+        extract_model=state.get("extract_model") or "",
         geo_level=state.get("geo_level") or "global",
         place_label=state.get("place_label") or "",
         country_code=state.get("country_code") or "",

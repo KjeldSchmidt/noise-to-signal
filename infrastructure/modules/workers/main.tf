@@ -137,6 +137,9 @@ data "aws_iam_policy_document" "bedrock_invoke" {
       "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/amazon.nova-micro-v1:0",
       "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/amazon.nova-micro-v1:0",
       "arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0",
+      # Cross-region inference profile (required for on-demand Nova Converse).
+      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.amazon.nova-micro-v1:0",
+      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:inference-profile/*",
     ]
   }
 
@@ -181,7 +184,7 @@ resource "aws_lambda_function" "worker" {
       },
       try(each.value.invoke_bedrock, false) ? {
         BEDROCK_REGION           = var.bedrock_region != "" ? var.bedrock_region : data.aws_region.current.name
-        BEDROCK_EXTRACT_MODEL_ID = "amazon.nova-micro-v1:0"
+        BEDROCK_EXTRACT_MODEL_ID = "eu.amazon.nova-micro-v1:0"
       } : {},
       try(each.value.langsmith_agent_id, null) != null && each.value.langsmith_agent_id != "" ? {
         LANGSMITH_TRACING           = "true"

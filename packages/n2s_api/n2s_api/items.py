@@ -46,6 +46,8 @@ class ArticleUpsert(BaseModel):
     image_url: str = ""
     embedding: list[float] | None = None
     embedding_model: str = ""
+    enrichment_status: str = ""
+    extract_model: str = ""
     geo_level: str = "global"
     place_label: str = ""
     country_code: str = ""
@@ -78,6 +80,13 @@ class ArticleUpsert(BaseModel):
         allowed = {"global", "country", "admin1", "locality"}
         v = (value or "global").strip().lower()
         return v if v in allowed else "global"
+
+    @field_validator("enrichment_status")
+    @classmethod
+    def _enrichment_status(cls, value: str) -> str:
+        allowed = {"", "ok", "degraded"}
+        v = (value or "").strip().lower()
+        return v if v in allowed else ""
 
 
 class ArticleUpsertResponse(BaseModel):

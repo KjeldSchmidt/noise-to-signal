@@ -86,10 +86,13 @@ class ArticleAdmin(admin.ModelAdmin):
         "geo_level",
         "place_label",
         "story_thread",
+        "enrichment_status",
+        "extract_model",
         "embedding_model",
+        "enriched_at",
     )
-    list_filter = ("feed", "geo_level", "embedding_model")
-    search_fields = ("title", "summary", "place_label")
+    list_filter = ("feed", "geo_level", "enrichment_status", "embedding_model")
+    search_fields = ("title", "summary", "place_label", "extract_model")
     filter_horizontal = ("themes",)
     raw_id_fields = ("story_thread", "near_duplicate_of")
     change_list_template = "admin/news/article_change_list.html"
