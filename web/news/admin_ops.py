@@ -21,6 +21,11 @@ class RequeueForm(forms.Form):
         required=False,
         label="Unthreaded only",
     )
+    degraded_only = forms.BooleanField(
+        required=False,
+        label="Degraded enrichment status only",
+        help_text="Articles where geocode soft-failed (enrichment_status=degraded).",
+    )
     ids = forms.CharField(
         required=False,
         label="Article IDs",
@@ -110,6 +115,7 @@ def news_ops_view(request):
                     qs = articles_for_requeue(
                         all_articles=bool(data.get("all_articles")),
                         unthreaded=bool(data.get("unthreaded")),
+                        degraded_only=bool(data.get("degraded_only")),
                         ids=ids,
                         since_hours=data.get("since_hours"),
                         enriched_before_hours=data.get("enriched_before_hours"),

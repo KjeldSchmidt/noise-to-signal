@@ -90,6 +90,18 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(out["story_label"], "Spanish Rail Crash")
         self.assertEqual(out["theme_slugs"], ["disaster"])
 
+    def test_schema_defaults_missing_geo_scope(self) -> None:
+        """Nova sometimes omits geo_scope; default global must parse."""
+        schema = extract_mod._build_extract_model(["markets"])
+        parsed = schema.model_validate(
+            {
+                "places": [{"query": "", "confidence": 0.0}],
+                "theme_slugs": ["markets"],
+                "suggested_themes": [],
+            }
+        )
+        self.assertEqual(parsed.geo_scope, "global")
+
     @patch("extract.get_extract_model")
     def test_suggested_themes_drop_allowlisted_dupes(self, mock_get_model: MagicMock) -> None:
         schema = extract_mod._build_extract_model(["sports", "conflict"])

@@ -23,6 +23,11 @@ class Command(BaseCommand):
             help="Only articles with no story_thread.",
         )
         parser.add_argument(
+            "--degraded-only",
+            action="store_true",
+            help="Only articles with enrichment_status=degraded.",
+        )
+        parser.add_argument(
             "--ids",
             type=str,
             default="",
@@ -77,6 +82,7 @@ class Command(BaseCommand):
             qs = articles_for_requeue(
                 all_articles=bool(options["all"]),
                 unthreaded=bool(options["unthreaded"]),
+                degraded_only=bool(options["degraded_only"]),
                 ids=ids,
                 since_hours=since_hours,
                 enriched_before_hours=enriched_before_hours,

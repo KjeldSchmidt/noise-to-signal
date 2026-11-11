@@ -8,7 +8,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from n2s_api import FeedItem
 
-from news.models import Article
+from news.models import Article, EnrichmentStatus
 from news.sqs import enqueue_feed_items
 
 
@@ -16,6 +16,7 @@ def articles_for_requeue(
     *,
     all_articles: bool = False,
     unthreaded: bool = False,
+    degraded_only: bool = False,
     ids: list[int] | None = None,
     since_hours: int | None = None,
     enriched_before_hours: int | None = None,
@@ -33,6 +34,9 @@ def articles_for_requeue(
     if unthreaded:
         qs = qs.filter(story_thread__isnull=True)
         selected = True
+    if degraded_only:
+        qs = qs.filter(enrichment_status=EnrichmentStatus.DEGRADED)
+        selected = True
     if ids:
         qs = qs.filter(id__in=ids)
         selected = True
@@ -40,7 +44,9 @@ def articles_for_requeue(
         qs = qs.filter(published_at__gte=timezone.now() - timedelta(hours=since_hours))
         selected = True
     if not selected:
-        raise ValueError("Select articles with all, unthreaded, ids, and/or since_hours")
+        raise ValueError(
+            "Select articles with all, unthreaded, degraded_only, ids, and/or since_hours"
+        )
     if enriched_before_hours is not None:
         cutoff = timezone.now() - timedelta(hours=enriched_before_hours)
         qs = qs.filter(Q(enriched_at__isnull=True) | Q(enriched_at__lt=cutoff))

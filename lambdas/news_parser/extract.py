@@ -73,11 +73,12 @@ def _build_extract_model(allowed_slugs: list[str]):
         geo_scope=(
             GeoScope,
             Field(
+                default="global",
                 description=(
                     "Geographic scale of the primary event location: local (city), "
                     "regional (state/province), national (country), or global when "
-                    "there is no real place focus."
-                )
+                    "there is no real place focus. Default global if unsure."
+                ),
             ),
         ),
         places=(
