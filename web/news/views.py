@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -16,12 +16,15 @@ from news.models import (
     RelevanceFeedback,
 )
 from news.services import (
+    build_stories_feed,
     catalog_feed_ids,
     catalog_feeds,
     enabled_feed_ids,
     next_questions,
     rank_items,
     recommend_feeds,
+    thread_timeline_articles,
+    thread_visible_in_scope,
 )
 from news.services.geocode import reverse_geocode_place, search_places
 
@@ -60,21 +63,47 @@ def brief(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _stories_feed_ids(request: HttpRequest) -> tuple[list[int], bool]:
+    """Feed scope for Stories: enabled feeds when signed in, else catalog."""
+    if request.user.is_authenticated:
+        return enabled_feed_ids(request.user), True
+    return catalog_feed_ids(), False
+
+
 def stories(request: HttpRequest) -> HttpResponse:
     """Non-personalized catalog for guests; enabled feeds (mutes/custom) when signed in."""
-    personalized = request.user.is_authenticated
-    feed_ids = enabled_feed_ids(request.user) if personalized else catalog_feed_ids()
-    articles = (
-        Article.objects.filter(feed_id__in=feed_ids)
-        .select_related("feed")
-        .order_by("-published_at")[:40]
-    )
+    feed_ids, personalized = _stories_feed_ids(request)
+    entries = build_stories_feed(feed_ids)
     return render(
         request,
         "news/stories.html",
         {
-            "articles": articles,
+            "entries": entries,
             "feed_count": len(feed_ids),
+            "personalized": personalized,
+        },
+    )
+
+
+def story_thread(request: HttpRequest, thread_id: int) -> HttpResponse:
+    """Story thread detail with a chronological article timeline."""
+    feed_ids, personalized = _stories_feed_ids(request)
+    thread = thread_visible_in_scope(thread_id, feed_ids)
+    if thread is None:
+        raise Http404("Story thread not found.")
+    articles = thread_timeline_articles(thread)
+    # Timeline is newest-first; date span still runs oldest → newest.
+    first_published = articles[-1].published_at if articles else None
+    last_published = articles[0].published_at if articles else None
+    return render(
+        request,
+        "news/story_thread.html",
+        {
+            "thread": thread,
+            "articles": articles,
+            "article_count": len(articles),
+            "first_published": first_published,
+            "last_published": last_published,
             "personalized": personalized,
         },
     )

@@ -7,6 +7,11 @@ urlpatterns = [
     path("oauth/popup-done/", views.oauth_popup_done, name="oauth_popup_done"),
     path("brief/", views.brief, name="brief"),
     path("stories/", views.stories, name="stories"),
+    path(
+        "stories/threads/<int:thread_id>/",
+        views.story_thread,
+        name="story_thread",
+    ),
     path("settings/", views.settings_page, name="settings"),
     path("feeds/<int:feed_id>/mute/", views.mute_feed, name="mute_feed"),
     path("feeds/<int:feed_id>/unmute/", views.unmute_feed, name="unmute_feed"),

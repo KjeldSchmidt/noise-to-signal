@@ -6,18 +6,18 @@
   <h1>Stories</h1>
   <p class="muted">
     {% if personalized %}
-    Recent articles from your enabled feeds
+    Recent articles and story threads from your enabled feeds
     {% if feed_count %}({{ feed_count }}){% endif %}.
     Use Personal Brief for ranked review.
     {% else %}
-    Recent articles from the shared catalog
+    Recent articles and story threads from the shared catalog
     {% if feed_count %}({{ feed_count }} feeds){% endif %}.
     Sign in to mute sources and get a ranked Personal Brief.
     {% endif %}
   </p>
 </section>
 
-{% if not articles %}
+{% if not entries %}
 <div class="empty">
   <p>
     {% if personalized %}
@@ -32,7 +32,59 @@
 </div>
 {% else %}
 <div class="story-grid">
-  {% for article in articles %}
+  {% for entry in entries %}
+  {% if entry.kind == "thread" %}
+  {% with lead=entry.lead_article thread=entry.thread %}
+  <div class="story-stack">
+    <span class="story-stack-sheet story-stack-sheet-back" aria-hidden="true"></span>
+    <span class="story-stack-sheet story-stack-sheet-mid" aria-hidden="true"></span>
+    <article class="story-card is-thread{% if lead.image_url %} has-image{% endif %}">
+      <a class="story-media" href="{% url 'story_thread' thread.id %}" tabindex="-1" aria-hidden="true">
+        {% if lead.image_url %}
+        <img src="{{ lead.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+        {% else %}
+        {% with logo_url=lead.feed|source_logo_url logo_slug=lead.feed|source_logo_slug %}
+        {% if logo_url %}
+        <span class="story-media-fallback story-media-logo" data-source="{{ logo_slug }}">
+          <img src="{{ logo_url }}" alt="" loading="lazy" decoding="async">
+        </span>
+        {% else %}
+        <span class="story-media-fallback" data-feed="{{ lead.feed.title|slice:':1' }}"></span>
+        {% endif %}
+        {% endwith %}
+        {% endif %}
+        {% if entry.source_feeds|length > 1 %}
+        <ul class="stack-sources">
+          {% for source in entry.source_feeds %}
+          {% with logo_url=source|source_logo_url logo_slug=source|source_logo_slug %}
+          <li class="stack-source" data-source="{{ logo_slug }}" title="{{ source.title }}">
+            {% if logo_url %}
+            <img src="{{ logo_url }}" alt="" loading="lazy" decoding="async">
+            {% else %}
+            <span>{{ source.title|slice:":1"|upper }}</span>
+            {% endif %}
+          </li>
+          {% endwith %}
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </a>
+      <div class="story-body">
+        <p class="tag">{{ entry.source_feeds|length }} source{{ entry.source_feeds|length|pluralize }}</p>
+        <h2><a href="{% url 'story_thread' thread.id %}">{{ thread.label|default:lead.title }}</a></h2>
+        <div class="story-chips">
+          <span class="story-count">{{ entry.article_count }} article{{ entry.article_count|pluralize }}</span>
+        </div>
+        {% if lead.summary %}
+        <p class="summary">{{ lead.summary|striptags|truncatewords:28 }}</p>
+        {% endif %}
+        <p class="muted story-time">{{ thread.last_published_at|date:"M j, Y · H:i" }}</p>
+      </div>
+    </article>
+  </div>
+  {% endwith %}
+  {% else %}
+  {% with article=entry.article %}
   {% with logo_url=article.feed|source_logo_url logo_slug=article.feed|source_logo_slug %}
   <article class="story-card{% if article.image_url %} has-image{% endif %}">
     <a class="story-media" href="{{ article.url }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
@@ -56,6 +108,8 @@
     </div>
   </article>
   {% endwith %}
+  {% endwith %}
+  {% endif %}
   {% endfor %}
 </div>
 {% endif %}

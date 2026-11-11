@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ thread.label|default:"Story thread" }}{% endblock %}
+{% block content %}
+<a class="thread-back" href="{% url 'stories' %}">← Back to Stories</a>
+
+<section class="page-head thread-head">
+  <p class="tag story-thread-tag">Story thread</p>
+  <h1>{{ thread.label|default:"Untitled thread" }}</h1>
+  <div class="thread-meta">
+    <span class="story-count">{{ article_count }} article{{ article_count|pluralize }}</span>
+    {% if first_published and last_published %}
+    <p class="muted" style="margin:0">
+      {{ first_published|date:"M j, Y · H:i" }}
+      {% if first_published != last_published %}
+      → {{ last_published|date:"M j, Y · H:i" }}
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
+</section>
+
+{% if not articles %}
+<div class="empty">
+  <p>No articles in this thread yet.</p>
+</div>
+{% else %}
+<ol class="thread-timeline" id="thread-timeline">
+  {% for article in articles %}
+  <li class="timeline-item{% if forloop.first %} is-newest is-selected{% endif %}" data-timeline-item>
+    <span class="timeline-marker" aria-hidden="true"></span>
+    <div
+      class="timeline-card{% if article.image_url %} has-image{% endif %}"
+      data-timeline-toggle
+      role="button"
+      tabindex="0"
+      aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+    >
+      {% if article.image_url %}
+      <div class="timeline-media" aria-hidden="true">
+        <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+      </div>
+      {% endif %}
+      <div class="timeline-body">
+        <p class="tag">{{ article.feed.title }}</p>
+        <h2>
+          <a href="{{ article.url }}" target="_blank" rel="noopener" data-external-link>
+            {{ article.title }}
+          </a>
+        </h2>
+        <p class="muted story-time">{{ article.published_at|date:"M j, Y · H:i" }}</p>
+        {% if article.summary %}
+        <p class="timeline-summary">{{ article.summary|striptags|truncatewords:60 }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </li>
+  {% endfor %}
+</ol>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/story-thread.js' %}" defer></script>
+{% endblock %}
