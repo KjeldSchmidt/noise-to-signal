@@ -51,12 +51,15 @@ Django migration `0004_article_embedding_storythread` also runs `CREATE EXTENSIO
 
 Enable **Cohere Embed Multilingual v3** and the extract model (**Amazon Nova Micro** by default) in Bedrock model access for the account/region used by `news_parser`. Embeddings use `input_type=clustering` on cleaned RSS `title + summary` (no article scrape yet). Place/theme extract is one Converse call; Nominatim hierarchy is resolved via `POST /api/internal/geocode/search/` (fail soft → `global`).
 
-Similarity lanes (applied in the web upsert path):
+Similarity lanes (applied in the web upsert path). Articles often have **no** story thread; threads emerge when pairs/clusters form:
 
 | Lane | Cosine | Time | Role |
 |------|--------|------|------|
-| Near-dup | ≥ 0.92 | ±48h | Multi-source same-day collapse |
-| Story thread | ≥ 0.78 vs open centroid | 45-day activity | Event timeline / continuation |
+| Near-dup | ≥ 0.92 | ±48h | Multi-source same-day collapse → shared thread |
+| Open thread | ≥ 0.78 vs centroid | 45-day activity | Join evolving event (label stays stable) |
+| Soft peer | ≥ 0.78 vs unthreaded peer | 45-day window | Create thread for both |
+
+**SCALING HOTSPOT:** story assignment uses a global Postgres advisory lock (`pg_advisory_xact_lock`) to avoid missed pairs under concurrent `news_parser` upserts. Fine now; may serialize linking under heavy load — see `news.services.threading` and `rg "SCALING HOTSPOT"`.
 
 Geo matching against user `LocationOfInterest` uses admin containment (`places_match`); city-level haversine (~50 km) only between locality peers — never against a country centroid.
 

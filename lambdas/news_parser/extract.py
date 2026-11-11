@@ -49,6 +49,14 @@ class PlaceThemeExtract(BaseModel):
         default_factory=list,
         description="Zero or more theme slugs chosen ONLY from the allowed list.",
     )
+    story_label: str = Field(
+        default="",
+        description=(
+            "Short generic ongoing-event name (3–6 words), e.g. "
+            "'Pete Hegseth Impeachment' or 'Spanish Rail Crash'. "
+            "Empty string when the article is not a clear developing story."
+        ),
+    )
 
 
 _SYSTEM_PROMPT = """\
@@ -63,13 +71,21 @@ national/regional/local and include that place — even when coverage is interna
 - Place queries must be English and Nominatim-friendly \
 (e.g. "Cologne, Germany", "Spain", "United Kingdom").
 
+Rules for story_label:
+- A short generic event name (about 3–6 words), not the full headline.
+- Empty string when there is no clear ongoing story to cluster on.
+
 Examples:
 - Title: "Spain's king and queen attend memorial service for rail crash victims" \
-→ geo_scope=national, places=[{"query":"Spain","confidence":0.9}]
+→ geo_scope=national, places=[{"query":"Spain","confidence":0.9}], \
+story_label="Spanish Rail Crash"
 - Title: "UK social media ban expansion for under-16s could cover YouTube Kids" \
-→ geo_scope=national, places=[{"query":"United Kingdom","confidence":0.9}]
+→ geo_scope=national, places=[{"query":"United Kingdom","confidence":0.9}], \
+story_label="UK Under-16 Social Media Ban"
+- Title: "House votes to effectively end the impeachment effort against Pete Hegseth" \
+→ story_label="Pete Hegseth Impeachment"
 - Title: "Global stock markets mixed as investors await central bank signals" \
-→ geo_scope=global, places=[]
+→ geo_scope=global, places=[], story_label=""
 
 theme_slugs must be chosen ONLY from the allowed list (0 or more).
 """
@@ -81,7 +97,7 @@ def extract_place_and_themes(
     summary: str,
     theme_slugs: list[str],
 ) -> dict[str, Any]:
-    """Return geo_scope, optional place query, confidence, and theme_slugs.
+    """Return geo_scope, optional place query, confidence, themes, story_label.
 
     Failures raise; callers may catch and fall back to global / no themes.
     """
@@ -126,9 +142,12 @@ def extract_place_and_themes(
         if s in allowed_set and s not in themes:
             themes.append(s)
 
+    story_label = (result.story_label or "").strip()[:120]
+
     return {
         "geo_scope": scope,
         "place_query": place_query,
         "geo_confidence": confidence if place_query else None,
         "theme_slugs": themes,
+        "story_label": story_label,
     }

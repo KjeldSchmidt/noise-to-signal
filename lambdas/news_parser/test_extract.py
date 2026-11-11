@@ -60,6 +60,7 @@ class ExtractTests(unittest.TestCase):
             geo_scope="global",
             places=[PlaceMention(query="Spain", confidence=0.9)],
             theme_slugs=[],
+            story_label="Spanish Rail Crash",
         )
         mock_get_model.return_value.with_structured_output.return_value = structured
 
@@ -71,6 +72,7 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(out["geo_scope"], "global")
         self.assertEqual(out["place_query"], "Spain")
         self.assertEqual(out["geo_confidence"], 0.9)
+        self.assertEqual(out["story_label"], "Spanish Rail Crash")
 
 
 if __name__ == "__main__":

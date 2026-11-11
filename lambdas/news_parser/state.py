@@ -32,6 +32,7 @@ class EnrichState(TypedDict):
     longitude: NotRequired[float | None]
     geo_confidence: NotRequired[float | None]
     theme_slugs: NotRequired[list[str]]
+    story_label: NotRequired[str]
 
     # upsert result
     created: NotRequired[bool]

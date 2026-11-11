@@ -1,0 +1,9 @@
+---
+description: Do not remove story-thread advisory lock without reading SCALING HOTSPOT
+alwaysApply: false
+globs: web/news/services/threading.py
+---
+
+# Story assignment lock
+
+`assign_story_thread` uses `pg_advisory_xact_lock` (**SCALING HOTSPOT**). It prevents concurrent upserts from missing soft pairs. Do not delete it as a “cleanup” without an alternate race fix (reconcile job / seeker Lambda) and an explicit product decision.

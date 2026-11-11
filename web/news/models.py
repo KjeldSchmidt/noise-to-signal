@@ -193,6 +193,11 @@ class Article(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     geo_confidence = models.FloatField(null=True, blank=True)
+    story_label = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Short generic event name from extract (e.g. Spanish Rail Crash).",
+    )
     themes = models.ManyToManyField(Theme, blank=True, related_name="articles")
 
     class Meta:

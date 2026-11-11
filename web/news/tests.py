@@ -169,11 +169,11 @@ class InternalArticlesApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload["created"])
-        self.assertIsNotNone(payload["story_thread_id"])
+        self.assertIsNone(payload["story_thread_id"])
         article = Article.objects.get(pk=payload["article_id"])
         self.assertEqual(article.image_url, "https://cdn.example.com/thumb.jpg")
         self.assertEqual(article.embedding_model, "cohere.embed-multilingual-v3")
-        self.assertEqual(article.story_thread_id, payload["story_thread_id"])
+        self.assertIsNone(article.story_thread_id)
 
     def test_upsert_rejects_bad_embedding_size(self) -> None:
         response = self.client.post(

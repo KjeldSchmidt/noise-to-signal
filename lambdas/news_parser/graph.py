@@ -53,6 +53,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         "longitude": None,
         "geo_confidence": None,
         "theme_slugs": [],
+        "story_label": "",
     }
     title = state["title"]
     summary = state["summary"]
@@ -67,6 +68,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         return out
 
     out["theme_slugs"] = list(extracted.get("theme_slugs") or [])
+    out["story_label"] = (extracted.get("story_label") or "")[:120]
     out["geo_confidence"] = extracted.get("geo_confidence")
     place_query = (extracted.get("place_query") or "").strip()
     scope = extracted.get("geo_scope") or "global"
@@ -117,6 +119,7 @@ def upsert(state: EnrichState) -> dict[str, Any]:
         latitude=state.get("latitude"),
         longitude=state.get("longitude"),
         geo_confidence=state.get("geo_confidence"),
+        story_label=state.get("story_label") or "",
         theme_slugs=list(state.get("theme_slugs") or []),
     )
     result = upsert_article(article)

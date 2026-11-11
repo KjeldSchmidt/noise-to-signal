@@ -64,9 +64,18 @@ Helper: `news.services.places.places_match` (theme ranking / prefs are out of sc
 
 ## Story threads (web-side after upsert)
 
+Threads are **optional**. Lonely articles stay unthreaded. A thread is created only when a near-dup or soft peer pair connects two+ articles (or when joining an open centroid). Extract may supply a short generic `story_label` (e.g. `Spanish Rail Crash`) used as the thread title on create.
+
 | Lane | Threshold | Window | Meaning |
 |------|-----------|--------|---------|
-| Near-dup | cosine ≥ 0.92 | ±48h | Same piece, other outlets |
-| Story thread | cosine ≥ 0.78 vs open centroid | activity within 45 days | Evolving event timeline |
+| Near-dup | cosine ≥ 0.92 | ±48h | Same piece, other outlets → shared thread |
+| Open thread | cosine ≥ 0.78 vs centroid | 45-day activity | Join evolving event |
+| Soft peer | cosine ≥ 0.78 vs unthreaded peer | 45-day window | Create thread for both |
+
+### Story assignment lock
+
+**SCALING HOTSPOT:** web `assign_story_thread` takes a Postgres `pg_advisory_xact_lock` so concurrent Lambda upserts cannot miss each other. Cheap at current volume; under heavy concurrent upserts this serializes linking and may queue API work. Prefer faster peer queries, `reconcile_story_threads`, or a seeker job before removing the lock (`rg "SCALING HOTSPOT"`).
+
+Ops helpers (Django): `dissolve_singleton_threads`, `reconcile_story_threads`, `requeue_articles`.
 
 See also [infrastructure/README.md](../../infrastructure/README.md).

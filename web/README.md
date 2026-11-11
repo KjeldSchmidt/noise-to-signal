@@ -61,6 +61,8 @@ Article embeddings need **Postgres + pgvector** (`CREATE EXTENSION vector`). Loc
 
 Articles also store hierarchical place fields + curated **Theme** M2M (seeded in migration `0005`). Workers call `GET /api/internal/themes/` and `POST /api/internal/geocode/search/`; LOI settings persist the same country/admin1/locality path for containment matching (`news.services.places.places_match`).
 
+Story threads are optional (no singleton threads). Ops: `python manage.py dissolve_singleton_threads`, `reconcile_story_threads`, `requeue_articles` (`--clear-threads` when re-enrich should re-link). Assignment uses a Postgres advisory lock — **SCALING HOTSPOT** documented in `news/services/threading.py`.
+
 ## Deploy on AWS (Lambda container + shared RDS)
 
 See [`../infrastructure/README.md`](../infrastructure/README.md).
