@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
                 ],
                 db_index=True,
                 default="",
-                help_text="User-agnostic lasting importance from extract (commercial / ephemeral / notable / major).",
+                help_text=(
+                    "User-agnostic lasting importance from extract "
+                    "(commercial / ephemeral / notable / major)."
+                ),
                 max_length=20,
             ),
         ),
