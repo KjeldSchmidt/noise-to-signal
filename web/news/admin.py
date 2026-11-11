@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from news.admin_ops import patch_admin_urls
 from news.models import (
     Article,
     Feed,
@@ -12,6 +13,8 @@ from news.models import (
     Theme,
     Subscription,
 )
+
+patch_admin_urls()
 
 
 @admin.register(Feed)
@@ -62,6 +65,7 @@ class LocationOfInterestAdmin(admin.ModelAdmin):
 class StoryThreadAdmin(admin.ModelAdmin):
     list_display = ("id", "label", "last_published_at", "updated_at")
     search_fields = ("label",)
+    change_list_template = "admin/news/storythread_change_list.html"
 
 
 @admin.register(Article)
@@ -79,6 +83,7 @@ class ArticleAdmin(admin.ModelAdmin):
     search_fields = ("title", "summary", "place_label")
     filter_horizontal = ("themes",)
     raw_id_fields = ("story_thread", "near_duplicate_of")
+    change_list_template = "admin/news/article_change_list.html"
 
 
 @admin.register(RelevanceFeedback)

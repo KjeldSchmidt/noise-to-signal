@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>News ops</h1>
+<p>
+  Run story-thread maintenance and article re-enrich without the CLI.
+  Prefer dry-run for requeue first. Large reconcile/requeue may be slow on Lambda.
+</p>
+
+<div style="margin: 1.5rem 0; padding: 1rem; border: 1px solid var(--border-color, #ccc);">
+  <h2>Dissolve singleton threads</h2>
+  <p>Clear <code>story_thread</code> on sole members and delete empty/singleton threads.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="dissolve">
+    <button type="submit" class="default">Run dissolve</button>
+  </form>
+</div>
+
+<div style="margin: 1.5rem 0; padding: 1rem; border: 1px solid var(--border-color, #ccc);">
+  <h2>Reconcile story threads</h2>
+  <p>Dissolve singletons, then soft-pair / join unthreaded articles that already have embeddings (no AI).</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reconcile">
+    {{ reconcile_form.as_p }}
+    <button type="submit" class="default">Run reconcile</button>
+  </form>
+</div>
+
+<div style="margin: 1.5rem 0; padding: 1rem; border: 1px solid var(--border-color, #ccc);">
+  <h2>Requeue articles</h2>
+  <p>
+    Enqueue selected articles to SQS for full <code>news_parser</code> re-enrich.
+    Use <strong>Clear story threads</strong> if assignment should run again after enrich.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="requeue">
+    {{ requeue_form.as_p }}
+    <button type="submit" class="default">Run requeue</button>
+  </form>
+</div>
+{% endblock %}

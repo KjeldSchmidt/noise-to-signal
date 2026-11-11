@@ -3,10 +3,7 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.dateparse import parse_datetime
 
-from n2s_api import FeedItem
-
-from news.models import Article
-from news.sqs import enqueue_feed_items
+from news.services.requeue import articles_for_requeue, requeue_articles
 
 
 class Command(BaseCommand):
@@ -53,55 +50,43 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        qs = Article.objects.all().order_by("id")
-        selected = False
-        if options["all"]:
-            selected = True
-        if options["unthreaded"]:
-            qs = qs.filter(story_thread__isnull=True)
-            selected = True
         ids_raw = (options["ids"] or "").strip()
+        ids: list[int] | None = None
         if ids_raw:
             try:
                 ids = [int(x.strip()) for x in ids_raw.split(",") if x.strip()]
             except ValueError as exc:
                 raise CommandError("--ids must be comma-separated integers") from exc
-            qs = qs.filter(id__in=ids)
-            selected = True
+
+        since = None
         since_raw = (options["since"] or "").strip()
         if since_raw:
             since = parse_datetime(since_raw)
             if since is None:
                 raise CommandError("--since must be an ISO datetime")
-            qs = qs.filter(published_at__gte=since)
-            selected = True
-        if not selected:
-            raise CommandError("Select articles with --all, --unthreaded, --ids, and/or --since")
 
-        articles = list(qs.select_related("feed"))
-        if options["dry_run"]:
-            self.stdout.write(f"Would requeue {len(articles)} article(s).")
-            return
-
-        if options["clear_threads"]:
-            cleared = Article.objects.filter(
-                id__in=[a.id for a in articles]
-            ).update(story_thread_id=None, near_duplicate_of_id=None)
-            self.stdout.write(f"Cleared threads on {cleared} article(s).")
-
-        items: list[FeedItem] = []
-        for article in articles:
-            published = article.published_at.isoformat() if article.published_at else ""
-            items.append(
-                FeedItem(
-                    feed_id=article.feed_id,
-                    id=str(article.id),
-                    link=article.url,
-                    title=article.title,
-                    description=article.summary or "",
-                    published_at=published,
-                    thumbnail=article.image_url or "",
-                )
+        try:
+            qs = articles_for_requeue(
+                all_articles=bool(options["all"]),
+                unthreaded=bool(options["unthreaded"]),
+                ids=ids,
+                since=since,
             )
-        sent = enqueue_feed_items(items)
-        self.stdout.write(self.style.SUCCESS(f"Enqueued {sent} / {len(items)} message(s)."))
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
+
+        result = requeue_articles(
+            qs,
+            clear_threads=bool(options["clear_threads"]),
+            dry_run=bool(options["dry_run"]),
+        )
+        if options["dry_run"]:
+            self.stdout.write(f"Would requeue {result['count']} article(s).")
+            return
+        if result["cleared"]:
+            self.stdout.write(f"Cleared threads on {result['cleared']} article(s).")
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Enqueued {result['enqueued']} / {result['count']} message(s)."
+            )
+        )
