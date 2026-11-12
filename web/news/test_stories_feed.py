@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
+import re
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from news.models import Article, Feed, StoryThread
 from news.services.stories_feed import (
@@ -179,3 +181,42 @@ class StoryThreadViewTests(TestCase):
         )
         response = self.client.get(reverse("story_thread", args=[hidden.id]))
         self.assertEqual(response.status_code, 404)
+
+    def test_thread_detail_opens_recent_summaries_only(self) -> None:
+        now = timezone.now()
+        thread = StoryThread.objects.create(
+            label="Cutoff Thread",
+            last_published_at=now,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Fresh update",
+            url="https://example.com/fresh",
+            summary="Published within a day",
+            published_at=now - timedelta(hours=6),
+            story_thread=thread,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Older update",
+            url="https://example.com/older",
+            summary="Published two days ago",
+            published_at=now - timedelta(hours=36),
+            story_thread=thread,
+        )
+        response = self.client.get(reverse("story_thread", args=[thread.id]))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        blocks = re.findall(
+            r'<div\s+class="timeline-summary( is-expanded)?"[^>]*>(.*?)</div>',
+            body,
+            flags=re.DOTALL,
+        )
+        self.assertEqual(len(blocks), 2)
+        by_text = {
+            ("fresh" if "within a day" in chunk else "older"): bool(is_expanded)
+            for is_expanded, chunk in blocks
+        }
+        self.assertTrue(by_text["fresh"])
+        self.assertFalse(by_text["older"])
+        self.assertNotIn(">Summary<", body)

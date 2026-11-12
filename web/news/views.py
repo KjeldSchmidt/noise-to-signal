@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from news.forms import CustomFeedForm, FollowUpAnswerForm, LocationOfInterestForm
@@ -95,6 +98,7 @@ def story_thread(request: HttpRequest, thread_id: int) -> HttpResponse:
     # Timeline is newest-first; date span still runs oldest → newest.
     first_published = articles[-1].published_at if articles else None
     last_published = articles[0].published_at if articles else None
+    summary_open_cutoff = timezone.now() - timedelta(hours=24)
     return render(
         request,
         "news/story_thread.html",
@@ -104,6 +108,7 @@ def story_thread(request: HttpRequest, thread_id: int) -> HttpResponse:
             "article_count": len(articles),
             "first_published": first_published,
             "last_published": last_published,
+            "summary_open_cutoff": summary_open_cutoff,
             "personalized": personalized,
         },
     )

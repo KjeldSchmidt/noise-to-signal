@@ -2,33 +2,180 @@
   const root = document.getElementById("thread-timeline");
   if (!root) return;
 
-  const items = Array.from(root.querySelectorAll("[data-timeline-item]"));
-
-  function selectItem(item) {
-    items.forEach((other) => {
-      const selected = other === item;
-      other.classList.toggle("is-selected", selected);
-      other.classList.toggle("is-collapsed", !selected && other.classList.contains("is-newest"));
-      const toggle = other.querySelector("[data-timeline-toggle]");
-      if (toggle) toggle.setAttribute("aria-expanded", selected ? "true" : "false");
-    });
+  /**
+   * @param {HTMLElement} foldout
+   * @returns {{ clip: HTMLElement, copy: HTMLElement, toggle: HTMLButtonElement } | null}
+   */
+  function parts(foldout) {
+    const clip = foldout.querySelector(".timeline-summary-clip");
+    const copy = foldout.querySelector(".timeline-summary-copy");
+    const toggle = foldout.querySelector(".timeline-summary-toggle");
+    if (
+      !(clip instanceof HTMLElement) ||
+      !(copy instanceof HTMLElement) ||
+      !(toggle instanceof HTMLButtonElement)
+    ) {
+      return null;
+    }
+    return { clip, copy, toggle };
   }
 
-  items.forEach((item) => {
-    const toggle = item.querySelector("[data-timeline-toggle]");
-    if (!toggle) return;
+  /**
+   * @param {HTMLElement} el
+   * @returns {number}
+   */
+  function lineHeightPx(el) {
+    const raw = getComputedStyle(el).lineHeight;
+    const parsed = Number.parseFloat(raw);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    const fontSize = Number.parseFloat(getComputedStyle(el).fontSize);
+    return Number.isFinite(fontSize) ? fontSize * 1.45 : 20;
+  }
 
-    const activate = (event) => {
-      if (event.target.closest("[data-external-link]")) return;
-      selectItem(item);
+  /**
+   * @param {HTMLElement} clip
+   * @param {HTMLElement} copy
+   * @returns {boolean}
+   */
+  function overflowsOneLine(clip, copy) {
+    const width = clip.getBoundingClientRect().width;
+    if (width <= 0) return true;
+
+    const style = getComputedStyle(copy);
+    const probe = document.createElement("div");
+    probe.textContent = copy.textContent ?? "";
+    probe.style.cssText = [
+      "position:absolute",
+      "visibility:hidden",
+      "pointer-events:none",
+      "left:0",
+      "top:0",
+      `width:${width}px`,
+      `font:${style.font}`,
+      `line-height:${style.lineHeight}`,
+      `letter-spacing:${style.letterSpacing}`,
+      `word-spacing:${style.wordSpacing}`,
+      "white-space:normal",
+    ].join(";");
+    document.body.appendChild(probe);
+    const fullHeight = probe.scrollHeight;
+    const oneLine = lineHeightPx(probe);
+    probe.remove();
+    return fullHeight > oneLine + 1;
+  }
+
+  /**
+   * @param {HTMLElement} foldout
+   */
+  function syncToggle(foldout) {
+    const p = parts(foldout);
+    if (!p) return;
+    const expanded = foldout.classList.contains("is-expanded");
+    const short = foldout.classList.contains("is-short");
+    p.toggle.disabled = short;
+    p.toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+  }
+
+  /**
+   * @param {HTMLElement} foldout
+   */
+  function markIfShort(foldout) {
+    if (foldout.classList.contains("is-animating")) return;
+    const p = parts(foldout);
+    if (!p) return;
+
+    const wasExpanded = foldout.classList.contains("is-expanded");
+    const overflows = overflowsOneLine(p.clip, p.copy);
+    foldout.classList.toggle("is-short", !overflows);
+    foldout.classList.toggle("is-expanded", wasExpanded || !overflows);
+    p.clip.style.height = "";
+    syncToggle(foldout);
+  }
+
+  /**
+   * @param {HTMLElement} clip
+   * @param {() => void} done
+   */
+  function afterHeightTransition(clip, done) {
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      clip.removeEventListener("transitionend", onEnd);
+      window.clearTimeout(fallback);
+      done();
     };
+    /** @param {TransitionEvent} event */
+    const onEnd = (event) => {
+      if (event.target !== clip || event.propertyName !== "height") return;
+      settle();
+    };
+    clip.addEventListener("transitionend", onEnd);
+    const fallback = window.setTimeout(settle, 350);
+  }
 
-    toggle.addEventListener("click", activate);
-    toggle.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      if (event.target.closest("[data-external-link]")) return;
-      event.preventDefault();
-      selectItem(item);
+  /**
+   * @param {HTMLElement} foldout
+   * @param {boolean} expanded
+   */
+  function animateFoldout(foldout, expanded) {
+    const p = parts(foldout);
+    if (!p || foldout.classList.contains("is-animating")) return;
+    if (foldout.classList.contains("is-expanded") === expanded) return;
+
+    const start = p.clip.getBoundingClientRect().height;
+    // Suppress line-clamp / CSS height:auto while we drive px heights inline.
+    foldout.classList.add("is-animating");
+    p.clip.style.height = `${start}px`;
+    void p.clip.offsetHeight;
+
+    /** @type {number} */
+    let end;
+    if (expanded) {
+      p.clip.style.height = "auto";
+      end = p.clip.scrollHeight;
+      p.clip.style.height = `${start}px`;
+      void p.clip.offsetHeight;
+      foldout.classList.add("is-expanded");
+    } else {
+      foldout.classList.remove("is-expanded");
+      end = lineHeightPx(p.copy);
+    }
+
+    syncToggle(foldout);
+    afterHeightTransition(p.clip, () => {
+      foldout.classList.remove("is-animating");
+      p.clip.style.height = "";
+      syncToggle(foldout);
     });
+
+    p.clip.style.height = `${end}px`;
+  }
+
+  /**
+   * @param {HTMLElement} foldout
+   */
+  function toggleFoldout(foldout) {
+    if (foldout.classList.contains("is-short")) return;
+    animateFoldout(foldout, !foldout.classList.contains("is-expanded"));
+  }
+
+  const foldouts = Array.from(
+    root.querySelectorAll("[data-summary-foldout]"),
+  ).filter((node) => node instanceof HTMLElement);
+
+  foldouts.forEach((foldout) => {
+    markIfShort(foldout);
+    const p = parts(foldout);
+    if (!p) return;
+    p.toggle.addEventListener("click", () => toggleFoldout(foldout));
+  });
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      foldouts.forEach(markIfShort);
+    }, 150);
   });
 })();
