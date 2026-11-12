@@ -16,6 +16,8 @@ from n2s_api import (
     FeedItemIngestRequest,
     FeedItemIngestResponse,
     FeedListResponse,
+    FeedPollStateRequest,
+    FeedPollStateResponse,
     GeocodePlace,
     GeocodeSearchRequest,
     GeocodeSearchResponse,
@@ -63,6 +65,8 @@ def list_feeds(request: HttpRequest) -> JsonResponse:
                     is_active=feed.is_active,
                     subscription_count=int(getattr(feed, "subscription_count", 0) or 0),
                 ),
+                http_etag=feed.http_etag or "",
+                http_last_modified=feed.http_last_modified or "",
             )
             for feed in feeds_for_list_api()
         ]
@@ -251,3 +255,44 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
             story_thread_id=article.story_thread_id,
         ).model_dump()
     )
+
+
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_POST  # ty: ignore[invalid-argument-type]
+@require_internal_token
+def update_feed_poll_state(request: HttpRequest) -> JsonResponse:
+    """Persist RSS conditional-GET validators (ETag / Last-Modified) after a poll."""
+    try:
+        batch = FeedPollStateRequest.model_validate_json(request.body.decode("utf-8") or "{}")
+    except ValidationError as exc:
+        return JsonResponse(
+            {"error": "invalid payload", "detail": _validation_detail(exc)},
+            status=400,
+        )
+
+    updates = list(batch.updates)
+    if not updates:
+        return JsonResponse(FeedPollStateResponse(updated=0).model_dump())
+
+    feed_ids = {row.feed_id for row in updates}
+    feeds_by_id = {feed.id: feed for feed in Feed.objects.filter(id__in=feed_ids)}
+    unknown = feed_ids - set(feeds_by_id)
+    if unknown:
+        return JsonResponse(
+            {"error": f"unknown feed_id(s): {sorted(unknown)}"},
+            status=400,
+        )
+
+    updated = 0
+    for row in updates:
+        feed = feeds_by_id[row.feed_id]
+        etag = (row.http_etag or "")[:255]
+        modified = (row.http_last_modified or "")[:64]
+        if feed.http_etag == etag and feed.http_last_modified == modified:
+            continue
+        feed.http_etag = etag
+        feed.http_last_modified = modified
+        feed.save(update_fields=["http_etag", "http_last_modified", "updated_at"])
+        updated += 1
+
+    return JsonResponse(FeedPollStateResponse(updated=updated).model_dump())

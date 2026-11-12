@@ -65,6 +65,16 @@ class Feed(TimeStampedModel):
         help_text="ISO 639-1 content language (e.g. en, fr, de). Use und when unknown.",
     )
     is_active = models.BooleanField(default=True)
+    http_etag = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Last ETag from the RSS origin for conditional GET.",
+    )
+    http_last_modified = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Last Last-Modified header from the RSS origin for conditional GET.",
+    )
 
     class Meta:
         ordering = ["category", "title"]

@@ -171,8 +171,9 @@ class ListFeedsShouldPollApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         typed = FeedListResponse.model_validate(response.json())
-        self.assertEqual(len(typed.feeds), 1)
-        row: FeedDTO = typed.feeds[0]
+        by_url = {row.url: row for row in typed.feeds}
+        self.assertIn("https://example.com/orphan.xml", by_url)
+        row: FeedDTO = by_url["https://example.com/orphan.xml"]
         self.assertEqual(row.kind, Feed.SourceKind.CUSTOM)
         self.assertFalse(row.should_poll)
         self.assertEqual(row.language, "und")

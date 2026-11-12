@@ -23,7 +23,7 @@ class ThreadingTests(TestCase):
     def setUp(self) -> None:
         self.feed = Feed.objects.create(
             title="BBC World",
-            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            url="https://example.com/threading-test.xml",
             kind=Feed.SourceKind.CURATED,
         )
         self.now = datetime(2026, 11, 9, 12, 0, tzinfo=UTC)

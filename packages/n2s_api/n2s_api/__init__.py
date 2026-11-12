@@ -1,6 +1,12 @@
 """Shared API contracts for noise-to-signal."""
 
-from n2s_api.feeds import Feed, FeedListResponse
+from n2s_api.feeds import (
+    Feed,
+    FeedListResponse,
+    FeedPollStateRequest,
+    FeedPollStateResponse,
+    FeedPollStateUpdate,
+)
 from n2s_api.items import (
     ArticleUpsert,
     ArticleUpsertResponse,
@@ -22,6 +28,9 @@ __all__ = [
     "FeedItemIngestRequest",
     "FeedItemIngestResponse",
     "FeedListResponse",
+    "FeedPollStateRequest",
+    "FeedPollStateResponse",
+    "FeedPollStateUpdate",
     "GeocodePlace",
     "GeocodeSearchRequest",
     "GeocodeSearchResponse",

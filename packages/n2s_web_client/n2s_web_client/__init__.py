@@ -5,6 +5,7 @@ from n2s_web_client.client import (
     ingest_feed_items,
     list_feeds,
     list_themes,
+    update_feed_poll_state,
     upsert_article,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "ingest_feed_items",
     "list_feeds",
     "list_themes",
+    "update_feed_poll_state",
     "upsert_article",
 ]

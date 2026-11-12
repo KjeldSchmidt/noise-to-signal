@@ -18,9 +18,9 @@ from news.models import Article, Feed, Theme, ThemeSuggestion
 class InternalFeedsApiTests(TestCase):
     def setUp(self) -> None:
         self.feed = Feed.objects.create(
-            title="BBC World",
-            url="https://feeds.bbci.co.uk/news/world/rss.xml",
-            site_url="https://www.bbc.com/news/world",
+            title="Internal Feeds Test",
+            url="https://example.com/internal-feeds-test.xml",
+            site_url="https://example.com/",
             category="World",
             kind=Feed.SourceKind.CURATED,
         )
@@ -43,28 +43,92 @@ class InternalFeedsApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         typed = FeedListResponse.model_validate(response.json())
-        self.assertEqual(len(typed.feeds), 1)
-        self.assertEqual(typed.feeds[0].id, self.feed.id)
-        self.assertEqual(typed.feeds[0].url, self.feed.url)
-        self.assertTrue(typed.feeds[0].is_active)
-        expected = FeedListResponse(
-            feeds=[
-                FeedDTO(
-                    id=self.feed.id,
-                    title=self.feed.title,
-                    url=self.feed.url,
-                    site_url=self.feed.site_url,
-                    description=self.feed.description,
-                    category=self.feed.category,
-                    kind=self.feed.kind,
-                    owner_id=self.feed.owner_id,
-                    is_active=self.feed.is_active,
-                    language=self.feed.language,
-                    should_poll=True,
-                )
-            ]
+        by_id = {row.id: row for row in typed.feeds}
+        self.assertIn(self.feed.id, by_id)
+        row = by_id[self.feed.id]
+        self.assertEqual(row.url, self.feed.url)
+        self.assertTrue(row.is_active)
+        expected = FeedDTO(
+            id=self.feed.id,
+            title=self.feed.title,
+            url=self.feed.url,
+            site_url=self.feed.site_url,
+            description=self.feed.description,
+            category=self.feed.category,
+            kind=self.feed.kind,
+            owner_id=self.feed.owner_id,
+            is_active=self.feed.is_active,
+            language=self.feed.language,
+            should_poll=True,
+            http_etag="",
+            http_last_modified="",
         )
-        self.assertEqual(response.json(), expected.model_dump())
+        self.assertEqual(row.model_dump(), expected.model_dump())
+
+    def test_list_feeds_includes_poll_validators(self) -> None:
+        self.feed.http_etag = '"abc123"'
+        self.feed.http_last_modified = "Wed, 12 Nov 2025 10:00:00 GMT"
+        self.feed.save(update_fields=["http_etag", "http_last_modified", "updated_at"])
+        response = self.client.get(
+            "/api/internal/feeds/",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        typed = FeedListResponse.model_validate(response.json())
+        by_id = {row.id: row for row in typed.feeds}
+        self.assertEqual(by_id[self.feed.id].http_etag, '"abc123"')
+        self.assertEqual(
+            by_id[self.feed.id].http_last_modified,
+            "Wed, 12 Nov 2025 10:00:00 GMT",
+        )
+
+    def test_update_feed_poll_state(self) -> None:
+        response = self.client.post(
+            "/api/internal/feeds/poll-state/",
+            data={
+                "updates": [
+                    {
+                        "feed_id": self.feed.id,
+                        "http_etag": '"v2"',
+                        "http_last_modified": "Thu, 13 Nov 2025 11:00:00 GMT",
+                    }
+                ]
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["updated"], 1)
+        self.feed.refresh_from_db()
+        self.assertEqual(self.feed.http_etag, '"v2"')
+        self.assertEqual(self.feed.http_last_modified, "Thu, 13 Nov 2025 11:00:00 GMT")
+
+        # Idempotent when unchanged.
+        response = self.client.post(
+            "/api/internal/feeds/poll-state/",
+            data={
+                "updates": [
+                    {
+                        "feed_id": self.feed.id,
+                        "http_etag": '"v2"',
+                        "http_last_modified": "Thu, 13 Nov 2025 11:00:00 GMT",
+                    }
+                ]
+            },
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["updated"], 0)
+
+    def test_update_feed_poll_state_unknown_feed(self) -> None:
+        response = self.client.post(
+            "/api/internal/feeds/poll-state/",
+            data={"updates": [{"feed_id": 999999, "http_etag": '"x"'}]},
+            content_type="application/json",
+            headers={"Authorization": "Bearer test-internal-token"},
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_list_feeds_with_x_internal_token_header(self) -> None:
         response = self.client.get(
@@ -72,7 +136,8 @@ class InternalFeedsApiTests(TestCase):
             headers={"X-Internal-Token": "test-internal-token"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()["feeds"]), 1)
+        urls = {row["url"] for row in response.json()["feeds"]}
+        self.assertIn(self.feed.url, urls)
 
     @override_settings(INTERNAL_API_TOKEN="")
     def test_list_feeds_unconfigured(self) -> None:
@@ -90,8 +155,8 @@ class InternalFeedsApiTests(TestCase):
 class InternalFeedItemsApiTests(TestCase):
     def setUp(self) -> None:
         self.feed = Feed.objects.create(
-            title="BBC World",
-            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            title="Feed Items Test",
+            url="https://example.com/feed-items-test.xml",
             kind=Feed.SourceKind.CURATED,
         )
         self.item = FeedItem(
@@ -147,8 +212,8 @@ class InternalFeedItemsApiTests(TestCase):
 class InternalArticlesApiTests(TestCase):
     def setUp(self) -> None:
         self.feed = Feed.objects.create(
-            title="BBC World",
-            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            title="Articles Test",
+            url="https://example.com/articles-test.xml",
             kind=Feed.SourceKind.CURATED,
         )
 

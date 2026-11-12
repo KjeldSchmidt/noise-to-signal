@@ -17,13 +17,13 @@ class StoriesFeedServiceTests(TestCase):
     def setUp(self) -> None:
         self.feed = Feed.objects.create(
             title="BBC World",
-            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            url="https://example.com/stories-feed-test.xml",
             site_url="https://www.bbc.com/news",
             kind=Feed.SourceKind.CURATED,
         )
         self.other_feed = Feed.objects.create(
             title="NPR News",
-            url="https://feeds.npr.org/1001/rss.xml",
+            url="https://example.com/stories-feed-other.xml",
             site_url="https://www.npr.org",
             kind=Feed.SourceKind.CURATED,
         )
@@ -119,7 +119,7 @@ class StoryThreadViewTests(TestCase):
     def setUp(self) -> None:
         self.feed = Feed.objects.create(
             title="BBC World",
-            url="https://feeds.bbci.co.uk/news/world/rss.xml",
+            url="https://example.com/stories-feed-test-2.xml",
             kind=Feed.SourceKind.CURATED,
         )
         self.out_of_scope = Feed.objects.create(
