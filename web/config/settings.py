@@ -24,6 +24,15 @@ INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "").strip()
 # SQS queue for new feed items → news_parser (empty = ingest dedups but does not enqueue).
 FEED_ITEMS_QUEUE_URL = os.environ.get("FEED_ITEMS_QUEUE_URL", "").strip()
 
+# Sync-invoked news_chat Lambda (empty + DEBUG → local stub response).
+NEWS_CHAT_FUNCTION_NAME = os.environ.get("NEWS_CHAT_FUNCTION_NAME", "").strip()
+AWS_REGION = (
+    os.environ.get("AWS_REGION")
+    or os.environ.get("AWS_DEFAULT_REGION")
+    or os.environ.get("BEDROCK_REGION")
+    or "eu-central-1"
+)
+
 DEBUG = os.environ.get("DEBUG", "true").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = [

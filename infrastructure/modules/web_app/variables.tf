@@ -43,8 +43,21 @@ variable "memory_size" {
 }
 
 variable "timeout" {
-  type    = number
-  default = 30
+  type        = number
+  default     = 90
+  description = "Web Lambda timeout (chat sync-invokes news_chat; keep ≥ worker answer latency)."
+}
+
+variable "origin_read_timeout" {
+  type        = number
+  default     = 90
+  description = "CloudFront origin response timeout (must cover chat round-trip)."
+}
+
+variable "news_chat_function_name" {
+  type        = string
+  default     = ""
+  description = "Lambda function name for news_chat (empty disables invoke wiring)."
 }
 
 variable "public_hostname" {

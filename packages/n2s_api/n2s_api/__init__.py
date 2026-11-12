@@ -1,5 +1,15 @@
 """Shared API contracts for noise-to-signal."""
 
+from n2s_api.chat import (
+    MAX_CHUNK_CHARS,
+    MAX_CHUNKS,
+    MAX_HISTORY_TURNS,
+    MAX_MESSAGE_CHARS,
+    ChatHistoryMessage,
+    ChatWorkerRequest,
+    ChatWorkerResponse,
+    ContextChunk,
+)
 from n2s_api.feeds import (
     Feed,
     FeedListResponse,
@@ -23,6 +33,10 @@ from n2s_api.items import (
 __all__ = [
     "ArticleUpsert",
     "ArticleUpsertResponse",
+    "ChatHistoryMessage",
+    "ChatWorkerRequest",
+    "ChatWorkerResponse",
+    "ContextChunk",
     "Feed",
     "FeedItem",
     "FeedItemIngestRequest",
@@ -34,6 +48,10 @@ __all__ = [
     "GeocodePlace",
     "GeocodeSearchRequest",
     "GeocodeSearchResponse",
+    "MAX_CHUNK_CHARS",
+    "MAX_CHUNKS",
+    "MAX_HISTORY_TURNS",
+    "MAX_MESSAGE_CHARS",
     "ThemeDTO",
     "ThemeListResponse",
 ]

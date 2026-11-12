@@ -1,12 +1,22 @@
+import json
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import AbstractBaseUser
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from n2s_api import (
+    MAX_HISTORY_TURNS,
+    MAX_MESSAGE_CHARS,
+    ChatHistoryMessage,
+    ChatWorkerRequest,
+)
+from pydantic import ValidationError
 
 from news.forms import (
     ContentLanguagesForm,
@@ -40,6 +50,9 @@ from news.services import (
     thread_timeline_articles,
     thread_visible_in_scope,
 )
+from news.services.chat_invoke import invoke_news_chat
+from news.services.chat_rate_limit import check_and_increment
+from news.services.chat_retrieve import retrieve
 from news.services.geocode import reverse_geocode_place, search_places
 
 
@@ -443,3 +456,114 @@ def answer_followup(request: HttpRequest, question_id: int) -> HttpResponse:
         "news/answer_followup.html",
         {"question": question, "form": form},
     )
+
+
+def _parse_chat_json(request: HttpRequest) -> dict[str, Any] | None:
+    try:
+        raw = json.loads(request.body.decode("utf-8") or "{}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(raw, dict):
+        return None
+    return raw
+
+
+def _chat(request: HttpRequest) -> JsonResponse:
+    """JSON chat endpoint: rate-limit → retrieve → invoke news_chat worker."""
+    # @login_required guarantees an authenticated user; stubs still type AnonymousUser.
+    user = cast(AbstractBaseUser, request.user)
+    payload = _parse_chat_json(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "error": "Invalid JSON body."}, status=400)
+
+    scope = (payload.get("scope") or "").strip()
+    if scope not in ("brief", "thread"):
+        return JsonResponse({"ok": False, "error": "scope must be brief or thread."}, status=400)
+
+    scope_id_raw = payload.get("scope_id")
+    scope_id: int | None
+    if scope_id_raw is None or scope_id_raw == "":
+        scope_id = None
+    else:
+        try:
+            scope_id = int(scope_id_raw)
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "Invalid scope_id."}, status=400)
+
+    if scope == "thread" and scope_id is None:
+        return JsonResponse({"ok": False, "error": "scope_id required for thread."}, status=400)
+
+    message = (payload.get("message") or "").strip()
+    if not message:
+        return JsonResponse({"ok": False, "error": "message is required."}, status=400)
+    if len(message) > MAX_MESSAGE_CHARS:
+        return JsonResponse(
+            {"ok": False, "error": f"message exceeds {MAX_MESSAGE_CHARS} characters."},
+            status=400,
+        )
+
+    history_raw = payload.get("history") or []
+    if not isinstance(history_raw, list):
+        return JsonResponse({"ok": False, "error": "history must be a list."}, status=400)
+    if len(history_raw) > MAX_HISTORY_TURNS:
+        return JsonResponse(
+            {"ok": False, "error": f"history exceeds {MAX_HISTORY_TURNS} turns."},
+            status=400,
+        )
+
+    try:
+        history = [ChatHistoryMessage.model_validate(item) for item in history_raw]
+    except ValidationError:
+        return JsonResponse({"ok": False, "error": "Invalid history entries."}, status=400)
+
+    decision = check_and_increment(user)
+    if not decision.allowed:
+        response = JsonResponse(
+            {
+                "ok": False,
+                "error": decision.detail,
+                "code": "rate_limited",
+            },
+            status=429,
+        )
+        response["Retry-After"] = str(decision.retry_after_seconds)
+        return response
+
+    chunks = retrieve(scope=scope, user=user, scope_id=scope_id)
+    if chunks is None:
+        return JsonResponse({"ok": False, "error": "Story thread not found."}, status=404)
+
+    try:
+        worker_req = ChatWorkerRequest(
+            scope=scope,  # type: ignore[arg-type]
+            scope_id=scope_id,
+            message=message,
+            history=history,
+            chunks=chunks,
+        )
+    except ValidationError:
+        return JsonResponse({"ok": False, "error": "Invalid chat request."}, status=400)
+
+    result = invoke_news_chat(worker_req)
+    if result.refused:
+        return JsonResponse(
+            {
+                "ok": True,
+                "refused": True,
+                "reason": result.reason,
+                "reply": result.message or result.reply,
+            }
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "refused": False,
+            "reason": "ok",
+            "reply": result.reply,
+        }
+    )
+
+
+# django-stubs decorator overloads disagree with JsonResponse views (same as other views).
+_login_required = cast(Any, login_required)
+chat = _login_required(require_POST(cast(Any, _chat)))

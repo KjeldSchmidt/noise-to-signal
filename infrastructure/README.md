@@ -25,6 +25,8 @@ Deploy order: **shared → push web + worker images → app (dev) → app (prod)
 |-------|------|
 | Web (Django) | `<tag>`, `latest` |
 | Worker `feed_consumer` | `feed_consumer-<tag>`, `feed_consumer-latest` |
+| Worker `news_parser` | `news_parser-<tag>`, `news_parser-latest` |
+| Worker `news_chat` | `news_chat-<tag>`, `news_chat-latest` |
 
 Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) (`ARG LAMBDA_NAME`). Recipes: `just push-lambda <name> <tag>`, `just push-lambdas <tag>` (every `lambdas/*/pyproject.toml`).
 
@@ -33,7 +35,8 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 - Module: [`modules/workers`](modules/workers), wired from each `env/<env>/app`.
 - **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
 - **`news_parser`** — SQS (`<project>-<env>-feed-items`); LangGraph enrich (`normalize` → `embed` ∥ `extract_place` → `upsert`) → `POST /api/internal/articles/` (thread assignment on the web).
-- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / `BEDROCK_EXTRACT_MODEL_ID` when `invoke_bedrock`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL`.
+- **`news_chat`** — sync-invoked by web (`NEWS_CHAT_FUNCTION_NAME`); Nova Micro scope classifier + Nova Lite grounded answers (LangSmith agent `news-chat`).
+- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / `BEDROCK_EXTRACT_MODEL_ID` / chat model IDs when `invoke_bedrock`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL` and `NEWS_CHAT_FUNCTION_NAME`.
 - Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
 
 ## pgvector + Bedrock (embeddings + place/themes)

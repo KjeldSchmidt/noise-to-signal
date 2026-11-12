@@ -14,6 +14,7 @@ fmt:
     just --justfile runner/justfile --working-directory runner fmt
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer fmt
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser fmt
+    just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat fmt
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api fmt
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client fmt
 
@@ -23,6 +24,7 @@ fmt-check:
     just --justfile runner/justfile --working-directory runner fmt-check
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer fmt-check
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser fmt-check
+    just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat fmt-check
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api fmt-check
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client fmt-check
 
@@ -32,6 +34,7 @@ lint:
     just --justfile runner/justfile --working-directory runner lint
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer lint
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser lint
+    just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat lint
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api lint
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client lint
 
@@ -40,6 +43,7 @@ lint-check:
     just --justfile runner/justfile --working-directory runner lint-check
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer lint-check
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser lint-check
+    just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat lint-check
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api lint-check
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client lint-check
 
@@ -48,6 +52,7 @@ typecheck:
     just --justfile runner/justfile --working-directory runner typecheck
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer typecheck
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser typecheck
+    just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat typecheck
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api typecheck
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client typecheck
 
@@ -56,6 +61,7 @@ test:
     just --justfile runner/justfile --working-directory runner test
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer test
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser test
+    just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat test
     just --justfile packages/n2s_api/justfile --working-directory packages/n2s_api test
     just --justfile packages/n2s_web_client/justfile --working-directory packages/n2s_web_client test
 

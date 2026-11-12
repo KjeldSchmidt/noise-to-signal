@@ -155,6 +155,27 @@ resource "aws_iam_role_policy" "lambda_sqs_send" {
   policy = data.aws_iam_policy_document.lambda_sqs_send.json
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "lambda_invoke_news_chat" {
+  count = var.news_chat_function_name != "" ? 1 : 0
+
+  statement {
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.news_chat_function_name}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_invoke_news_chat" {
+  count = var.news_chat_function_name != "" ? 1 : 0
+
+  name   = "invoke-news-chat"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_invoke_news_chat[0].json
+}
+
 resource "aws_lambda_function" "web" {
   function_name = local.name_prefix
   role          = aws_iam_role.lambda.arn
@@ -169,24 +190,29 @@ resource "aws_lambda_function" "web" {
   }
 
   environment {
-    variables = {
-      DEBUG        = "false"
-      DATABASE_SSL = "true"
-      # Host comes from CloudFront via X-Forwarded-Host (see cloudfront_function).
-      ALLOWED_HOSTS = join(",", [
-        var.public_hostname,
-        ".noise-to-signal.fyi",
-        ".cloudfront.net",
-        ".lambda-url.${var.aws_region}.on.aws",
-      ])
-      SITE_DOMAIN          = var.public_hostname
-      SECRET_KEY           = local.app_secret.SECRET_KEY
-      DATABASE_URL         = local.app_secret.DATABASE_URL
-      INTERNAL_API_TOKEN   = local.app_secret.INTERNAL_API_TOKEN
-      FEED_ITEMS_QUEUE_URL = aws_sqs_queue.feed_items.url
-      GOOGLE_CLIENT_ID     = local.google_oauth.GOOGLE_CLIENT_ID
-      GOOGLE_CLIENT_SECRET = local.google_oauth.GOOGLE_CLIENT_SECRET
-    }
+    variables = merge(
+      {
+        DEBUG        = "false"
+        DATABASE_SSL = "true"
+        # Host comes from CloudFront via X-Forwarded-Host (see cloudfront_function).
+        ALLOWED_HOSTS = join(",", [
+          var.public_hostname,
+          ".noise-to-signal.fyi",
+          ".cloudfront.net",
+          ".lambda-url.${var.aws_region}.on.aws",
+        ])
+        SITE_DOMAIN          = var.public_hostname
+        SECRET_KEY           = local.app_secret.SECRET_KEY
+        DATABASE_URL         = local.app_secret.DATABASE_URL
+        INTERNAL_API_TOKEN   = local.app_secret.INTERNAL_API_TOKEN
+        FEED_ITEMS_QUEUE_URL = aws_sqs_queue.feed_items.url
+        GOOGLE_CLIENT_ID     = local.google_oauth.GOOGLE_CLIENT_ID
+        GOOGLE_CLIENT_SECRET = local.google_oauth.GOOGLE_CLIENT_SECRET
+      },
+      var.news_chat_function_name != "" ? {
+        NEWS_CHAT_FUNCTION_NAME = var.news_chat_function_name
+      } : {},
+    )
   }
 
   tags = local.tags
@@ -252,10 +278,12 @@ resource "aws_cloudfront_distribution" "web" {
     origin_id   = "lambda-function-url"
 
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
+      http_port                = 80
+      https_port               = 443
+      origin_protocol_policy   = "https-only"
+      origin_ssl_protocols     = ["TLSv1.2"]
+      origin_read_timeout      = var.origin_read_timeout
+      origin_keepalive_timeout = 60
     }
   }
 

@@ -1,0 +1,58 @@
+<aside
+  class="news-chat"
+  data-news-chat
+  data-chat-url="{% url 'chat' %}"
+  data-chat-scope="{{ chat_scope }}"
+  {% if chat_scope_id %}data-chat-scope-id="{{ chat_scope_id }}"{% endif %}
+  aria-label="Ask about this news"
+>
+  <div class="news-chat-head">
+    <h2 class="news-chat-title">Ask about this {{ chat_scope_label }}</h2>
+    <p class="muted news-chat-sub">Follow-ups grounded in the articles on this page.</p>
+  </div>
+
+  {% if user.is_authenticated %}
+  <div class="news-chat-messages" data-chat-messages>
+    <p class="news-chat-empty muted" data-chat-empty>
+      Ask what’s going on, how stories connect, or what the coverage emphasizes.
+    </p>
+  </div>
+  <p class="news-chat-status muted" data-chat-status hidden></p>
+  <form class="news-chat-form" data-chat-form>
+    {% csrf_token %}
+    <label class="visually-hidden" for="news-chat-input-{{ chat_scope }}{% if chat_scope_id %}-{{ chat_scope_id }}{% endif %}">
+      Your question
+    </label>
+    <div class="news-chat-composer">
+      <textarea
+        id="news-chat-input-{{ chat_scope }}{% if chat_scope_id %}-{{ chat_scope_id }}{% endif %}"
+        class="news-chat-input"
+        data-chat-input
+        rows="1"
+        maxlength="2000"
+        placeholder="Ask a question…"
+        required
+      ></textarea>
+      <button
+        type="submit"
+        class="news-chat-send"
+        data-chat-send
+        aria-label="Send message"
+        title="Send"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M3.4 20.6 21 12 3.4 3.4 3 10.1 15 12 3 13.9z"
+          />
+        </svg>
+      </button>
+    </div>
+  </form>
+  {% else %}
+  <div class="news-chat-guest empty">
+    <p>Sign in to ask follow-up questions about this story.</p>
+    <a class="btn primary" href="{% url 'google_login' %}?next={{ request.path|urlencode }}">Sign in with Google</a>
+  </div>
+  {% endif %}
+</aside>

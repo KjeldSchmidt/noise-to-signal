@@ -2,76 +2,85 @@
 {% load static %}
 {% block title %}{{ thread.label|default:"Story thread" }}{% endblock %}
 {% block content %}
-<a class="thread-back" href="{% url 'stories' %}">← Back to Stories</a>
+<div class="with-chat-layout">
+  <div class="chat-layout-main">
+    <a class="thread-back" href="{% url 'stories' %}">← Back to Stories</a>
 
-<section class="page-head thread-head">
-  <p class="tag story-thread-tag">Story thread</p>
-  <h1>{{ thread.label|default:"Untitled thread" }}</h1>
-  <div class="thread-meta">
-    <span class="story-count">{{ article_count }} article{{ article_count|pluralize }}</span>
-    {% if first_published and last_published %}
-    <p class="muted" style="margin:0">
-      {{ first_published|date:"M j, Y · H:i" }}
-      {% if first_published != last_published %}
-      → {{ last_published|date:"M j, Y · H:i" }}
-      {% endif %}
-    </p>
+    <section class="page-head thread-head">
+      <p class="tag story-thread-tag">Story thread</p>
+      <h1>{{ thread.label|default:"Untitled thread" }}</h1>
+      <div class="thread-meta">
+        <span class="story-count">{{ article_count }} article{{ article_count|pluralize }}</span>
+        {% if first_published and last_published %}
+        <p class="muted" style="margin:0">
+          {{ first_published|date:"M j, Y · H:i" }}
+          {% if first_published != last_published %}
+          → {{ last_published|date:"M j, Y · H:i" }}
+          {% endif %}
+        </p>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if not articles %}
+    <div class="empty">
+      <p>No articles in this thread yet.</p>
+    </div>
+    {% else %}
+    <ol class="thread-timeline" id="thread-timeline">
+      {% for article in articles %}
+      <li class="timeline-item{% if forloop.first %} is-newest{% endif %}">
+        <span class="timeline-marker" aria-hidden="true"></span>
+        <div class="timeline-card{% if article.image_url %} has-image{% endif %}">
+          <div class="timeline-main">
+            {% if article.image_url %}
+            <div class="timeline-media" aria-hidden="true">
+              <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+            </div>
+            {% endif %}
+            <div class="timeline-lede" data-timeline-lede>
+              <p class="tag">{{ article.feed.title }}</p>
+              <h2>
+                <a href="{{ article.url }}" target="_blank" rel="noopener">
+                  {{ article.title }}
+                </a>
+              </h2>
+              <p class="muted story-time">{{ article.published_at|date:"M j, Y · H:i" }}</p>
+            </div>
+          </div>
+          {% if article.summary %}
+          {% with summary_text=article.summary|striptags|truncatewords:60 %}
+          <div
+            class="timeline-summary{% if article.published_at >= summary_open_cutoff %} is-expanded{% endif %}"
+            data-summary-foldout
+          >
+            <button
+              type="button"
+              class="timeline-summary-toggle"
+              aria-expanded="{% if article.published_at >= summary_open_cutoff %}true{% else %}false{% endif %}"
+            >
+              <span class="timeline-summary-clip">
+                <span class="timeline-summary-copy">{{ summary_text }}</span>
+              </span>
+              <span class="timeline-summary-hint" aria-hidden="true"></span>
+            </button>
+          </div>
+          {% endwith %}
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
     {% endif %}
   </div>
-</section>
 
-{% if not articles %}
-<div class="empty">
-  <p>No articles in this thread yet.</p>
+  {% include "news/_chat_panel.html" with chat_scope="thread" chat_scope_id=thread.id chat_scope_label="story" %}
 </div>
-{% else %}
-<ol class="thread-timeline" id="thread-timeline">
-  {% for article in articles %}
-  <li class="timeline-item{% if forloop.first %} is-newest{% endif %}">
-    <span class="timeline-marker" aria-hidden="true"></span>
-    <div class="timeline-card{% if article.image_url %} has-image{% endif %}">
-      <div class="timeline-main">
-        {% if article.image_url %}
-        <div class="timeline-media" aria-hidden="true">
-          <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-        </div>
-        {% endif %}
-        <div class="timeline-lede" data-timeline-lede>
-          <p class="tag">{{ article.feed.title }}</p>
-          <h2>
-            <a href="{{ article.url }}" target="_blank" rel="noopener">
-              {{ article.title }}
-            </a>
-          </h2>
-          <p class="muted story-time">{{ article.published_at|date:"M j, Y · H:i" }}</p>
-        </div>
-      </div>
-      {% if article.summary %}
-      {% with summary_text=article.summary|striptags|truncatewords:60 %}
-      <div
-        class="timeline-summary{% if article.published_at >= summary_open_cutoff %} is-expanded{% endif %}"
-        data-summary-foldout
-      >
-        <button
-          type="button"
-          class="timeline-summary-toggle"
-          aria-expanded="{% if article.published_at >= summary_open_cutoff %}true{% else %}false{% endif %}"
-        >
-          <span class="timeline-summary-clip">
-            <span class="timeline-summary-copy">{{ summary_text }}</span>
-          </span>
-          <span class="timeline-summary-hint" aria-hidden="true"></span>
-        </button>
-      </div>
-      {% endwith %}
-      {% endif %}
-    </div>
-  </li>
-  {% endfor %}
-</ol>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/story-thread.js' %}" defer></script>
+{% if user.is_authenticated %}
+<script src="{% static 'js/news-chat.js' %}" defer></script>
+{% endif %}
 {% endblock %}

@@ -2,67 +2,74 @@
 {% load static %}
 {% block title %}Daily brief{% endblock %}
 {% block content %}
-<section class="page-head">
-  <h1>Today’s brief</h1>
-  <p class="muted">
-    Placeholder ranking over your enabled feeds
-    {% if feed_count %}({{ feed_count }} feed{{ feed_count|pluralize }}){% endif %}.
-    Real LangGraph scoring will replace this later.
-  </p>
-</section>
+<div class="with-chat-layout">
+  <div class="chat-layout-main">
+    <section class="page-head">
+      <h1>Today’s brief</h1>
+      <p class="muted">
+        Placeholder ranking over your enabled feeds
+        {% if feed_count %}({{ feed_count }} feed{{ feed_count|pluralize }}){% endif %}.
+        Real LangGraph scoring will replace this later.
+      </p>
+    </section>
 
-<div class="brief-toast-host" data-brief-toast aria-live="polite"></div>
+    <div class="brief-toast-host" data-brief-toast aria-live="polite"></div>
 
-{% if pending_question %}
-<aside class="callout">
-  <p>Help sharpen the filter:</p>
-  <p><strong>{{ pending_question.prompt }}</strong></p>
-  <a class="btn ghost" href="{% url 'answer_followup' pending_question.id %}">Answer</a>
-</aside>
-{% endif %}
-
-{% if not feed_count %}
-<div class="empty">
-  <p>All catalog feeds are muted. Re-enable some in Settings to fill your brief.</p>
-  <a class="btn primary" href="{% url 'settings' %}">Open settings</a>
-</div>
-{% elif not ranked %}
-<div class="empty">
-  <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
-  <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
-</div>
-{% else %}
-<template id="brief-empty-template">
-  <div class="empty">
-    <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
-    <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
-  </div>
-</template>
-<ul class="item-list" data-brief-list>
-  {% for item in ranked %}
-  <li class="item">
-    <div class="item-meta">
-      <span class="score">{{ item.score }}</span>
-      <span class="source">{{ item.article.feed.title }}</span>
-    </div>
-    <h2><a href="{{ item.article.url }}" target="_blank" rel="noopener">{{ item.article.title }}</a></h2>
-    <p class="reason">{{ item.reason }}</p>
-    {% if item.article.summary %}
-    <p class="summary">{{ item.article.summary }}</p>
+    {% if pending_question %}
+    <aside class="callout">
+      <p>Help sharpen the filter:</p>
+      <p><strong>{{ pending_question.prompt }}</strong></p>
+      <a class="btn ghost" href="{% url 'answer_followup' pending_question.id %}">Answer</a>
+    </aside>
     {% endif %}
-    <form method="post" action="{% url 'feedback' item.article.id %}" class="feedback-row">
-      {% csrf_token %}
-      <button type="submit" name="verdict" value="relevant" class="btn small yes">Relevant</button>
-      <button type="submit" name="verdict" value="not_relevant" class="btn small no">Not for me</button>
-      <button type="submit" name="verdict" value="skip" class="btn small ghost">Skip</button>
-    </form>
-  </li>
-  {% endfor %}
-</ul>
-{% endif %}
+
+    {% if not feed_count %}
+    <div class="empty">
+      <p>All catalog feeds are muted. Re-enable some in Settings to fill your brief.</p>
+      <a class="btn primary" href="{% url 'settings' %}">Open settings</a>
+    </div>
+    {% elif not ranked %}
+    <div class="empty">
+      <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
+      <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
+    </div>
+    {% else %}
+    <template id="brief-empty-template">
+      <div class="empty">
+        <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
+        <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
+      </div>
+    </template>
+    <ul class="item-list" data-brief-list>
+      {% for item in ranked %}
+      <li class="item">
+        <div class="item-meta">
+          <span class="score">{{ item.score }}</span>
+          <span class="source">{{ item.article.feed.title }}</span>
+        </div>
+        <h2><a href="{{ item.article.url }}" target="_blank" rel="noopener">{{ item.article.title }}</a></h2>
+        <p class="reason">{{ item.reason }}</p>
+        {% if item.article.summary %}
+        <p class="summary">{{ item.article.summary }}</p>
+        {% endif %}
+        <form method="post" action="{% url 'feedback' item.article.id %}" class="feedback-row">
+          {% csrf_token %}
+          <button type="submit" name="verdict" value="relevant" class="btn small yes">Relevant</button>
+          <button type="submit" name="verdict" value="not_relevant" class="btn small no">Not for me</button>
+          <button type="submit" name="verdict" value="skip" class="btn small ghost">Skip</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  {% include "news/_chat_panel.html" with chat_scope="brief" chat_scope_label="brief" %}
+</div>
 {% endblock %}
 {% block extra_js %}
 {% if ranked %}
 <script src="{% static 'js/brief-feedback.js' %}" defer></script>
 {% endif %}
+<script src="{% static 'js/news-chat.js' %}" defer></script>
 {% endblock %}

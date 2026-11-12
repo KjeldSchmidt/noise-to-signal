@@ -28,6 +28,7 @@ urlpatterns = [
         name="delete_location",
     ),
     path("articles/<int:article_id>/feedback/", views.feedback, name="feedback"),
+    path("chat/", views.chat, name="chat"),
     path("followups/", views.followups, name="followups"),
     path(
         "followups/<int:question_id>/answer/",

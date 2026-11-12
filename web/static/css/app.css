@@ -649,7 +649,35 @@ h1, h2, h3 {
   color: var(--accent);
 }
 
-.main:has(.thread-timeline) {
+.main:has(.thread-timeline):not(:has(.with-chat-layout)) {
+  width: min(760px, calc(100% - 2rem));
+}
+
+.main:has(.with-chat-layout) {
+  --chat-sidebar-width: max(400px, 25vw);
+  --site-header-offset: 4.5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--chat-sidebar-width);
+  align-items: start;
+}
+
+.with-chat-layout {
+  display: contents;
+}
+
+.chat-layout-main {
+  min-width: 0;
+  width: min(880px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+  box-sizing: border-box;
+}
+
+.main:has(.with-chat-layout):has(.thread-timeline) .chat-layout-main {
   width: min(760px, calc(100% - 2rem));
 }
 
@@ -1018,6 +1046,198 @@ h1, h2, h3 {
 
 .geo-status:not([hidden]) {
   margin: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.news-chat {
+  position: sticky;
+  top: var(--site-header-offset, 4.5rem);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  width: var(--chat-sidebar-width, max(400px, 25vw));
+  height: calc(100dvh - var(--site-header-offset, 4.5rem));
+  max-height: calc(100dvh - var(--site-header-offset, 4.5rem));
+  margin: 0;
+  padding: 1rem 1rem 1.05rem;
+  border: none;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background:
+    linear-gradient(160deg, rgba(15, 107, 92, 0.06), transparent 55%),
+    #faf7f0;
+  box-sizing: border-box;
+}
+
+.news-chat-head {
+  margin-bottom: 0.65rem;
+  flex: 0 0 auto;
+}
+
+.news-chat-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.02em;
+}
+
+.news-chat-sub {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.news-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-height: 10rem;
+  overflow-y: auto;
+  padding: 0.35rem 0.1rem 0.55rem;
+  margin-bottom: 0.25rem;
+}
+
+.news-chat-empty {
+  margin: 0.35rem 0;
+}
+
+.news-chat-bubble {
+  max-width: 94%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.news-chat-bubble.is-user {
+  align-self: flex-end;
+  background: #0f6b5c;
+  color: #f7faf8;
+}
+
+.news-chat-bubble.is-assistant {
+  align-self: flex-start;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+}
+
+.news-chat-bubble.is-refuse {
+  align-self: flex-start;
+  background: #f6ebe3;
+  border: 1px solid #e2c4b0;
+  color: #6b3a28;
+}
+
+.news-chat-status {
+  margin: 0 0 0.4rem;
+  min-height: 1.2em;
+  font-size: 0.88rem;
+  flex: 0 0 auto;
+}
+
+.news-chat-status.is-error {
+  color: var(--bad);
+}
+
+.news-chat-form {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.news-chat-composer {
+  position: relative;
+  display: block;
+}
+
+.news-chat-input {
+  display: block;
+  width: 100%;
+  resize: none;
+  overflow-y: hidden;
+  min-height: 2.6rem;
+  max-height: 9rem;
+  padding: 0.65rem 2.55rem 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: inherit;
+  line-height: 1.4;
+  background: #fffdf8;
+  color: var(--ink);
+  field-sizing: content;
+}
+
+.news-chat-input:focus {
+  outline: 2px solid rgba(15, 107, 92, 0.35);
+  outline-offset: 1px;
+}
+
+.news-chat-send {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #f7faf8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.news-chat-send:hover {
+  background: color-mix(in srgb, var(--accent) 82%, #000);
+}
+
+.news-chat-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.news-chat-guest {
+  margin: 0.4rem 0 0;
+}
+
+@media (max-width: 900px) {
+  .main:has(.with-chat-layout) {
+    --chat-sidebar-width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-layout-main {
+    order: 1;
+    width: min(880px, calc(100% - 2rem));
+  }
+
+  .main:has(.with-chat-layout):has(.thread-timeline) .chat-layout-main {
+    width: min(760px, calc(100% - 2rem));
+  }
+
+  .news-chat {
+    order: 2;
+    position: static;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
 }
 
 @media (max-width: 600px) {

@@ -360,3 +360,30 @@ class FollowUpAnswer(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.user} / Q{self.question_id}"
+
+
+class ChatRateLimitBucket(TimeStampedModel):
+    """Per-user chat rate-limit counters shared across Lambda instances via RDS."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="chat_rate_limit_buckets",
+    )
+    bucket_key = models.CharField(max_length=32, db_index=True)
+    window_start = models.DateTimeField()
+    count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "bucket_key", "window_start"],
+                name="uniq_chat_rate_limit_bucket",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["window_start"], name="chat_rl_window_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.bucket_key}@{self.window_start}={self.count}"

@@ -34,17 +34,24 @@ data "terraform_remote_state" "shared" {
   }
 }
 
+locals {
+  news_chat_function_name = "noise-to-signal-prod-news_chat"
+}
+
 module "web" {
   source = "../../../modules/web_app"
 
-  project             = "noise-to-signal"
-  environment         = "prod"
-  db_name             = "noise_to_signal_prod"
-  ecr_repository_url  = data.terraform_remote_state.shared.outputs.ecr_repository_url
-  image_tag           = var.image_tag
-  public_hostname     = "noise-to-signal.fyi"
-  hosted_zone_id      = data.terraform_remote_state.shared.outputs.route53_zone_id
-  acm_certificate_arn = data.terraform_remote_state.shared.outputs.acm_certificate_arn
+  project                 = "noise-to-signal"
+  environment             = "prod"
+  db_name                 = "noise_to_signal_prod"
+  ecr_repository_url      = data.terraform_remote_state.shared.outputs.ecr_repository_url
+  image_tag               = var.image_tag
+  public_hostname         = "noise-to-signal.fyi"
+  hosted_zone_id          = data.terraform_remote_state.shared.outputs.route53_zone_id
+  acm_certificate_arn     = data.terraform_remote_state.shared.outputs.acm_certificate_arn
+  timeout                 = 90
+  origin_read_timeout     = 90
+  news_chat_function_name = local.news_chat_function_name
 }
 
 module "workers" {
@@ -72,6 +79,12 @@ module "workers" {
       timeout              = 90
       # AWS ESM floor is 2; keeps web/Nominatim pressure low on requeue bursts.
       sqs_maximum_concurrency = 2
+    }
+    news_chat = {
+      invoke_bedrock     = true
+      langsmith_agent_id = "news-chat"
+      memory_size        = 1024
+      timeout            = 90
     }
   }
 }
