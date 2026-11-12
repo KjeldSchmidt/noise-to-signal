@@ -26,7 +26,9 @@ class _TimeoutHTTPHandler(urllib.request.HTTPHandler):
         self._timeout = timeout
 
     def http_open(self, req: urllib.request.Request) -> http.client.HTTPResponse:  # type: ignore[override]
-        return self.do_open(http.client.HTTPConnection, req, timeout=self._timeout)
+        # do_open already passes timeout=req.timeout; do not also pass timeout=...
+        req.timeout = self._timeout
+        return self.do_open(http.client.HTTPConnection, req)
 
 
 class _TimeoutHTTPSHandler(urllib.request.HTTPSHandler):
@@ -35,7 +37,13 @@ class _TimeoutHTTPSHandler(urllib.request.HTTPSHandler):
         self._timeout = timeout
 
     def https_open(self, req: urllib.request.Request) -> http.client.HTTPResponse:  # type: ignore[override]
-        return self.do_open(http.client.HTTPSConnection, req, timeout=self._timeout)
+        # do_open already passes timeout=req.timeout; do not also pass timeout=...
+        req.timeout = self._timeout
+        return self.do_open(
+            http.client.HTTPSConnection,
+            req,
+            context=getattr(self, "_context", None),
+        )
 
 
 def _rss_handlers(*, timeout: float = RSS_FETCH_TIMEOUT_S) -> list[urllib.request.BaseHandler]:
