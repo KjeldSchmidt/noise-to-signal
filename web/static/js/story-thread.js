@@ -160,8 +160,71 @@
     animateFoldout(foldout, !foldout.classList.contains("is-expanded"));
   }
 
+  /**
+   * Cap media to the lede block height (tag + title + time + padding).
+   * Width follows natural aspect ratio within max-width; never drives row height.
+   * @param {HTMLElement} card
+   */
+  function syncCardMedia(card) {
+    const media = card.querySelector(".timeline-media");
+    const img = media instanceof HTMLElement ? media.querySelector("img") : null;
+    const lede = card.querySelector("[data-timeline-lede]");
+    if (
+      !(media instanceof HTMLElement) ||
+      !(img instanceof HTMLImageElement) ||
+      !(lede instanceof HTMLElement)
+    ) {
+      return;
+    }
+
+    const apply = () => {
+      const maxHeight = lede.offsetHeight;
+      if (maxHeight <= 0) return;
+
+      const rootFont = Number.parseFloat(
+        getComputedStyle(document.documentElement).fontSize,
+      );
+      const maxWidth = Math.min(card.clientWidth * 0.42, rootFont * 14);
+
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      let height = maxHeight;
+      let width = maxHeight;
+      if (nw > 0 && nh > 0) {
+        width = height * (nw / nh);
+        if (width > maxWidth) {
+          width = maxWidth;
+          height = width * (nh / nw);
+        }
+      } else {
+        width = Math.min(maxHeight, maxWidth);
+      }
+
+      media.style.height = `${height}px`;
+      media.style.width = `${width}px`;
+    };
+
+    apply();
+    // Title may wrap after media takes width; remeasure lede (image stays ≤ lede height).
+    requestAnimationFrame(apply);
+    if (!img.complete || img.naturalWidth === 0) {
+      img.addEventListener(
+        "load",
+        () => {
+          apply();
+          requestAnimationFrame(apply);
+        },
+        { once: true },
+      );
+    }
+  }
+
   const foldouts = Array.from(
     root.querySelectorAll("[data-summary-foldout]"),
+  ).filter((node) => node instanceof HTMLElement);
+
+  const imageCards = Array.from(
+    root.querySelectorAll(".timeline-card.has-image"),
   ).filter((node) => node instanceof HTMLElement);
 
   foldouts.forEach((foldout) => {
@@ -171,11 +234,14 @@
     p.toggle.addEventListener("click", () => toggleFoldout(foldout));
   });
 
+  imageCards.forEach(syncCardMedia);
+
   let resizeTimer = 0;
   window.addEventListener("resize", () => {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       foldouts.forEach(markIfShort);
+      imageCards.forEach(syncCardMedia);
     }, 150);
   });
 })();

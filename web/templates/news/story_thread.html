@@ -30,39 +30,41 @@
   <li class="timeline-item{% if forloop.first %} is-newest{% endif %}">
     <span class="timeline-marker" aria-hidden="true"></span>
     <div class="timeline-card{% if article.image_url %} has-image{% endif %}">
-      {% if article.image_url %}
-      <div class="timeline-media" aria-hidden="true">
-        <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-      </div>
-      {% endif %}
-      <div class="timeline-body">
-        <p class="tag">{{ article.feed.title }}</p>
-        <h2>
-          <a href="{{ article.url }}" target="_blank" rel="noopener">
-            {{ article.title }}
-          </a>
-        </h2>
-        <p class="muted story-time">{{ article.published_at|date:"M j, Y · H:i" }}</p>
-        {% if article.summary %}
-        {% with summary_text=article.summary|striptags|truncatewords:60 %}
-        <div
-          class="timeline-summary{% if article.published_at >= summary_open_cutoff %} is-expanded{% endif %}"
-          data-summary-foldout
-        >
-          <button
-            type="button"
-            class="timeline-summary-toggle"
-            aria-expanded="{% if article.published_at >= summary_open_cutoff %}true{% else %}false{% endif %}"
-          >
-            <span class="timeline-summary-clip">
-              <span class="timeline-summary-copy">{{ summary_text }}</span>
-            </span>
-            <span class="timeline-summary-hint" aria-hidden="true"></span>
-          </button>
+      <div class="timeline-main">
+        {% if article.image_url %}
+        <div class="timeline-media" aria-hidden="true">
+          <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
         </div>
-        {% endwith %}
         {% endif %}
+        <div class="timeline-lede" data-timeline-lede>
+          <p class="tag">{{ article.feed.title }}</p>
+          <h2>
+            <a href="{{ article.url }}" target="_blank" rel="noopener">
+              {{ article.title }}
+            </a>
+          </h2>
+          <p class="muted story-time">{{ article.published_at|date:"M j, Y · H:i" }}</p>
+        </div>
       </div>
+      {% if article.summary %}
+      {% with summary_text=article.summary|striptags|truncatewords:60 %}
+      <div
+        class="timeline-summary{% if article.published_at >= summary_open_cutoff %} is-expanded{% endif %}"
+        data-summary-foldout
+      >
+        <button
+          type="button"
+          class="timeline-summary-toggle"
+          aria-expanded="{% if article.published_at >= summary_open_cutoff %}true{% else %}false{% endif %}"
+        >
+          <span class="timeline-summary-clip">
+            <span class="timeline-summary-copy">{{ summary_text }}</span>
+          </span>
+          <span class="timeline-summary-hint" aria-hidden="true"></span>
+        </button>
+      </div>
+      {% endwith %}
+      {% endif %}
     </div>
   </li>
   {% endfor %}

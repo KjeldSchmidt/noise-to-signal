@@ -655,6 +655,8 @@ h1, h2, h3 {
 }
 
 .timeline-card {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   text-align: left;
   background: rgba(255, 253, 248, 0.94);
@@ -667,36 +669,49 @@ h1, h2, h3 {
 }
 
 .timeline-card.has-image {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
   padding: 0;
   overflow: hidden;
 }
 
+.timeline-main {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .timeline-media {
-  /* Side column stretches to the text height; image is absolute so it can't inflate. */
-  position: relative;
-  flex: 0 0 5.5rem;
-  width: 5.5rem;
+  /* Exact size set in JS from lede (tag+h2+time) height; cannot inflate the row. */
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  max-width: min(42%, 14rem);
   background:
     linear-gradient(145deg, #d5e4dc 0%, #e8dfd0 55%, #cfd8c8 100%);
   overflow: hidden;
+  border-radius: 0 0 14px 0;
 }
 
 .timeline-media img {
-  position: absolute;
-  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
+  object-position: center center;
 }
 
-.timeline-card.has-image .timeline-body {
+.timeline-lede {
   flex: 1 1 auto;
   min-width: 0;
+  display: flow-root;
+}
+
+.timeline-card.has-image .timeline-lede {
   padding: 0.95rem 1.05rem;
+}
+
+.timeline-card.has-image .timeline-summary {
+  margin: 0;
+  padding: 1.05rem 0.95rem;
 }
 
 .timeline-card:hover {
