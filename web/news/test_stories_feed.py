@@ -5,9 +5,11 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from news.models import Article, Feed, StoryThread
+from news.models import Article, Feed, ImpactTier, StoryThread
 from news.services.stories_feed import (
+    HALF_LIFE_HOURS,
     build_stories_feed,
+    build_stories_feed_page,
     format_thread_span,
     thread_timeline_articles,
 )
@@ -67,7 +69,10 @@ class StoriesFeedServiceTests(TestCase):
             near_duplicate_of=plain,
         )
 
-        entries = build_stories_feed([self.feed.id, self.other_feed.id])
+        entries = build_stories_feed(
+            [self.feed.id, self.other_feed.id],
+            now=self.now + timedelta(hours=3),
+        )
 
         self.assertEqual(len(entries), 2)
         self.assertEqual(entries[0].kind, "thread")
@@ -81,9 +86,209 @@ class StoriesFeedServiceTests(TestCase):
             [self.other_feed.id, self.feed.id],
         )
         self.assertEqual(entries[0].span_label, "2 hours")
+        self.assertEqual(entries[0].image_url, "https://example.com/quake.jpg")
         self.assertEqual(entries[1].kind, "article")
         assert entries[1].article is not None
         self.assertEqual(entries[1].article.id, plain.id)
+
+    def test_thread_preview_uses_older_member_image_when_lead_has_none(self) -> None:
+        thread = StoryThread.objects.create(
+            label="Image Fallback",
+            last_published_at=self.now + timedelta(hours=2),
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Older with image",
+            url="https://example.com/img-old",
+            published_at=self.now,
+            story_thread=thread,
+            image_url="https://example.com/good.jpg",
+        )
+        Article.objects.create(
+            feed=self.other_feed,
+            title="Newer without image",
+            url="https://example.com/img-new",
+            published_at=self.now + timedelta(hours=2),
+            story_thread=thread,
+        )
+
+        entries = build_stories_feed(
+            [self.feed.id, self.other_feed.id],
+            now=self.now + timedelta(hours=3),
+        )
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].kind, "thread")
+        assert entries[0].lead_article is not None
+        self.assertEqual(entries[0].lead_article.title, "Newer without image")
+        self.assertEqual(entries[0].image_url, "https://example.com/good.jpg")
+
+    def test_fresh_major_outranks_fresh_ephemeral(self) -> None:
+        Article.objects.create(
+            feed=self.feed,
+            title="Major event",
+            url="https://example.com/major",
+            published_at=self.now,
+            impact_tier=ImpactTier.MAJOR,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Ephemeral blip",
+            url="https://example.com/ephemeral",
+            published_at=self.now,
+            impact_tier=ImpactTier.EPHEMERAL,
+        )
+
+        entries = build_stories_feed([self.feed.id], now=self.now)
+        self.assertEqual(
+            [e.article.title for e in entries if e.article],
+            [
+                "Major event",
+                "Ephemeral blip",
+            ],
+        )
+
+    def test_decayed_major_beats_fresh_ephemeral(self) -> None:
+        Article.objects.create(
+            feed=self.feed,
+            title="Yesterday major",
+            url="https://example.com/old-major",
+            published_at=self.now - timedelta(hours=HALF_LIFE_HOURS),
+            impact_tier=ImpactTier.MAJOR,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Fresh fluff",
+            url="https://example.com/fresh-ephemeral",
+            published_at=self.now,
+            impact_tier=ImpactTier.EPHEMERAL,
+        )
+
+        entries = build_stories_feed([self.feed.id], now=self.now)
+        assert entries[0].article is not None
+        assert entries[1].article is not None
+        self.assertEqual(entries[0].article.title, "Yesterday major")
+        self.assertEqual(entries[1].article.title, "Fresh fluff")
+
+    def test_two_ephemeral_thread_loses_to_standalone_major(self) -> None:
+        thread = StoryThread.objects.create(
+            label="Minor Blips",
+            last_published_at=self.now,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Blip one",
+            url="https://example.com/blip-1",
+            published_at=self.now - timedelta(hours=1),
+            story_thread=thread,
+            impact_tier=ImpactTier.EPHEMERAL,
+        )
+        Article.objects.create(
+            feed=self.other_feed,
+            title="Blip two",
+            url="https://example.com/blip-2",
+            published_at=self.now,
+            story_thread=thread,
+            impact_tier=ImpactTier.EPHEMERAL,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Lone major",
+            url="https://example.com/lone-major",
+            published_at=self.now,
+            impact_tier=ImpactTier.MAJOR,
+        )
+
+        entries = build_stories_feed(
+            [self.feed.id, self.other_feed.id],
+            now=self.now,
+        )
+        self.assertEqual(entries[0].kind, "article")
+        assert entries[0].article is not None
+        self.assertEqual(entries[0].article.title, "Lone major")
+        self.assertEqual(entries[1].kind, "thread")
+
+    def test_thread_coverage_boosts_above_lone_notable(self) -> None:
+        thread = StoryThread.objects.create(
+            label="Covered Story",
+            last_published_at=self.now,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Notable with coverage",
+            url="https://example.com/covered-1",
+            published_at=self.now,
+            story_thread=thread,
+            impact_tier=ImpactTier.NOTABLE,
+        )
+        Article.objects.create(
+            feed=self.other_feed,
+            title="Extra coverage",
+            url="https://example.com/covered-2",
+            published_at=self.now,
+            story_thread=thread,
+            impact_tier=ImpactTier.EPHEMERAL,
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Lone notable",
+            url="https://example.com/lone-notable",
+            published_at=self.now,
+            impact_tier=ImpactTier.NOTABLE,
+        )
+
+        entries = build_stories_feed(
+            [self.feed.id, self.other_feed.id],
+            now=self.now,
+        )
+        self.assertEqual(entries[0].kind, "thread")
+        self.assertEqual(entries[1].kind, "article")
+        assert entries[1].article is not None
+        self.assertEqual(entries[1].article.title, "Lone notable")
+
+    def test_since_partition_and_pagination(self) -> None:
+        for i in range(5):
+            Article.objects.create(
+                feed=self.feed,
+                title=f"New {i}",
+                url=f"https://example.com/new-{i}",
+                published_at=self.now + timedelta(hours=i + 1),
+                impact_tier=ImpactTier.EPHEMERAL,
+            )
+        for i in range(5):
+            Article.objects.create(
+                feed=self.feed,
+                title=f"Old {i}",
+                url=f"https://example.com/old-{i}",
+                published_at=self.now - timedelta(hours=i + 1),
+                impact_tier=ImpactTier.EPHEMERAL,
+            )
+
+        since = self.now
+        page1 = build_stories_feed_page(
+            [self.feed.id],
+            page=1,
+            page_size=4,
+            since=since,
+            now=self.now + timedelta(hours=10),
+        )
+        self.assertEqual(len(page1.entries), 4)
+        self.assertTrue(all(e.is_new for e in page1.entries))
+        self.assertTrue(page1.has_next)
+        self.assertFalse(page1.has_previous)
+
+        page2 = build_stories_feed_page(
+            [self.feed.id],
+            page=2,
+            page_size=4,
+            since=since,
+            now=self.now + timedelta(hours=10),
+        )
+        self.assertEqual(len(page2.entries), 4)
+        self.assertTrue(page2.has_previous)
+        self.assertTrue(page2.has_next)
+        # Concat order: all 5 new, then earlier — page 2 starts with last new.
+        self.assertTrue(page2.entries[0].is_new)
+        self.assertFalse(page2.entries[1].is_new)
 
     def test_format_thread_span(self) -> None:
         start = self.now
@@ -156,6 +361,30 @@ class StoryThreadViewTests(TestCase):
         self.assertContains(response, "2 articles")
         self.assertContains(response, "story-stack")
         self.assertContains(response, reverse("story_thread", args=[self.thread.id]))
+        self.assertContains(response, "stories-visit.js")
+
+    def test_stories_page_pagination_and_since(self) -> None:
+        for i in range(25):
+            Article.objects.create(
+                feed=self.feed,
+                title=f"Extra story {i}",
+                url=f"https://example.com/extra-{i}",
+                published_at=self.now - timedelta(hours=i),
+                impact_tier=ImpactTier.EPHEMERAL,
+            )
+        page2 = self.client.get(reverse("stories"), {"page": "2"})
+        self.assertEqual(page2.status_code, 200)
+        self.assertContains(page2, "stories-pager")
+        self.assertContains(page2, ">First</a>")
+        self.assertContains(page2, ">Previous</a>")
+        self.assertContains(page2, "Page 2")
+        self.assertNotContains(page2, " of ")
+
+        since = (self.now - timedelta(hours=2)).isoformat()
+        with_since = self.client.get(reverse("stories"), {"since": since, "page": "1"})
+        self.assertEqual(with_since.status_code, 200)
+        self.assertContains(with_since, "New since your last visit")
+        self.assertContains(with_since, "since=")
 
     def test_thread_detail_ok_when_in_scope(self) -> None:
         response = self.client.get(reverse("story_thread", args=[self.thread.id]))

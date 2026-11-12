@@ -6,13 +6,12 @@
   <h1>Stories</h1>
   <p class="muted">
     {% if personalized %}
-    Recent articles and story threads from your enabled feeds
-    {% if feed_count %}({{ feed_count }}){% endif %}.
-    Use Personal Brief for ranked review.
+    Important articles and story threads from your enabled feeds
+    {% if feed_count %}({{ feed_count }}){% endif %}, ranked by impact.
     {% else %}
-    Recent articles and story threads from the shared catalog
-    {% if feed_count %}({{ feed_count }} feeds){% endif %}.
-    Sign in to mute sources and get a ranked Personal Brief.
+    Important articles and story threads from the shared catalog
+    {% if feed_count %}({{ feed_count }} feeds){% endif %}, ranked by impact.
+    Sign in to mute sources and personalize your brief.
     {% endif %}
   </p>
 </section>
@@ -33,15 +32,25 @@
 {% else %}
 <div class="story-grid">
   {% for entry in entries %}
+  {% if show_new_heading and forloop.first and entry.is_new %}
+  <h2 class="stories-section-label">New since your last visit</h2>
+  {% endif %}
+  {% if separator_before_index is not None and forloop.counter0 == separator_before_index %}
+  <div class="stories-separator" role="separator">
+    <span>Earlier</span>
+  </div>
+  {% elif show_earlier_heading and not entry.is_new and forloop.first %}
+  <h2 class="stories-section-label">Earlier</h2>
+  {% endif %}
   {% if entry.kind == "thread" %}
   {% with lead=entry.lead_article thread=entry.thread %}
-  <div class="story-stack">
+  <div class="story-stack" data-recency-at="{{ entry.sort_at|date:'c' }}">
     <span class="story-stack-sheet story-stack-sheet-back" aria-hidden="true"></span>
     <span class="story-stack-sheet story-stack-sheet-mid" aria-hidden="true"></span>
-    <article class="story-card is-thread{% if lead.image_url %} has-image{% endif %}">
+    <article class="story-card is-thread{% if entry.image_url %} has-image{% endif %}{% if entry.is_new %} is-new{% endif %}">
       <a class="story-media" href="{% url 'story_thread' thread.id %}" tabindex="-1" aria-hidden="true">
-        {% if lead.image_url %}
-        <img src="{{ lead.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+        {% if entry.image_url %}
+        <img src="{{ entry.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
         {% else %}
         {% with logo_url=lead.feed|source_logo_url logo_slug=lead.feed|source_logo_slug %}
         {% if logo_url %}
@@ -86,7 +95,7 @@
   {% else %}
   {% with article=entry.article %}
   {% with logo_url=article.feed|source_logo_url logo_slug=article.feed|source_logo_slug %}
-  <article class="story-card{% if article.image_url %} has-image{% endif %}">
+  <article class="story-card{% if article.image_url %} has-image{% endif %}{% if entry.is_new %} is-new{% endif %}" data-recency-at="{{ entry.sort_at|date:'c' }}">
     <a class="story-media" href="{{ article.url }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
       {% if article.image_url %}
       <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
@@ -112,5 +121,26 @@
   {% endif %}
   {% endfor %}
 </div>
+
+{% if feed_page.has_previous or feed_page.has_next %}
+<nav class="stories-pager" aria-label="Stories pages">
+  {% if feed_page.has_previous %}
+  <a class="btn ghost small" href="?page=1{% if since %}&amp;since={{ since|urlencode }}{% endif %}">First</a>
+  <a class="btn ghost small" href="?page={{ feed_page.page|add:'-1' }}{% if since %}&amp;since={{ since|urlencode }}{% endif %}">Previous</a>
+  {% else %}
+  <span class="btn ghost small is-disabled" aria-disabled="true">First</span>
+  <span class="btn ghost small is-disabled" aria-disabled="true">Previous</span>
+  {% endif %}
+  <span class="stories-pager-status">Page {{ feed_page.page }}</span>
+  {% if feed_page.has_next %}
+  <a class="btn ghost small" href="?page={{ feed_page.page|add:1 }}{% if since %}&amp;since={{ since|urlencode }}{% endif %}">Next</a>
+  {% else %}
+  <span class="btn ghost small is-disabled" aria-disabled="true">Next</span>
+  {% endif %}
+</nav>
 {% endif %}
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/stories-visit.js' %}" defer></script>
 {% endblock %}

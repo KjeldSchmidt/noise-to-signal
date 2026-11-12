@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -28,7 +28,7 @@ from news.models import (
 from news.services import (
     CONTENT_LANGUAGE_LABELS,
     DEFAULT_CONTENT_LANGUAGES,
-    build_stories_feed,
+    build_stories_feed_page,
     catalog_feed_ids,
     catalog_feeds,
     catalog_languages,
@@ -84,10 +84,32 @@ def _stories_feed_ids(request: HttpRequest) -> tuple[list[int], bool]:
     return catalog_feed_ids(languages=set(DEFAULT_CONTENT_LANGUAGES)), False
 
 
+def _parse_stories_since(raw: str | None) -> datetime | None:
+    """Parse an ISO watermark from ?since=; invalid values are ignored."""
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if timezone.is_naive(parsed):
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed
+
+
 def stories(request: HttpRequest) -> HttpResponse:
-    """Non-personalized catalog for guests; enabled feeds (mutes/custom) when signed in."""
+    """Importance-ranked catalog for guests; enabled feeds (mutes/custom) when signed in."""
     feed_ids, personalized = _stories_feed_ids(request)
-    entries = build_stories_feed(feed_ids)
+    try:
+        page = max(1, int(request.GET.get("page", "1")))
+    except ValueError:
+        page = 1
+    since_raw = request.GET.get("since") or None
+    since = _parse_stories_since(since_raw)
+    feed_page = build_stories_feed_page(feed_ids, page=page, since=since)
+    entries = feed_page.entries
+    has_new = any(entry.is_new for entry in entries)
+    has_earlier = any(not entry.is_new for entry in entries)
     return render(
         request,
         "news/stories.html",
@@ -95,6 +117,16 @@ def stories(request: HttpRequest) -> HttpResponse:
             "entries": entries,
             "feed_count": len(feed_ids),
             "personalized": personalized,
+            "feed_page": feed_page,
+            "since": since_raw if since is not None else None,
+            "show_new_heading": feed_page.since_active and has_new,
+            "show_earlier_heading": feed_page.since_active and has_earlier,
+            "separator_before_index": next(
+                (i for i, entry in enumerate(entries) if not entry.is_new),
+                None,
+            )
+            if feed_page.since_active and has_new and has_earlier
+            else None,
         },
     )
 

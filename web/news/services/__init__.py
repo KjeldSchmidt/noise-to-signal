@@ -11,8 +11,10 @@ from .followups import next_questions, unanswered_questions
 from .places import place_dict_match, places_match
 from .ranking import RankedItem, rank_items, recommend_feeds
 from .stories_feed import (
+    StoriesFeedPage,
     StoryFeedEntry,
     build_stories_feed,
+    build_stories_feed_page,
     format_thread_span,
     thread_timeline_articles,
     thread_visible_in_scope,
@@ -28,9 +30,11 @@ __all__ = [
     "CONTENT_LANGUAGE_LABELS",
     "DEFAULT_CONTENT_LANGUAGES",
     "RankedItem",
+    "StoriesFeedPage",
     "StoryFeedEntry",
     "assign_story_thread",
     "build_stories_feed",
+    "build_stories_feed_page",
     "catalog_feed_ids",
     "catalog_languages",
     "format_thread_span",
