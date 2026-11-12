@@ -59,6 +59,8 @@ class InternalFeedsApiTests(TestCase):
                     kind=self.feed.kind,
                     owner_id=self.feed.owner_id,
                     is_active=self.feed.is_active,
+                    language=self.feed.language,
+                    should_poll=True,
                 )
             ]
         )

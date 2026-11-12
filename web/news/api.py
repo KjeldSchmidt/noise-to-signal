@@ -29,6 +29,7 @@ from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
 from news.models import Article, EnrichmentStatus, Feed, GeoLevel, Theme
+from news.services.feeds import feed_should_poll, feeds_for_list_api
 from news.services.geocode import search_places
 from news.services.themes import record_theme_suggestions
 from news.services.threading import assign_story_thread
@@ -56,8 +57,14 @@ def list_feeds(request: HttpRequest) -> JsonResponse:
                 kind=feed.kind,
                 owner_id=feed.owner_id,
                 is_active=feed.is_active,
+                language=feed.language or "en",
+                should_poll=feed_should_poll(
+                    kind=feed.kind,
+                    is_active=feed.is_active,
+                    subscription_count=int(getattr(feed, "subscription_count", 0) or 0),
+                ),
             )
-            for feed in Feed.objects.order_by("id")
+            for feed in feeds_for_list_api()
         ]
     )
     return JsonResponse(payload.model_dump())

@@ -73,7 +73,8 @@ def collect_feed_items() -> list[FeedItem]:
     items: list[FeedItem] = []
     feeds = list_feeds()
     for feed in feeds:
-        if not feed.is_active:
+        if not feed.should_poll:
+            logger.info("Skipping feed %s (should_poll=false)", feed.id)
             continue
         logger.info("Parsing feed %s: %s", feed.id, feed.url)
         parsed = feedparser.parse(feed.url)
@@ -88,6 +89,7 @@ def collect_feed_items() -> list[FeedItem]:
                     published_at=_entry_published_at(entry).isoformat(),
                     title=str(getattr(entry, "title", "") or ""),
                     description=_entry_description(entry),
+                    feed_language=feed.language or "",
                 )
             )
     return items

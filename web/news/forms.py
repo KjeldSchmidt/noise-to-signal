@@ -1,10 +1,13 @@
+from typing import Any, cast
+
 from django import forms
 
 from news.models import Feed, FollowUpAnswer, LocationOfInterest
+from news.services.feeds import CONTENT_LANGUAGE_LABELS, catalog_languages
 
 
 class CustomFeedForm(forms.Form):
-    title = forms.CharField(max_length=200, label="Feed name")
+    title = forms.CharField(max_length=200, label="Feed name", required=False)
     url = forms.URLField(label="RSS URL")
     site_url = forms.URLField(required=False, label="Site URL (optional)")
     category = forms.CharField(max_length=80, required=False, initial="Custom")
@@ -13,11 +16,37 @@ class CustomFeedForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 2}),
     )
 
-    def clean_url(self):
-        url = self.cleaned_data["url"].strip()
-        if Feed.objects.filter(url=url).exists():
-            raise forms.ValidationError("That feed URL is already in the catalog.")
-        return url
+    def clean_url(self) -> str:
+        return str(self.cleaned_data["url"]).strip()
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        url = str(cleaned.get("url") or "").strip()
+        title = str(cleaned.get("title") or "").strip()
+        if url and not Feed.objects.filter(url=url).exists() and not title:
+            self.add_error("title", "A name is required for new feeds.")
+        cleaned["title"] = title
+        return cleaned
+
+
+class ContentLanguagesForm(forms.Form):
+    """Multi-select of content languages the user wants to read."""
+
+    languages = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        choices=[],
+    )
+
+    def __init__(self, *args: Any, available: list[str] | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        codes = available if available is not None else catalog_languages()
+        if not codes:
+            codes = ["en"]
+        languages_field = cast(forms.MultipleChoiceField, self.fields["languages"])
+        languages_field.choices = [
+            (code, CONTENT_LANGUAGE_LABELS.get(code, code.upper())) for code in codes
+        ]
 
 
 class LocationOfInterestForm(forms.ModelForm):

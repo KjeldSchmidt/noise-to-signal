@@ -22,6 +22,7 @@ def process_feed_item(item: FeedItem) -> dict[str, Any]:
             "raw_description": item.description,
             "published_at": item.published_at,
             "image_url": item.thumbnail,
+            "feed_language": item.feed_language or "",
         }
     )
     return {

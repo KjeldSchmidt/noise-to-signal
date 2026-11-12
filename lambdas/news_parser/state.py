@@ -13,6 +13,7 @@ class EnrichState(TypedDict):
     raw_description: str
     published_at: str
     image_url: str
+    feed_language: NotRequired[str]
 
     # normalize
     title: NotRequired[str]

@@ -4,7 +4,17 @@
 {% block content %}
 <section class="page-head">
   <h1>Settings</h1>
-  <p class="muted">Locations of interest and which feeds to include. Catalog feeds are on by default.</p>
+  <p class="muted">Languages, locations, and which feeds to include. Catalog feeds are on by default for languages you enable.</p>
+</section>
+
+<section class="block" id="languages">
+  <h2>Content languages</h2>
+  <p class="muted">Only stories from feeds in these languages appear in your brief and Stories.</p>
+  <form method="post" class="stack narrow-form">
+    {% csrf_token %}
+    {{ languages_form.languages }}
+    <button type="submit" name="save_languages" class="btn primary">Save languages</button>
+  </form>
 </section>
 
 <section class="block" id="locations">
@@ -66,7 +76,7 @@
     {% for feed in recommended %}
     <li class="feed-card">
       <h3>{{ feed.title }}</h3>
-      <p class="tag">{{ feed.category }}</p>
+      <p class="tag">{{ feed.category }} · {{ feed.language|upper }}</p>
       <p>{{ feed.description }}</p>
       <form method="post" action="{% url 'unmute_feed' feed.id %}">
         {% csrf_token %}
@@ -81,13 +91,16 @@
 
 <section class="block" id="feeds">
   <h2>Catalog feeds</h2>
-  <p class="muted">Mute sources you never want in Personal Brief or Stories.</p>
+  <p class="muted">Mute sources you never want in Personal Brief or Stories. Feeds outside your languages stay listed so you can discover them.</p>
   <ul class="feed-grid">
     {% for feed in catalog %}
-    <li class="feed-card">
+    <li class="feed-card{% if feed.language not in preferred_languages %} feed-card--dim{% endif %}">
       <h3>{{ feed.title }}</h3>
-      <p class="tag">{{ feed.category }}</p>
+      <p class="tag">{{ feed.category }} · {{ feed.language|upper }}</p>
       <p>{{ feed.description }}</p>
+      {% if feed.language not in preferred_languages %}
+      <p class="muted">Enable this language under Content languages to include this source.</p>
+      {% endif %}
       {% if feed.id in muted_ids %}
       <form method="post" action="{% url 'unmute_feed' feed.id %}">
         {% csrf_token %}
@@ -108,6 +121,7 @@
 
 <section class="block">
   <h2>Add a custom RSS feed</h2>
+  <p class="muted">If the URL already exists, you will be subscribed to the shared feed (or the catalog entry will be unmuted).</p>
   <form method="post" class="stack narrow-form">
     {% csrf_token %}
     {{ feed_form.as_p }}
@@ -122,19 +136,13 @@
     {% for feed in custom_feeds %}
     <li class="feed-card">
       <h3>{{ feed.title }}</h3>
-      <p class="tag">{{ feed.category|default:"Custom" }}</p>
+      <p class="tag">{{ feed.category|default:"Custom" }} · {{ feed.language|upper }}</p>
       <p class="muted break">{{ feed.url }}</p>
-      {% if feed.id in muted_ids %}
-      <form method="post" action="{% url 'unmute_feed' feed.id %}">
+      <form method="post" action="{% url 'unsubscribe_feed' feed.id %}">
         {% csrf_token %}
-        <button class="btn small primary" type="submit">Unmute</button>
+        <input type="hidden" name="next" value="{% url 'settings' %}">
+        <button class="btn small ghost" type="submit">Unsubscribe</button>
       </form>
-      {% else %}
-      <form method="post" action="{% url 'mute_feed' feed.id %}">
-        {% csrf_token %}
-        <button class="btn small ghost" type="submit">Mute</button>
-      </form>
-      {% endif %}
     </li>
     {% endfor %}
   </ul>

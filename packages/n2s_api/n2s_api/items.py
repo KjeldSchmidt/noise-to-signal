@@ -17,6 +17,7 @@ class FeedItem(BaseModel):
     description: str
     published_at: str  # ISO-8601
     thumbnail: str = ""
+    feed_language: str = ""
 
 
 class FeedItemIngestRequest(BaseModel):

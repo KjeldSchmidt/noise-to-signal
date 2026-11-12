@@ -116,14 +116,20 @@
       },
       {
         "rule": "invalid-argument-type",
-        "startColumn": 32,
-        "endColumn": 44,
+        "startColumn": 34,
+        "endColumn": 46,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
         "lineCount": 1
       },
       {
         "rule": "invalid-argument-type",
-        "startColumn": 34,
-        "endColumn": 46,
+        "startColumn": 0,
+        "endColumn": 13,
         "lineCount": 1
       },
       {

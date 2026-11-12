@@ -170,6 +170,15 @@ def _build_extract_model(allowed_slugs: list[str]):
 _SYSTEM_PROMPT = """\
 You classify news articles for a personal news filter.
 
+Rules for language:
+- Titles and summaries may be in any language (English, French, German, etc.).
+- Always understand the article in its original language, then emit structured \
+fields in English.
+- Place queries MUST be English and Nominatim-friendly \
+(e.g. "Cologne, Germany", "Spain", "United Kingdom") even when the source text \
+uses another language (e.g. "Köln" → "Cologne, Germany").
+- story_label MUST be English (3–6 words), never leave it in the source language.
+
 Rules for geography:
 - Tag the primary EVENT location only when it is an explicit real-world Earth place \
 named in the title or summary.
@@ -182,8 +191,6 @@ places as geography (e.g. a "Mars" mock mission is not a place on Earth).
 national/regional/local and include that place — even when coverage is international.
 - Use geo_scope=global when there is no meaningful geographic focus \
 (e.g. abstract markets, pure science with no Earth setting, global climate talks).
-- Place queries must be English and Nominatim-friendly \
-(e.g. "Cologne, Germany", "Spain", "United Kingdom").
 - Sub-national queries MUST be country-qualified ("Cologne, Germany", not "Cologne").
 - When emitting a place, set mention_basis=explicit and country_hint to the ISO-2 \
 code (e.g. ES, GB, DE). National places use that country's own code.
@@ -195,7 +202,7 @@ duplicates of allowlisted slugs there.
 - Prefer precise beats (e.g. sports + conflict, not only geopolitics).
 
 Rules for story_label:
-- A short generic event name (about 3–6 words), not the full headline.
+- A short generic English event name (about 3–6 words), not the full headline.
 - Empty string when there is no clear ongoing story to cluster on.
 
 Rules for impact (user-agnostic lasting importance — not personal taste):
@@ -263,6 +270,7 @@ def extract_place_and_themes(
     title: str,
     summary: str,
     themes: list[dict[str, str]] | list[str],
+    feed_language: str = "",
 ) -> dict[str, Any]:
     """Return geo_scope, place candidate, themes, story_label, and impact tier.
 
@@ -293,7 +301,10 @@ def extract_place_and_themes(
     allowed_set = set(allowed)
 
     catalog = [{"slug": s, "label": lab} for s, lab in unique_pairs]
+    lang = (feed_language or "").strip().lower()
+    lang_line = f"Feed language hint: {lang}\n\n" if lang and lang != "und" else ""
     user = (
+        f"{lang_line}"
         f"Allowed themes (slug — label): {json.dumps(catalog)}\n\n"
         f"Title: {title}\n\nSummary: {summary[:1500]}"
     )

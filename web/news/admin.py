@@ -13,6 +13,7 @@ from news.models import (
     Subscription,
     Theme,
     ThemeSuggestion,
+    UserContentLanguage,
 )
 
 patch_admin_urls()
@@ -20,8 +21,8 @@ patch_admin_urls()
 
 @admin.register(Feed)
 class FeedAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "kind", "is_active", "owner")
-    list_filter = ("kind", "category", "is_active")
+    list_display = ("title", "category", "kind", "language", "is_active", "owner")
+    list_filter = ("kind", "category", "language", "is_active")
     search_fields = ("title", "url", "description")
 
 
@@ -29,6 +30,13 @@ class FeedAdmin(admin.ModelAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ("user", "feed", "created_at")
     list_filter = ("feed",)
+
+
+@admin.register(UserContentLanguage)
+class UserContentLanguageAdmin(admin.ModelAdmin):
+    list_display = ("user", "language", "created_at")
+    list_filter = ("language",)
+    search_fields = ("user__username", "user__email", "language")
 
 
 @admin.register(FeedMute)

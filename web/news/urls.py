@@ -15,6 +15,11 @@ urlpatterns = [
     path("settings/", views.settings_page, name="settings"),
     path("feeds/<int:feed_id>/mute/", views.mute_feed, name="mute_feed"),
     path("feeds/<int:feed_id>/unmute/", views.unmute_feed, name="unmute_feed"),
+    path(
+        "feeds/<int:feed_id>/unsubscribe/",
+        views.unsubscribe_feed,
+        name="unsubscribe_feed",
+    ),
     path("locations/geocode/reverse/", views.geocode_reverse, name="geocode_reverse"),
     path("locations/geocode/search/", views.geocode_search, name="geocode_search"),
     path(

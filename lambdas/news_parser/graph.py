@@ -56,6 +56,7 @@ def extract_place(state: EnrichState) -> dict[str, Any]:
         title=title,
         summary=summary,
         themes=_active_themes(),
+        feed_language=str(state.get("feed_language") or ""),
     )
 
     out: dict[str, Any] = {

@@ -213,6 +213,39 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(out["theme_slugs"], ["sports", "conflict"])
         self.assertEqual(out["suggested_themes"], ["war-crimes"])
 
+    @patch("extract.get_extract_model")
+    def test_feed_language_hint_in_prompt(self, mock_get_model: MagicMock) -> None:
+        schema = extract_mod._build_extract_model(["politics"])
+        structured = MagicMock()
+        structured.invoke.return_value = schema(
+            geo_scope="national",
+            places=[
+                {
+                    "query": "Germany",
+                    "mention_basis": "explicit",
+                    "country_hint": "DE",
+                }
+            ],
+            theme_slugs=["politics"],
+            suggested_themes=[],
+            story_label="German Coalition Talks",
+            impact_tier="notable",
+            impact_rationale="National political process.",
+        )
+        mock_get_model.return_value.with_structured_output.return_value = structured
+
+        out = extract_mod.extract_place_and_themes(
+            title="Koalitionsverhandlungen in Berlin fortgesetzt",
+            summary="Die Parteien treffen sich erneut im Kanzleramt.",
+            themes=[{"slug": "politics", "label": "Politics"}],
+            feed_language="de",
+        )
+        self.assertEqual(out["story_label"], "German Coalition Talks")
+        human = structured.invoke.call_args.args[0][1].content
+        self.assertIn("Feed language hint: de", human)
+        self.assertIn("any language", extract_mod._SYSTEM_PROMPT)
+        self.assertIn("story_label MUST be English", extract_mod._SYSTEM_PROMPT)
+
 
 if __name__ == "__main__":
     unittest.main()

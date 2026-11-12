@@ -8,7 +8,12 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from news.forms import CustomFeedForm, FollowUpAnswerForm, LocationOfInterestForm
+from news.forms import (
+    ContentLanguagesForm,
+    CustomFeedForm,
+    FollowUpAnswerForm,
+    LocationOfInterestForm,
+)
 from news.models import (
     Article,
     Feed,
@@ -17,13 +22,19 @@ from news.models import (
     FollowUpQuestion,
     LocationOfInterest,
     RelevanceFeedback,
+    Subscription,
+    UserContentLanguage,
 )
 from news.services import (
+    CONTENT_LANGUAGE_LABELS,
+    DEFAULT_CONTENT_LANGUAGES,
     build_stories_feed,
     catalog_feed_ids,
     catalog_feeds,
+    catalog_languages,
     enabled_feed_ids,
     next_questions,
+    preferred_content_languages,
     rank_items,
     recommend_feeds,
     thread_timeline_articles,
@@ -67,10 +78,10 @@ def brief(request: HttpRequest) -> HttpResponse:
 
 
 def _stories_feed_ids(request: HttpRequest) -> tuple[list[int], bool]:
-    """Feed scope for Stories: enabled feeds when signed in, else catalog."""
+    """Feed scope for Stories: enabled feeds when signed in, else English catalog."""
     if request.user.is_authenticated:
         return enabled_feed_ids(request.user), True
-    return catalog_feed_ids(), False
+    return catalog_feed_ids(languages=set(DEFAULT_CONTENT_LANGUAGES)), False
 
 
 def stories(request: HttpRequest) -> HttpResponse:
@@ -114,11 +125,53 @@ def story_thread(request: HttpRequest, thread_id: int) -> HttpResponse:
     )
 
 
+def _ensure_content_languages(user) -> set[str]:
+    """Return preferred languages, creating the English default if missing."""
+    preferred = preferred_content_languages(user)
+    if not UserContentLanguage.objects.filter(user=user).exists():
+        UserContentLanguage.objects.get_or_create(user=user, language="en")
+        preferred = set(DEFAULT_CONTENT_LANGUAGES)
+    return preferred
+
+
+def _resolve_custom_feed(user, cleaned: dict) -> tuple[Feed, str]:
+    """Create or attach a feed URL for the user; return (feed, flash message)."""
+    url = cleaned["url"]
+    existing = Feed.objects.filter(url=url).first()
+    if existing is None:
+        feed = Feed.objects.create(
+            title=cleaned["title"],
+            url=url,
+            site_url=cleaned.get("site_url") or "",
+            description=cleaned.get("description") or "",
+            category=cleaned.get("category") or "Custom",
+            kind=Feed.SourceKind.CUSTOM,
+            language="und",
+            owner=user,
+            is_active=True,
+        )
+        Subscription.objects.get_or_create(user=user, feed=feed)
+        return feed, f"Added “{feed.title}” (subscribed)."
+
+    if existing.kind in {Feed.SourceKind.CURATED, Feed.SourceKind.RECOMMENDED}:
+        FeedMute.objects.filter(user=user, feed=existing).delete()
+        return existing, f"“{existing.title}” is in the catalog — enabled for you."
+
+    Subscription.objects.get_or_create(user=user, feed=existing)
+    return existing, f"Subscribed to “{existing.title}”."
+
+
 @login_required
 def settings_page(request: HttpRequest) -> HttpResponse:
     muted_ids = set(FeedMute.objects.filter(user=request.user).values_list("feed_id", flat=True))
+    preferred = _ensure_content_languages(request.user)
+    available_langs = catalog_languages() or ["en"]
     catalog = catalog_feeds()
-    custom = Feed.objects.filter(owner=request.user, is_active=True)
+    custom = Feed.objects.filter(
+        kind=Feed.SourceKind.CUSTOM,
+        is_active=True,
+        subscriptions__user=request.user,
+    ).distinct()
     recommended = recommend_feeds(request.user)
     locations = LocationOfInterest.objects.filter(user=request.user)
     # One-time hierarchy backfill for LOIs that only have coords/label.
@@ -145,20 +198,32 @@ def settings_page(request: HttpRequest) -> HttpResponse:
         )
     feed_form = CustomFeedForm()
     location_form = LocationOfInterestForm()
+    languages_form = ContentLanguagesForm(
+        available=available_langs,
+        initial={"languages": sorted(preferred)},
+    )
+
+    if request.method == "POST" and "save_languages" in request.POST:
+        languages_form = ContentLanguagesForm(request.POST, available=available_langs)
+        if languages_form.is_valid():
+            selected = [
+                str(code).strip().lower() for code in languages_form.cleaned_data["languages"]
+            ]
+            if not selected:
+                selected = ["en"]
+            UserContentLanguage.objects.filter(user=request.user).exclude(
+                language__in=selected
+            ).delete()
+            for code in selected:
+                UserContentLanguage.objects.get_or_create(user=request.user, language=code)
+            messages.success(request, "Content languages updated.")
+            return redirect("settings")
 
     if request.method == "POST" and "add_custom" in request.POST:
         feed_form = CustomFeedForm(request.POST)
         if feed_form.is_valid():
-            feed = Feed.objects.create(
-                title=feed_form.cleaned_data["title"],
-                url=feed_form.cleaned_data["url"],
-                site_url=feed_form.cleaned_data.get("site_url") or "",
-                description=feed_form.cleaned_data.get("description") or "",
-                category=feed_form.cleaned_data.get("category") or "Custom",
-                kind=Feed.SourceKind.CUSTOM,
-                owner=request.user,
-            )
-            messages.success(request, f"Added “{feed.title}” (enabled for you).")
+            _feed, msg = _resolve_custom_feed(request.user, feed_form.cleaned_data)
+            messages.success(request, msg)
             return redirect("settings")
 
     if request.method == "POST" and "add_location" in request.POST:
@@ -189,6 +254,9 @@ def settings_page(request: HttpRequest) -> HttpResponse:
             "custom_feeds": custom,
             "recommended": recommended,
             "muted_ids": muted_ids,
+            "preferred_languages": preferred,
+            "language_labels": CONTENT_LANGUAGE_LABELS,
+            "languages_form": languages_form,
             "feed_form": feed_form,
             "location_form": location_form,
             "locations": locations,
@@ -200,8 +268,8 @@ def settings_page(request: HttpRequest) -> HttpResponse:
 @require_POST
 def mute_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
     feed = get_object_or_404(Feed, pk=feed_id, is_active=True)
-    if feed.owner_id and feed.owner_id != request.user.id:
-        messages.error(request, "That feed is private to another user.")
+    if feed.kind == Feed.SourceKind.CUSTOM:
+        messages.error(request, "Unsubscribe from custom feeds instead of muting.")
         return redirect("settings")
     FeedMute.objects.get_or_create(user=request.user, feed=feed)
     messages.info(request, f"Muted {feed.title}.")
@@ -214,6 +282,18 @@ def unmute_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
     FeedMute.objects.filter(user=request.user, feed_id=feed_id).delete()
     feed = Feed.objects.filter(pk=feed_id).first()
     messages.success(request, f"Enabled {feed.title}." if feed else "Feed enabled.")
+    return redirect(request.POST.get("next") or "settings")
+
+
+@login_required
+@require_POST
+def unsubscribe_feed(request: HttpRequest, feed_id: int) -> HttpResponse:
+    feed = get_object_or_404(Feed, pk=feed_id, kind=Feed.SourceKind.CUSTOM, is_active=True)
+    deleted, _ = Subscription.objects.filter(user=request.user, feed=feed).delete()
+    if deleted:
+        messages.info(request, f"Unsubscribed from {feed.title}.")
+    else:
+        messages.info(request, "You were not subscribed to that feed.")
     return redirect(request.POST.get("next") or "settings")
 
 

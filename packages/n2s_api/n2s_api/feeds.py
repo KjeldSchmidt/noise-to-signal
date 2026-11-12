@@ -17,6 +17,8 @@ class Feed(BaseModel):
     kind: str
     owner_id: int | None
     is_active: bool
+    language: str = "en"
+    should_poll: bool = True
 
 
 class FeedListResponse(BaseModel):

@@ -56,7 +56,13 @@ class Feed(TimeStampedModel):
         blank=True,
         on_delete=models.CASCADE,
         related_name="custom_feeds",
-        help_text="Set for custom feeds owned by a single user.",
+        help_text="Optional first-adder metadata for custom feeds.",
+    )
+    language = models.CharField(
+        max_length=8,
+        default="en",
+        db_index=True,
+        help_text="ISO 639-1 content language (e.g. en, fr, de). Use und when unknown.",
     )
     is_active = models.BooleanField(default=True)
 
@@ -68,7 +74,7 @@ class Feed(TimeStampedModel):
 
 
 class Subscription(TimeStampedModel):
-    """Legacy opt-in rows; superseded by FeedMute (catalog is on by default)."""
+    """Opt-in for custom (non-catalog) feeds. Catalog enablement uses FeedMute instead."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -89,8 +95,26 @@ class Subscription(TimeStampedModel):
         return f"{self.user} → {self.feed}"
 
 
+class UserContentLanguage(TimeStampedModel):
+    """Languages the user wants in briefs/stories (read-side filter on Feed.language)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="content_languages",
+    )
+    language = models.CharField(max_length=8, db_index=True)
+
+    class Meta:
+        unique_together = ("user", "language")
+        ordering = ["language"]
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.language}"
+
+
 class FeedMute(TimeStampedModel):
-    """Opt-out: catalog (and custom) feeds are enabled unless muted."""
+    """Opt-out: catalog feeds are enabled unless muted."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
