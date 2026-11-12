@@ -21,6 +21,13 @@ _SOURCE_LOGOS: dict[str, str] = {
     "nature.com": "img/sources/nature.svg",
     "theguardian.com": "img/sources/guardian.svg",
     "apnews.com": "img/sources/ap.svg",
+    "lemonde.fr": "img/sources/lemonde.svg",
+    "francetvinfo.fr": "img/sources/franceinfo.svg",
+    "tagesschau.de": "img/sources/tagesschau.svg",
+    "spiegel.de": "img/sources/spiegel.svg",
+    "allafrica.com": "img/sources/allafrica.png",
+    "aljazeera.com": "img/sources/aljazeera.svg",
+    "scmp.com": "img/sources/scmp.svg",
 }
 
 
@@ -49,11 +56,27 @@ def _logo_static_path(feed: Feed) -> str | None:
         "guardian": "img/sources/guardian.svg",
         "associated press": "img/sources/ap.svg",
         "ap ": "img/sources/ap.svg",
+        "le monde": "img/sources/lemonde.svg",
+        "franceinfo": "img/sources/franceinfo.svg",
+        "tagesschau": "img/sources/tagesschau.svg",
+        "spiegel": "img/sources/spiegel.svg",
+        "allafrica": "img/sources/allafrica.png",
+        "al jazeera": "img/sources/aljazeera.svg",
+        "south china morning": "img/sources/scmp.svg",
+        "scmp": "img/sources/scmp.svg",
     }
     for needle, path in title_map.items():
         if needle in title:
             return path
     return None
+
+
+def _logo_slug_from_path(path: str) -> str:
+    name = path.rsplit("/", 1)[-1]
+    for suffix in (".svg", ".png", ".jpg", ".jpeg", ".webp"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
 
 
 @register.filter
@@ -69,4 +92,4 @@ def source_logo_slug(feed: Feed) -> str:
     path = _logo_static_path(feed)
     if not path:
         return "generic"
-    return path.rsplit("/", 1)[-1].removesuffix(".svg")
+    return _logo_slug_from_path(path)

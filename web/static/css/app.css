@@ -446,6 +446,13 @@ h1, h2, h3 {
 .story-media-logo[data-source="guardian"] { background: #052962; }
 .story-media-logo[data-source="guardian"] img { filter: brightness(0) invert(1); }
 .story-media-logo[data-source="ap"] { background: #ffffff; }
+.story-media-logo[data-source="lemonde"] { background: #ffffff; }
+.story-media-logo[data-source="franceinfo"] { background: #ffffff; }
+.story-media-logo[data-source="tagesschau"] { background: #ffffff; }
+.story-media-logo[data-source="spiegel"] { background: #ffffff; }
+.story-media-logo[data-source="allafrica"] { background: #ffffff; }
+.story-media-logo[data-source="aljazeera"] { background: #ffffff; }
+.story-media-logo[data-source="scmp"] { background: #ffffff; }
 
 .story-body {
   padding: 1rem 1.15rem 1.2rem;
@@ -605,6 +612,13 @@ h1, h2, h3 {
 .stack-source[data-source="guardian"] { background: #052962; }
 .stack-source[data-source="guardian"] img { filter: brightness(0) invert(1); }
 .stack-source[data-source="ap"] { background: #ffffff; }
+.stack-source[data-source="lemonde"] { background: #ffffff; }
+.stack-source[data-source="franceinfo"] { background: #ffffff; }
+.stack-source[data-source="tagesschau"] { background: #ffffff; }
+.stack-source[data-source="spiegel"] { background: #ffffff; }
+.stack-source[data-source="allafrica"] { background: #ffffff; }
+.stack-source[data-source="aljazeera"] { background: #ffffff; }
+.stack-source[data-source="scmp"] { background: #ffffff; }
 
 .story-thread-tag {
   color: var(--accent) !important;

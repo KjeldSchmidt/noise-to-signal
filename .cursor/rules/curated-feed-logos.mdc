@@ -1,0 +1,26 @@
+---
+description: Curated/recommended catalog feeds must ship with source logos
+globs: web/news/management/commands/seed_demo.py,web/news/migrations/*feed*.py,web/news/templatetags/news_extras.py,web/static/img/sources/**,web/static/css/app.css
+alwaysApply: false
+---
+
+# Curated feed source logos
+
+Do not add or expand **catalog** feeds (`kind` curated/recommended in `seed_demo` / feed seed migrations) without a matching source logo for Stories fallbacks.
+
+## Do (same change)
+
+1. Add a real logo asset under `web/static/img/sources/` (prefer SVG from Wikimedia Commons or the publisher’s site; no hand-drawn stand-ins)
+2. Map host (and title fallback) in `_SOURCE_LOGOS` / `title_map` in `web/news/templatetags/news_extras.py`
+3. Add brand fallback backgrounds for `.story-media-logo[data-source="…"]` and `.stack-source[data-source="…"]` in `web/static/css/app.css`
+4. Keep `seed_demo.FEEDS` and the latest catalog seed migration in sync
+
+## Don't
+
+- Land a new catalog feed with only title/URL/site_url and no logo wiring
+- Invent SVG paths by hand when a real asset can be fetched
+- Skip the logo work with “follow up later” unless the user explicitly defers it
+
+## If a logo cannot be fetched
+
+Stop and tell the user which source still needs a file (name + suggested save path under `web/static/img/sources/`), instead of shipping the feed without one.
