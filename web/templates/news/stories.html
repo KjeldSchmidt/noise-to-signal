@@ -33,14 +33,18 @@
 <div class="story-grid">
   {% for entry in entries %}
   {% if show_new_heading and forloop.first and entry.is_new %}
-  <h2 class="stories-section-label">New since your last visit</h2>
+  <div class="stories-separator" role="separator">
+    <span>New since your last visit</span>
+  </div>
   {% endif %}
   {% if separator_before_index is not None and forloop.counter0 == separator_before_index %}
   <div class="stories-separator" role="separator">
     <span>Earlier</span>
   </div>
   {% elif show_earlier_heading and not entry.is_new and forloop.first %}
-  <h2 class="stories-section-label">Earlier</h2>
+  <div class="stories-separator" role="separator">
+    <span>Earlier</span>
+  </div>
   {% endif %}
   {% if entry.kind == "thread" %}
   {% with lead=entry.lead_article thread=entry.thread %}
