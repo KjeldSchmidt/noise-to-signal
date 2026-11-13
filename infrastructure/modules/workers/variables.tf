@@ -34,12 +34,13 @@ variable "feed_items_queue_arn" {
 
 variable "workers" {
   type = map(object({
-    schedule_expression  = optional(string)
-    subscribe_feed_items = optional(bool, false)
-    invoke_bedrock       = optional(bool, false)
-    langsmith_agent_id   = optional(string)
-    memory_size          = optional(number, 512)
-    timeout              = optional(number, 60)
+    schedule_expression             = optional(string)
+    subscribe_feed_items            = optional(bool, false)
+    invoke_bedrock                  = optional(bool, false)
+    langsmith_agent_id              = optional(string)
+    langsmith_tracing_sampling_rate = optional(number)
+    memory_size                     = optional(number, 512)
+    timeout                         = optional(number, 60)
     # SQS ESM only; AWS minimum is 2. Caps parallel worker invokes for relaxed drain.
     sqs_maximum_concurrency = optional(number)
   }))

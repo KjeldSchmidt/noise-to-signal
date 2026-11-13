@@ -92,7 +92,7 @@ APP_ENV=dev just upsert-langsmith
 # APP_ENV=prod just upsert-langsmith
 ```
 
-Terraform injects `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_ENDPOINT`, `LANGSMITH_AGENT_ID`, and `LANGSMITH_AGENT_ENVIRONMENT` (`development` / `production`). Do not set `LANGSMITH_PROJECT` on those Lambdas. Create each agent once in the LangSmith UI before deploy.
+Terraform injects `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_ENDPOINT`, `LANGSMITH_AGENT_ID`, and `LANGSMITH_AGENT_ENVIRONMENT` (`development` / `production`). Optional per-worker `langsmith_tracing_sampling_rate` sets `LANGSMITH_TRACING_SAMPLING_RATE` (e.g. `0.02` / `0.2` for `news_parser` / `news_chat`). Do not set `LANGSMITH_PROJECT` on those Lambdas. Create each agent once in the LangSmith UI before deploy.
 
 ## Prerequisites
 

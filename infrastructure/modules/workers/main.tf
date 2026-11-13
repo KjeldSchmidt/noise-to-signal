@@ -192,13 +192,18 @@ resource "aws_lambda_function" "worker" {
         BEDROCK_CHAT_CLASSIFIER_MODEL_ID = "eu.amazon.nova-micro-v1:0"
         BEDROCK_CHAT_ANSWER_MODEL_ID     = "eu.amazon.nova-lite-v1:0"
       } : {},
-      try(each.value.langsmith_agent_id, null) != null && each.value.langsmith_agent_id != "" ? {
-        LANGSMITH_TRACING           = "true"
-        LANGSMITH_ENDPOINT          = var.langsmith_endpoint
-        LANGSMITH_API_KEY           = local.langsmith_secret.LANGSMITH_API_KEY
-        LANGSMITH_AGENT_ID          = each.value.langsmith_agent_id
-        LANGSMITH_AGENT_ENVIRONMENT = local.langsmith_agent_environment
-      } : {},
+      try(each.value.langsmith_agent_id, null) != null && each.value.langsmith_agent_id != "" ? merge(
+        {
+          LANGSMITH_TRACING           = "true"
+          LANGSMITH_ENDPOINT          = var.langsmith_endpoint
+          LANGSMITH_API_KEY           = local.langsmith_secret.LANGSMITH_API_KEY
+          LANGSMITH_AGENT_ID          = each.value.langsmith_agent_id
+          LANGSMITH_AGENT_ENVIRONMENT = local.langsmith_agent_environment
+        },
+        try(each.value.langsmith_tracing_sampling_rate, null) != null ? {
+          LANGSMITH_TRACING_SAMPLING_RATE = tostring(each.value.langsmith_tracing_sampling_rate)
+        } : {},
+      ) : {},
     )
   }
 

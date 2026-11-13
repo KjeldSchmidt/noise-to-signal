@@ -41,6 +41,7 @@ When `langsmith_agent_id` is set on the worker in Terraform, Lambda gets agent-b
 | `LANGSMITH_ENDPOINT` | EU endpoint by default |
 | `LANGSMITH_AGENT_ID` | Worker config (`news-parser`) |
 | `LANGSMITH_AGENT_ENVIRONMENT` | `development` (dev) / `production` (prod) |
+| `LANGSMITH_TRACING_SAMPLING_RATE` | Optional; from `langsmith_tracing_sampling_rate` (e.g. `0.02`) |
 
 Do **not** set `LANGSMITH_PROJECT` on this process (conflicts with agent addressing). Create the LangSmith agent `news-parser` once in the UI before expecting traces.
 

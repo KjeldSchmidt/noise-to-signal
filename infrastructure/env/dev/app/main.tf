@@ -72,19 +72,21 @@ module "workers" {
       timeout             = 120
     }
     news_parser = {
-      subscribe_feed_items = true
-      invoke_bedrock       = true
-      langsmith_agent_id   = "news-parser"
-      memory_size          = 512
-      timeout              = 90
+      subscribe_feed_items            = true
+      invoke_bedrock                  = true
+      langsmith_agent_id              = "news-parser"
+      langsmith_tracing_sampling_rate = 0.02
+      memory_size                     = 512
+      timeout                         = 90
       # AWS ESM floor is 2; keeps web/Nominatim pressure low on requeue bursts.
       sqs_maximum_concurrency = 2
     }
     news_chat = {
-      invoke_bedrock     = true
-      langsmith_agent_id = "news-chat"
-      memory_size        = 1024
-      timeout            = 90
+      invoke_bedrock                  = true
+      langsmith_agent_id              = "news-chat"
+      langsmith_tracing_sampling_rate = 0.2
+      memory_size                     = 1024
+      timeout                         = 90
     }
   }
 }
