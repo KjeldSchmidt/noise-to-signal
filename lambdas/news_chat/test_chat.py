@@ -25,32 +25,6 @@ class PromptsTests(unittest.TestCase):
         self.assertIn("Floods", text)
         self.assertIn("NPR", text)
 
-    def test_topic_digest_omits_summaries(self) -> None:
-        chunks = [
-            ContextChunk(
-                article_id=1,
-                title="Gaza hospital strike",
-                source="BBC",
-                place_label="Gaza",
-                story_label="Hospital attack",
-                summary="Long summary that must not appear in the digest.",
-            ),
-            ContextChunk(
-                article_id=2,
-                title="Second piece",
-                source="NPR",
-                summary="Also hidden.",
-            ),
-        ]
-        digest = prompts.topic_digest(chunks)
-        self.assertIn("Gaza hospital strike | BBC | Gaza | Hospital attack", digest)
-        self.assertIn("Second piece | NPR", digest)
-        self.assertNotIn("Long summary", digest)
-        self.assertNotIn("Also hidden", digest)
-
-    def test_topic_digest_empty(self) -> None:
-        self.assertEqual(prompts.topic_digest([]), "(no articles in scope)")
-
 
 class ChatPipelineTests(unittest.TestCase):
     def _request(self, message: str = "What happened?") -> ChatWorkerRequest:
@@ -88,7 +62,7 @@ class ChatPipelineTests(unittest.TestCase):
         self.assertIn("news context", out.message)
 
     @patch("chat.get_classifier_model")
-    def test_classifier_receives_topic_digest(self, mock_get_classifier: MagicMock) -> None:
+    def test_classifier_omits_article_chunks(self, mock_get_classifier: MagicMock) -> None:
         structured = MagicMock()
         structured.invoke.return_value = chat_mod.ScopeDecision(allowed=False, reason="off_topic")
         mock_get_classifier.return_value.with_structured_output.return_value = structured
@@ -97,8 +71,9 @@ class ChatPipelineTests(unittest.TestCase):
 
         invoke_args = structured.invoke.call_args[0][0]
         human = invoke_args[1].content
-        self.assertIn("topic_digest:", human)
-        self.assertIn("Summit ends | BBC | Geneva | Climate summit", human)
+        self.assertIn("user_message:", human)
+        self.assertNotIn("topic_digest:", human)
+        self.assertNotIn("Summit ends", human)
         self.assertNotIn("Leaders agreed on a draft", human)
 
     @patch("chat.get_answer_model")

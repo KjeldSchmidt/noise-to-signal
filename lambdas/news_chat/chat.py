@@ -16,7 +16,6 @@ from prompts import (
     assemble_data_block,
     history_as_text,
     scope_hint,
-    topic_digest,
 )
 
 RefusalReason = Literal["ok", "off_topic", "injection"]
@@ -31,7 +30,6 @@ def classify_request(req: ChatWorkerRequest) -> ScopeDecision:
     structured = get_classifier_model().with_structured_output(ScopeDecision)
     user = (
         f"{scope_hint(req)}\n"
-        f"topic_digest:\n{topic_digest(list(req.chunks))}\n\n"
         f"history:\n{history_as_text(req.history)}\n\n"
         f"user_message:\n{req.message}"
     )
