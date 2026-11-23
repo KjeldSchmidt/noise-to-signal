@@ -19,7 +19,7 @@ lint:
     #!/usr/bin/env bash
     set -euo pipefail
     # Validate stack roots (modules with provider aliases need a root context)
-    for root in env/shared modules/ecr modules/web_app modules/workers; do
+    for root in env/shared modules/ecr modules/web_app modules/workers modules/agentcore_memory; do
       pushd "$root" >/dev/null
       terraform init -reconfigure -backend=false >/dev/null
       terraform validate

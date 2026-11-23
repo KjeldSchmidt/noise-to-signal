@@ -19,6 +19,7 @@ class ChatState(TypedDict):
     message: str
     history: list[ChatHistoryMessage]
     chunks: list[ContextChunk]
+    preferences: NotRequired[list[str]]
 
     # Classifier
     allowed: NotRequired[bool]

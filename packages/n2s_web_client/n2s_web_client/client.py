@@ -11,6 +11,9 @@ from n2s_api import (
     ArticleSearchResponse,
     ArticleUpsert,
     ArticleUpsertResponse,
+    BriefCompleteRequest,
+    BriefCompleteResponse,
+    BriefUserContextResponse,
     ContextChunk,
     Feed,
     FeedItem,
@@ -233,3 +236,47 @@ def search_articles(
         err = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"search_articles failed ({exc.code}): {err}") from exc
     return list(payload.results)
+
+
+def get_brief_user_context(
+    user_id: int,
+    *,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> BriefUserContextResponse:
+    """GET /api/internal/briefs/users/<id>/context/."""
+    base, auth = _base_and_token(base_url, token)
+    request = urllib.request.Request(
+        f"{base}/api/internal/briefs/users/{user_id}/context/",
+        headers=_auth_headers(auth),
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return BriefUserContextResponse.model_validate_json(response.read())
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"get_brief_user_context failed ({exc.code}): {err}") from exc
+
+
+def complete_brief(
+    req: BriefCompleteRequest,
+    *,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> BriefCompleteResponse:
+    """POST /api/internal/briefs/complete/."""
+    base, auth = _base_and_token(base_url, token)
+    body = req.model_dump_json().encode("utf-8")
+    request = urllib.request.Request(
+        f"{base}/api/internal/briefs/complete/",
+        data=body,
+        headers=_auth_headers(auth),
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return BriefCompleteResponse.model_validate_json(response.read())
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"complete_brief failed ({exc.code}): {err}") from exc

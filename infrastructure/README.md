@@ -35,9 +35,11 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 - Module: [`modules/workers`](modules/workers), wired from each `env/<env>/app`.
 - **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
 - **`news_parser`** — SQS (`<project>-<env>-feed-items`); LangGraph enrich (`normalize` → `embed` ∥ `extract_place` → `upsert`) → `POST /api/internal/articles/` (thread assignment on the web).
-- **`news_chat`** — sync-invoked by web (`NEWS_CHAT_FUNCTION_NAME`); Nova Micro scope classifier + Nova Lite grounded answers (LangSmith agent `news-chat`).
-- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / `BEDROCK_EXTRACT_MODEL_ID` / chat model IDs when `invoke_bedrock`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL` and `NEWS_CHAT_FUNCTION_NAME`.
+- **`news_chat`** — sync-invoked by web (`NEWS_CHAT_FUNCTION_NAME`); Nova Micro scope classifier + Nova Lite grounded answers (LangSmith agent `news-chat`). Brief scope also reads AgentCore preferences.
+- **`brief_builder`** — async Event-invoked by web (`BRIEF_BUILDER_FUNCTION_NAME`); LangGraph personalization → `UserBrief` via internal API; AgentCore preference read/write/erase.
+- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / model IDs when `invoke_bedrock`; + `AGENTCORE_MEMORY_ID` when `use_agentcore_memory`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL`, `NEWS_CHAT_FUNCTION_NAME`, `BRIEF_BUILDER_FUNCTION_NAME`.
 - Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
+- Per-env AgentCore Memory (`modules/agentcore_memory`) with `USER_PREFERENCE` strategy; erase via `python manage.py erase_preference_memory --email …` (enqueues worker).
 
 ## pgvector + Bedrock (embeddings + place/themes)
 
@@ -113,6 +115,7 @@ just
 | [`justfile`](justfile) | `apply-shared`, `push-image`, `push-lambdas`, `apply-app`, `deploy`, … |
 | [`modules/ecr`](modules/ecr) | Shared ECR |
 | [`modules/dns`](modules/dns) | Route 53 zone + ACM (us-east-1) |
+| [`modules/agentcore_memory`](modules/agentcore_memory) | Per-env Bedrock AgentCore preference Memory |
 | [`modules/web_app`](modules/web_app) | Per-env web compute + CloudFront alias |
 | [`modules/workers`](modules/workers) | Per-env worker Lambdas + EventBridge |
 | [`env/shared`](env/shared) | Shared stack root |

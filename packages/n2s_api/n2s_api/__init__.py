@@ -1,5 +1,16 @@
 """Shared API contracts for noise-to-signal."""
 
+from n2s_api.brief import (
+    BriefBuilderRequest,
+    BriefCandidateDTO,
+    BriefCompleteRequest,
+    BriefCompleteResponse,
+    BriefFeedbackDTO,
+    BriefItemUpsert,
+    BriefLocationDTO,
+    BriefTasteDTO,
+    BriefUserContextResponse,
+)
 from n2s_api.chat import (
     MAX_CHUNK_CHARS,
     MAX_CHUNKS,
@@ -38,6 +49,15 @@ __all__ = [
     "ArticleSearchResponse",
     "ArticleUpsert",
     "ArticleUpsertResponse",
+    "BriefBuilderRequest",
+    "BriefCandidateDTO",
+    "BriefCompleteRequest",
+    "BriefCompleteResponse",
+    "BriefFeedbackDTO",
+    "BriefItemUpsert",
+    "BriefLocationDTO",
+    "BriefTasteDTO",
+    "BriefUserContextResponse",
     "ChatCitation",
     "ChatHistoryMessage",
     "ChatWorkerRequest",

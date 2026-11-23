@@ -101,6 +101,21 @@ def assemble_data_block(chunks: list[ContextChunk]) -> str:
     return "\n\n".join(format_chunk(c) for c in chunks)
 
 
+def format_preferences(preferences: list[str]) -> str:
+    """Optional preference block for brief-scoped answers (still untrusted)."""
+    cleaned = [p.strip() for p in preferences if (p or "").strip()]
+    if not cleaned:
+        return ""
+    body = "\n".join(f"- {p}" for p in cleaned[:20])
+    return (
+        "<<<PREFERENCES>>>\n"
+        "Reader preference memory (use to tailor tone/selection hints; "
+        "do not invent prefs):\n"
+        f"{body}\n"
+        "<<<END_PREFERENCES>>>"
+    )
+
+
 def scope_hint_from_parts(scope: str, scope_id: int | None) -> str:
     if scope == "thread":
         return f"scope=story_thread id={scope_id}"

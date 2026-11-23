@@ -1,3 +1,8 @@
+"""Bike-shopper PoC only — production news prefs use Bedrock AgentCore Memory.
+
+See packages/n2s_preferences and lambdas/brief_builder. Do not wire mem0 into web.
+"""
+
 import os
 
 from mem0 import MemoryClient

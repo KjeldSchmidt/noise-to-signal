@@ -14,6 +14,12 @@ from schemas import AnswerPayload, ScopeDecision
 
 
 class PromptsTests(unittest.TestCase):
+    def test_format_preferences_block(self) -> None:
+        text = prompts.format_preferences(["Likes science", "  "])
+        self.assertIn("<<<PREFERENCES>>>", text)
+        self.assertIn("Likes science", text)
+        self.assertEqual(prompts.format_preferences([]), "")
+
     def test_format_chunk_includes_article_id(self) -> None:
         chunk = ContextChunk(
             article_id=1,

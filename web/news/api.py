@@ -15,6 +15,8 @@ from n2s_api import (
     ArticleSearchResponse,
     ArticleUpsert,
     ArticleUpsertResponse,
+    BriefCompleteRequest,
+    BriefCompleteResponse,
     FeedItemIngestRequest,
     FeedItemIngestResponse,
     FeedListResponse,
@@ -32,8 +34,9 @@ from n2s_api import (
 from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
-from news.models import Article, EnrichmentStatus, Feed, GeoLevel, Theme
+from news.models import Article, EnrichmentStatus, Feed, GeoLevel, Theme, UserBrief, UserBriefItem
 from news.services.article_search import search_articles_by_user_id
+from news.services.brief_context import build_brief_user_context
 from news.services.feeds import feed_should_poll, feeds_for_list_api
 from news.services.geocode import search_places
 from news.services.themes import record_theme_suggestions
@@ -281,6 +284,74 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
             created=created,
             article_id=article.id,
             story_thread_id=article.story_thread_id,
+        ).model_dump()
+    )
+
+
+@csrf_exempt
+@require_GET
+@require_internal_token
+def brief_user_context(request: HttpRequest, user_id: int) -> JsonResponse:
+    """User settings + Stories-scored candidates for brief_builder."""
+    payload = build_brief_user_context(user_id)
+    return JsonResponse(payload.model_dump())
+
+
+@csrf_exempt
+@require_POST
+@require_internal_token
+def complete_brief(request: HttpRequest) -> JsonResponse:
+    """Mark a pending UserBrief ready/failed and replace its items."""
+    try:
+        dto = BriefCompleteRequest.model_validate_json(request.body.decode("utf-8") or "{}")
+    except ValidationError as exc:
+        return JsonResponse(
+            {"error": "invalid payload", "detail": _validation_detail(exc)},
+            status=400,
+        )
+
+    try:
+        brief = UserBrief.objects.get(pk=dto.brief_id, user_id=dto.user_id)
+    except UserBrief.DoesNotExist:
+        return JsonResponse({"error": "brief not found"}, status=404)
+
+    if dto.status == "failed":
+        brief.status = UserBrief.Status.FAILED
+        brief.error = (dto.error or "brief build failed")[:2000]
+        brief.ready_at = None
+        brief.save(update_fields=["status", "error", "ready_at", "updated_at"])
+        return JsonResponse(
+            BriefCompleteResponse(brief_id=brief.id, status="failed", item_count=0).model_dump()
+        )
+
+    article_ids = [item.article_id for item in dto.items]
+    existing = set(Article.objects.filter(id__in=article_ids).values_list("id", flat=True))
+    missing = sorted(set(article_ids) - existing)
+    if missing:
+        return JsonResponse({"error": f"unknown article_id(s): {missing}"}, status=400)
+
+    UserBriefItem.objects.filter(brief=brief).delete()
+    UserBriefItem.objects.bulk_create(
+        [
+            UserBriefItem(
+                brief=brief,
+                article_id=item.article_id,
+                rank=item.rank,
+                score=item.score,
+                reason=(item.reason or "")[:2000],
+            )
+            for item in dto.items
+        ]
+    )
+    brief.status = UserBrief.Status.READY
+    brief.ready_at = django_timezone.now()
+    brief.error = ""
+    brief.save(update_fields=["status", "ready_at", "error", "updated_at"])
+    return JsonResponse(
+        BriefCompleteResponse(
+            brief_id=brief.id,
+            status="ready",
+            item_count=len(dto.items),
         ).model_dump()
     )
 

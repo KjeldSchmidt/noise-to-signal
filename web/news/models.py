@@ -362,6 +362,72 @@ class FollowUpAnswer(TimeStampedModel):
         return f"{self.user} / Q{self.question_id}"
 
 
+class UserBrief(TimeStampedModel):
+    """One personalized brief run for a user (async worker fills items)."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="briefs",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    ready_at = models.DateTimeField(null=True, blank=True)
+    error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="userbrief_user_created_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"brief {self.pk} user={self.user_id} {self.status}"
+
+
+class UserBriefItem(TimeStampedModel):
+    """Ranked article slot inside a ready UserBrief."""
+
+    brief = models.ForeignKey(
+        UserBrief,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    article = models.ForeignKey(
+        Article,
+        on_delete=models.CASCADE,
+        related_name="brief_items",
+    )
+    rank = models.PositiveIntegerField()
+    score = models.FloatField(default=0.0)
+    reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["rank", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["brief", "article"],
+                name="uniq_userbriefitem_brief_article",
+            ),
+            models.UniqueConstraint(
+                fields=["brief", "rank"],
+                name="uniq_userbriefitem_brief_rank",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"brief {self.brief_id} #{self.rank} article={self.article_id}"
+
+
 class ChatRateLimitBucket(TimeStampedModel):
     """Per-user chat rate-limit counters shared across Lambda instances via RDS."""
 

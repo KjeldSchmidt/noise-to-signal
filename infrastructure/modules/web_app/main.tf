@@ -176,6 +176,25 @@ resource "aws_iam_role_policy" "lambda_invoke_news_chat" {
   policy = data.aws_iam_policy_document.lambda_invoke_news_chat[0].json
 }
 
+data "aws_iam_policy_document" "lambda_invoke_brief_builder" {
+  count = var.brief_builder_function_name != "" ? 1 : 0
+
+  statement {
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.brief_builder_function_name}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_invoke_brief_builder" {
+  count = var.brief_builder_function_name != "" ? 1 : 0
+
+  name   = "invoke-brief-builder"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_invoke_brief_builder[0].json
+}
+
 resource "aws_lambda_function" "web" {
   function_name = local.name_prefix
   role          = aws_iam_role.lambda.arn
@@ -211,6 +230,9 @@ resource "aws_lambda_function" "web" {
       },
       var.news_chat_function_name != "" ? {
         NEWS_CHAT_FUNCTION_NAME = var.news_chat_function_name
+      } : {},
+      var.brief_builder_function_name != "" ? {
+        BRIEF_BUILDER_FUNCTION_NAME = var.brief_builder_function_name
       } : {},
     )
   }

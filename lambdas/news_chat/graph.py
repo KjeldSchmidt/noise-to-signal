@@ -15,6 +15,7 @@ from prompts import (
     CLASSIFIER_SYSTEM,
     REFUSAL_COPY,
     assemble_data_block,
+    format_preferences,
     history_as_text,
     scope_hint_from_parts,
 )
@@ -39,8 +40,11 @@ _tool_node = ToolNode(CHAT_TOOLS)
 
 def _baseline_user_message(state: ChatState) -> str:
     data = assemble_data_block(list(state.get("chunks") or []))
+    prefs = format_preferences(list(state.get("preferences") or []))
+    prefs_block = f"{prefs}\n\n" if prefs else ""
     return (
         f"{scope_hint_from_parts(state['scope'], state.get('scope_id'))}\n\n"
+        f"{prefs_block}"
         f"{data}\n\n"
         f"Conversation so far:\n{history_as_text(list(state.get('history') or []))}\n\n"
         f"User question:\n{state['message']}"

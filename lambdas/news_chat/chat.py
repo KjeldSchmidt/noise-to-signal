@@ -12,7 +12,23 @@ from state import ChatState
 RefusalReason = Literal["ok", "off_topic", "injection"]
 
 
+def _load_brief_preferences(user_id: int) -> list[str]:
+    if not user_id:
+        return []
+    try:
+        from n2s_preferences import get_preference_client
+    except ImportError:
+        return []
+    client = get_preference_client()
+    if client is None:
+        return []
+    return client.retrieve_preferences(user_id, top_k=10)
+
+
 def _initial_state(req: ChatWorkerRequest) -> ChatState:
+    preferences: list[str] = []
+    if req.scope == "brief":
+        preferences = _load_brief_preferences(req.user_id)
     return {
         "scope": req.scope,
         "scope_id": req.scope_id,
@@ -20,6 +36,7 @@ def _initial_state(req: ChatWorkerRequest) -> ChatState:
         "message": req.message,
         "history": list(req.history),
         "chunks": list(req.chunks),
+        "preferences": preferences,
         "messages": [],
     }
 

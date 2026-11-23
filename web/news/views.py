@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 from n2s_api import (
     MAX_HISTORY_TURNS,
     MAX_MESSAGE_CHARS,
+    BriefBuilderRequest,
     ChatHistoryMessage,
     ChatWorkerRequest,
 )
@@ -33,6 +34,7 @@ from news.models import (
     LocationOfInterest,
     RelevanceFeedback,
     Subscription,
+    UserBrief,
     UserContentLanguage,
 )
 from news.services import (
@@ -45,11 +47,12 @@ from news.services import (
     enabled_feed_ids,
     next_questions,
     preferred_content_languages,
-    rank_items,
     recommend_feeds,
     thread_timeline_articles,
     thread_visible_in_scope,
 )
+from news.services.brief import resolve_brief_page
+from news.services.brief_invoke import invoke_brief_builder, invoke_preference_record
 from news.services.chat_invoke import invoke_news_chat
 from news.services.chat_rate_limit import check_and_increment
 from news.services.chat_retrieve import retrieve
@@ -81,17 +84,41 @@ def oauth_popup_done(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def brief(request: HttpRequest) -> HttpResponse:
-    ranked = rank_items(request.user)
+    state = resolve_brief_page(request.user)
+    if state.kick and state.brief is not None:
+        invoke_brief_builder(
+            BriefBuilderRequest(
+                action="build",
+                user_id=int(request.user.pk),
+                brief_id=state.brief.id,
+            )
+        )
     pending_questions = next_questions(request.user, limit=1)
     feed_count = len(enabled_feed_ids(request.user))
     return render(
         request,
         "news/brief.html",
         {
-            "ranked": ranked,
+            "ranked": state.ranked,
+            "brief_phase": state.phase,
+            "brief_id": state.brief.id if state.brief else None,
+            "brief_poll": state.poll,
             "pending_question": pending_questions[0] if pending_questions else None,
             "feed_count": feed_count,
         },
+    )
+
+
+@login_required
+def brief_status(request: HttpRequest, brief_id: int) -> JsonResponse:
+    """JSON poll target while personalization runs."""
+    brief = get_object_or_404(UserBrief, pk=brief_id, user=request.user)
+    return JsonResponse(
+        {
+            "brief_id": brief.id,
+            "status": brief.status,
+            "error": brief.error if brief.status == UserBrief.Status.FAILED else "",
+        }
     )
 
 
@@ -411,6 +438,10 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
         article=article,
         defaults={"verdict": verdict},
     )
+    invoke_preference_record(
+        int(request.user.pk),
+        f"The user marked the article «{article.title}» as {verdict.replace('_', ' ')}.",
+    )
     labels = {
         RelevanceFeedback.Verdict.RELEVANT: "Marked as relevant",
         RelevanceFeedback.Verdict.NOT_RELEVANT: "Marked as not relevant",
@@ -446,10 +477,15 @@ def answer_followup(request: HttpRequest, question_id: int) -> HttpResponse:
     if request.method == "POST":
         form = FollowUpAnswerForm(request.POST)
         if form.is_valid():
+            answer_text = form.cleaned_data["answer"]
             FollowUpAnswer.objects.update_or_create(
                 user=request.user,
                 question=question,
-                defaults={"answer": form.cleaned_data["answer"]},
+                defaults={"answer": answer_text},
+            )
+            invoke_preference_record(
+                int(request.user.pk),
+                f"Taste question: {question.prompt}\nUser answer: {answer_text}",
             )
             messages.success(request, "Saved — that will shape future filtering.")
             return redirect("followups")

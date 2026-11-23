@@ -7,6 +7,7 @@ urlpatterns = [
     path("privacy/", views.privacy, name="privacy"),
     path("oauth/popup-done/", views.oauth_popup_done, name="oauth_popup_done"),
     path("brief/", views.brief, name="brief"),
+    path("brief/<int:brief_id>/status/", views.brief_status, name="brief_status"),
     path("stories/", views.stories, name="stories"),
     path(
         "stories/threads/<int:thread_id>/",

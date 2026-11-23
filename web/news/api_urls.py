@@ -10,4 +10,10 @@ urlpatterns = [
     path("feed-items/", api.ingest_feed_items, name="internal_ingest_feed_items"),
     path("articles/search/", api.search_articles, name="internal_search_articles"),
     path("articles/", api.upsert_article, name="internal_upsert_article"),
+    path(
+        "briefs/users/<int:user_id>/context/",
+        api.brief_user_context,
+        name="internal_brief_user_context",
+    ),
+    path("briefs/complete/", api.complete_brief, name="internal_complete_brief"),
 ]

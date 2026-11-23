@@ -1,4 +1,8 @@
-"""Placeholder ranking — swap for the LangGraph runner later."""
+"""Legacy helpers: feed recommendations + RankedItem type.
+
+Personalized briefs are built by the brief_builder worker and served via
+``news.services.brief``. ``rank_items`` remains for tests/compat only.
+"""
 
 from __future__ import annotations
 

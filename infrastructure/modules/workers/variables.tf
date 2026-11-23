@@ -37,6 +37,7 @@ variable "workers" {
     schedule_expression             = optional(string)
     subscribe_feed_items            = optional(bool, false)
     invoke_bedrock                  = optional(bool, false)
+    use_agentcore_memory            = optional(bool, false)
     langsmith_agent_id              = optional(string)
     langsmith_tracing_sampling_rate = optional(number)
     memory_size                     = optional(number, 512)
@@ -45,6 +46,24 @@ variable "workers" {
     sqs_maximum_concurrency = optional(number)
   }))
   description = "Map of worker name → config. Name must match lambdas/<name>/ and ECR tag prefix."
+}
+
+variable "agentcore_memory_id" {
+  type        = string
+  default     = ""
+  description = "Bedrock AgentCore Memory id for preference workers."
+}
+
+variable "agentcore_memory_arn" {
+  type        = string
+  default     = ""
+  description = "Bedrock AgentCore Memory ARN for IAM."
+}
+
+variable "agentcore_preference_namespace" {
+  type        = string
+  default     = "/preferences/{actorId}"
+  description = "Namespace template matching the USER_PREFERENCE strategy."
 }
 
 variable "bedrock_region" {

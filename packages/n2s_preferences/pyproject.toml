@@ -1,0 +1,31 @@
+[project]
+name = "n2s-preferences"
+version = "0.1.0"
+description = "Bedrock AgentCore Memory client for noise-to-signal preference records"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.35.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["n2s_preferences"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.4",
+    "ty>=0.0.100",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"

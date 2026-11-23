@@ -7,7 +7,8 @@ from typing import Literal
 from django.contrib.auth.models import AbstractBaseUser
 from n2s_api import MAX_CHUNK_CHARS, MAX_CHUNKS, ContextChunk
 
-from news.models import Article
+from news.models import Article, UserBrief
+from news.services.brief import brief_is_fresh, latest_brief, ranked_from_brief
 from news.services.feeds import enabled_feed_ids
 from news.services.ranking import rank_items
 from news.services.stories_feed import thread_timeline_articles, thread_visible_in_scope
@@ -45,9 +46,14 @@ def _limit_chunks(articles: list[Article]) -> list[ContextChunk]:
 
 
 def retrieve_brief_context(user: AbstractBaseUser) -> list[ContextChunk]:
-    """Articles grounding the user's current brief (ranked, else recent in-scope)."""
-    ranked = rank_items(user)
-    articles = [item.article for item in ranked]
+    """Articles grounding the user's current brief (ready brief, else fallback)."""
+    brief = latest_brief(user)
+    articles: list[Article] = []
+    if brief is not None and brief.status == UserBrief.Status.READY and brief_is_fresh(brief):
+        articles = [item.article for item in ranked_from_brief(brief)]
+    if not articles:
+        ranked = rank_items(user)
+        articles = [item.article for item in ranked]
     if not articles:
         feed_ids = enabled_feed_ids(user)
         if feed_ids:

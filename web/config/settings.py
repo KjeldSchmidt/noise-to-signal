@@ -26,6 +26,7 @@ FEED_ITEMS_QUEUE_URL = os.environ.get("FEED_ITEMS_QUEUE_URL", "").strip()
 
 # Sync-invoked news_chat Lambda (empty + DEBUG → local stub response).
 NEWS_CHAT_FUNCTION_NAME = os.environ.get("NEWS_CHAT_FUNCTION_NAME", "").strip()
+BRIEF_BUILDER_FUNCTION_NAME = os.environ.get("BRIEF_BUILDER_FUNCTION_NAME", "").strip()
 AWS_REGION = (
     os.environ.get("AWS_REGION")
     or os.environ.get("AWS_DEFAULT_REGION")

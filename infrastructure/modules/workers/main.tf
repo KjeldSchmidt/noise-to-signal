@@ -108,6 +108,10 @@ locals {
     for name, cfg in var.workers : name => cfg
     if try(cfg.invoke_bedrock, false)
   }
+  agentcore_users = {
+    for name, cfg in var.workers : name => cfg
+    if try(cfg.use_agentcore_memory, false) && var.agentcore_memory_id != ""
+  }
 }
 
 resource "aws_iam_role_policy" "sqs_consume" {
@@ -165,6 +169,33 @@ resource "aws_iam_role_policy" "bedrock_invoke" {
   policy = data.aws_iam_policy_document.bedrock_invoke.json
 }
 
+data "aws_iam_policy_document" "agentcore_memory" {
+  count = var.agentcore_memory_arn != "" ? 1 : 0
+
+  statement {
+    actions = [
+      "bedrock-agentcore:CreateEvent",
+      "bedrock-agentcore:RetrieveMemoryRecords",
+      "bedrock-agentcore:ListMemoryRecords",
+      "bedrock-agentcore:GetMemoryRecord",
+      "bedrock-agentcore:DeleteMemoryRecord",
+      "bedrock-agentcore:GetMemory",
+    ]
+    resources = [
+      var.agentcore_memory_arn,
+      "${var.agentcore_memory_arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "agentcore_memory" {
+  for_each = local.agentcore_users
+
+  name   = "agentcore-memory"
+  role   = aws_iam_role.worker[each.key].id
+  policy = data.aws_iam_policy_document.agentcore_memory[0].json
+}
+
 resource "aws_lambda_function" "worker" {
   for_each = var.workers
 
@@ -191,6 +222,11 @@ resource "aws_lambda_function" "worker" {
         BEDROCK_EXTRACT_MODEL_ID         = "eu.amazon.nova-micro-v1:0"
         BEDROCK_CHAT_CLASSIFIER_MODEL_ID = "eu.amazon.nova-micro-v1:0"
         BEDROCK_CHAT_ANSWER_MODEL_ID     = "eu.amazon.nova-lite-v1:0"
+        BEDROCK_BRIEF_MODEL_ID           = "eu.amazon.nova-lite-v1:0"
+      } : {},
+      try(each.value.use_agentcore_memory, false) && var.agentcore_memory_id != "" ? {
+        AGENTCORE_MEMORY_ID            = var.agentcore_memory_id
+        AGENTCORE_PREFERENCE_NAMESPACE = var.agentcore_preference_namespace
       } : {},
       try(each.value.langsmith_agent_id, null) != null && each.value.langsmith_agent_id != "" ? merge(
         {

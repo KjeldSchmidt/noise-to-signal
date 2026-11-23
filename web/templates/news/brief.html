@@ -7,11 +7,31 @@
     <section class="page-head">
       <h1>Today’s brief</h1>
       <p class="muted">
-        Placeholder ranking over your enabled feeds
-        {% if feed_count %}({{ feed_count }} feed{{ feed_count|pluralize }}){% endif %}.
-        Real LangGraph scoring will replace this later.
+        {% if brief_phase == "caught_up" %}
+          You’re all caught up — this brief stays fresh for about six hours
+          {% if feed_count %}across {{ feed_count }} feed{{ feed_count|pluralize }}{% endif %}.
+        {% elif brief_phase == "personalizing" %}
+          Personalizing your brief
+          {% if feed_count %}from {{ feed_count }} feed{{ feed_count|pluralize }}{% endif %}…
+          Showing top stories meanwhile.
+        {% elif brief_phase == "failed" %}
+          Personalization hit a snag; showing the best available stories.
+        {% else %}
+          Your personalized reading list
+          {% if feed_count %}({{ feed_count }} feed{{ feed_count|pluralize }}){% endif %}.
+        {% endif %}
       </p>
     </section>
+
+    {% if brief_phase == "personalizing" %}
+    <div class="brief-status callout" data-brief-status data-brief-id="{{ brief_id }}" data-brief-status-url="{% url 'brief_status' brief_id %}">
+      <p><span class="brief-spinner" aria-hidden="true"></span> <strong>Personalizing…</strong> Pulling preferences and ranking what is worth your time.</p>
+    </div>
+    {% elif brief_phase == "caught_up" %}
+    <aside class="callout muted-callout">
+      <p>You’re all caught up. Check back later for a fresh brief.</p>
+    </aside>
+    {% endif %}
 
     <div class="brief-toast-host" data-brief-toast aria-live="polite"></div>
 
@@ -70,6 +90,9 @@
 {% block extra_js %}
 {% if ranked %}
 <script src="{% static 'js/brief-feedback.js' %}" defer></script>
+{% endif %}
+{% if brief_poll and brief_id %}
+<script src="{% static 'js/brief-poll.js' %}" defer></script>
 {% endif %}
 <script src="{% static 'js/vendor/marked.min.js' %}" defer></script>
 <script src="{% static 'js/vendor/purify.min.js' %}" defer></script>
