@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Privacy{% endblock %}
+{% block content %}
+<article class="legal">
+  <header class="page-head">
+    <h1>Privacy</h1>
+    <p class="muted">How Noise to Signal handles personal data. Last updated: 23 November 2026.</p>
+  </header>
+
+  <section class="block">
+    <h2>Who we are</h2>
+    <p>
+      Noise to Signal (<a href="https://noise-to-signal.fyi">noise-to-signal.fyi</a>) is operated by
+      <strong>Kjeld Schmidt</strong> (sole operator; EU). For privacy questions or to exercise your rights,
+      email <a href="mailto:kjeld.schmidt@the-coding-kind.com">kjeld.schmidt@the-coding-kind.com</a>.
+    </p>
+    <p>
+      Under the GDPR, Kjeld Schmidt is the <strong>controller</strong> of personal data processed through
+      this service.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>What this service does</h2>
+    <p>
+      Noise to Signal is a personal news product. It aggregates feeds you choose or enable, ranks stories
+      for your brief, and personalizes what you see using settings you configure and preference memory
+      learned from your feedback and taste answers.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Data we process</h2>
+    <ul class="legal-list">
+      <li>
+        <strong>Account identity.</strong> When you sign in with Google, we receive identifiers Google
+        shares for authentication (typically name, email address, and a stable account id). We do not
+        store end-user passwords.
+      </li>
+      <li>
+        <strong>Product settings.</strong> Content languages, locations of interest, muted or custom
+        feeds, and similar configuration needed to run your account.
+      </li>
+      <li>
+        <strong>Relevance and taste signals.</strong> Feedback on stories (relevant / not / skip) and
+        answers to short taste questions.
+      </li>
+      <li>
+        <strong>Preference memory.</strong> From those signals we extract and store lasting preference
+        records (for example topics, tones, or sources you tend to want or avoid) so returning briefs
+        stay personalized. These records are stored in
+        <strong>Amazon Bedrock AgentCore Memory</strong> in an <strong>EU AWS region</strong>, scoped
+        to your user id, and used only to personalize your own experience.
+      </li>
+      <li>
+        <strong>News chat.</strong> Chat turns for the in-product assistant are kept in your browser
+        for that session/device and are not stored as a server-side conversation history. Messages you
+        send may be processed in the EU by our application and Amazon Bedrock to generate a reply.
+        Preference-relevant signals from product use may still update preference memory as described
+        above.
+      </li>
+      <li>
+        <strong>Technical data.</strong> Session cookies required to keep you signed in, and ordinary
+        server logs (for example timestamps, request paths, approximate IP) needed to operate, secure,
+        and debug the service.
+      </li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>Why we process it (legal bases)</h2>
+    <ul class="legal-list">
+      <li>
+        <strong>Contract (Art. 6(1)(b) GDPR).</strong> Creating your account, delivering the brief and
+        stories, applying your settings, and maintaining preference memory so the product works as
+        offered.
+      </li>
+      <li>
+        <strong>Legitimate interests (Art. 6(1)(f) GDPR).</strong> Securing the service, preventing
+        abuse, and improving reliability, balanced against your rights.
+      </li>
+      <li>
+        <strong>Consent</strong> only where required for optional features that are not strictly needed
+        to provide the core product (we do not use non-essential advertising or analytics cookies
+        today).
+      </li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>Where data lives and who helps us</h2>
+    <p>
+      Application data (account, settings, feedback) is stored in our databases hosted on
+      <strong>Amazon Web Services in the EU</strong>. Preference memory is stored in
+      <strong>Amazon Bedrock AgentCore Memory in the EU</strong>. Model inference for ranking,
+      extraction, and chat runs on Amazon Bedrock with processing kept in the EU (in-region or EU
+      geographic inference).
+    </p>
+    <p>
+      Google acts as identity provider for sign-in. AWS acts as our infrastructure and AI processing
+      provider. We do not sell personal data. Amazon Bedrock does not use your prompts or outputs to
+      train foundation models.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Cookies</h2>
+    <p>
+      We use a session cookie that is <strong>strictly necessary</strong> for authentication and CSRF
+      protection. We do not set advertising or third-party tracking cookies.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Retention</h2>
+    <ul class="legal-list">
+      <li>Account and settings data are kept while your account remains active.</li>
+      <li>
+        Preference memory records are retained while needed to personalize your briefs, subject to
+        retention limits we configure on AgentCore Memory, and are deleted when your account is
+        deleted or when you ask us to erase them.
+      </li>
+      <li>Operational logs are kept only as long as needed for security and troubleshooting.</li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2>Your rights</h2>
+    <p>
+      If you are in the EEA/UK, you can request access, correction, deletion, restriction, or
+      portability of your personal data, and object to processing based on legitimate interests.
+      Contact <a href="mailto:kjeld.schmidt@the-coding-kind.com">kjeld.schmidt@the-coding-kind.com</a>. You may
+      also lodge a complaint with your local supervisory authority.
+    </p>
+    <p>
+      To erase preference memory or close your account, email us from the address linked to your
+      Google sign-in so we can verify the request.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Changes</h2>
+    <p>
+      If we change how we process personal data in a material way, we will update this page and revise
+      the “Last updated” date above.
+    </p>
+  </section>
+</article>
+{% endblock %}

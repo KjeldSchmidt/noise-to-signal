@@ -18,6 +18,8 @@
 body {
   margin: 0;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   font-family: var(--font-body);
   color: var(--ink);
   background:
@@ -86,7 +88,69 @@ a:hover { color: var(--accent-2); }
 .main {
   width: min(880px, calc(100% - 2rem));
   margin: 0 auto;
-  padding: 2rem 0 4rem;
+  padding: 2rem 0 3rem;
+  flex: 1 0 auto;
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: rgba(243, 239, 228, 0.7);
+  margin-top: auto;
+}
+
+.site-footer-inner {
+  width: min(880px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.1rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.site-footer-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.site-footer-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.site-footer-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.site-footer-nav a:hover,
+.site-footer-nav a[aria-current="page"] {
+  color: var(--ink);
+}
+
+.legal .block p,
+.legal .legal-list {
+  max-width: 40rem;
+  color: var(--ink);
+}
+
+.legal .legal-list {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.legal .legal-list li {
+  margin: 0.65rem 0;
+}
+
+.legal .legal-list strong {
+  font-weight: 600;
 }
 
 .hero {

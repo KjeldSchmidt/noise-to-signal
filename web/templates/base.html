@@ -43,6 +43,15 @@
   <main class="main">
     {% block content %}{% endblock %}
   </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span class="site-footer-brand">Noise to Signal</span>
+      <nav class="site-footer-nav" aria-label="Legal">
+        <a href="{% url 'privacy' %}" {% if request.resolver_match.url_name == 'privacy' %}aria-current="page"{% endif %}>Privacy</a>
+      </nav>
+    </div>
+  </footer>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

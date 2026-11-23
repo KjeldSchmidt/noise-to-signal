@@ -4,6 +4,7 @@ from news import views
 
 urlpatterns = [
     path("", views.landing, name="landing"),
+    path("privacy/", views.privacy, name="privacy"),
     path("oauth/popup-done/", views.oauth_popup_done, name="oauth_popup_done"),
     path("brief/", views.brief, name="brief"),
     path("stories/", views.stories, name="stories"),

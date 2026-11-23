@@ -64,6 +64,11 @@ def landing(request: HttpRequest) -> HttpResponse:
     return render(request, "news/landing.html")
 
 
+def privacy(request: HttpRequest) -> HttpResponse:
+    """Public privacy notice (GDPR transparency)."""
+    return render(request, "news/privacy.html")
+
+
 @login_required
 def oauth_popup_done(request: HttpRequest) -> HttpResponse:
     """Land here after Google OAuth in a popup; close popup and navigate opener."""
