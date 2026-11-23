@@ -114,7 +114,7 @@ locals {
   }
   analysis_writers = {
     for name, cfg in var.workers : name => cfg
-    if try(cfg.write_analysis_artifacts, false) && var.analysis_artifacts_bucket_arn != ""
+    if try(cfg.write_analysis_artifacts, false) && var.analysis_artifacts_enabled
   }
 
   # aws_region.name is deprecated; id is the region string (e.g. eu-central-1).
@@ -279,7 +279,7 @@ resource "aws_lambda_function" "worker" {
           LANGSMITH_TRACING_SAMPLING_RATE = tostring(each.value.langsmith_tracing_sampling_rate)
         } : {},
       ) : {},
-      try(each.value.write_analysis_artifacts, false) && var.analysis_artifacts_bucket_name != "" ? {
+      try(each.value.write_analysis_artifacts, false) && var.analysis_artifacts_enabled ? {
         ANALYSIS_ARTIFACTS_BUCKET = var.analysis_artifacts_bucket_name
       } : {},
     )

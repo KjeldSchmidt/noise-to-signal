@@ -75,6 +75,7 @@ module "workers" {
   public_hostname                = "noise-to-signal.fyi"
   app_secret_arn                 = module.web.app_secret_arn
   feed_items_queue_arn           = module.web.feed_items_queue_arn
+  analysis_artifacts_enabled     = true
   analysis_artifacts_bucket_name = module.web.analysis_artifacts_bucket_name
   analysis_artifacts_bucket_arn  = module.web.analysis_artifacts_bucket_arn
   agentcore_memory_enabled       = true

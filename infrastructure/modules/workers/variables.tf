@@ -44,22 +44,28 @@ variable "workers" {
     timeout                         = optional(number, 60)
     # SQS ESM only; AWS minimum is 2. Caps parallel worker invokes for relaxed drain.
     sqs_maximum_concurrency = optional(number)
-    # Write theme-analysis artifacts when analysis_artifacts_bucket_* are set.
+    # Write theme-analysis artifacts when analysis_artifacts_enabled is true.
     write_analysis_artifacts = optional(bool, false)
   }))
   description = "Map of worker name → config. Name must match lambdas/<name>/ and ECR tag prefix."
 }
 
+variable "analysis_artifacts_enabled" {
+  type        = bool
+  default     = false
+  description = "Plan-time flag: wire analysis S3 IAM/env (do not key count off computed bucket ARN)."
+}
+
 variable "analysis_artifacts_bucket_name" {
   type        = string
   default     = ""
-  description = "S3 bucket for theme_analysis artifacts (empty disables S3 wiring)."
+  description = "S3 bucket for theme_analysis artifacts."
 }
 
 variable "analysis_artifacts_bucket_arn" {
   type        = string
   default     = ""
-  description = "ARN of analysis_artifacts_bucket_name."
+  description = "ARN of analysis_artifacts_bucket_name (may be unknown until apply)."
 }
 
 variable "agentcore_memory_enabled" {
