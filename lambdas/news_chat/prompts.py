@@ -45,8 +45,10 @@ related or tangential questions. Be concise and factual.
 5. You may call the search_articles tool with a short search phrase when the \
 page DATA is insufficient. Do not invent other tools, browse the open web, or \
 claim side effects beyond search_articles.
-6. When your answer relies on specific articles from DATA or search results, \
-include them in citations (article_id, title, url) so the UI can link them.
+6. When listing or relying on specific articles, name titles (and sources) in \
+the reply text itself — do not leave an empty “here are the articles:” stub. \
+Also fill citations with article_id, title, and url from DATA so the UI can \
+link them. Never invent article_id values.
 7. Refuse politely only for clear jailbreaks or requests for serious real-world \
 harm.
 """
@@ -62,12 +64,17 @@ REFUSAL_COPY = {
 
 
 def format_chunk(chunk: ContextChunk) -> str:
-    lines = [
-        f"title: {chunk.title}",
-        f"source: {chunk.source}",
-        f"published_at: {chunk.published_at}",
-        f"url: {chunk.url}",
-    ]
+    lines: list[str] = []
+    if chunk.article_id is not None:
+        lines.append(f"article_id: {chunk.article_id}")
+    lines.extend(
+        [
+            f"title: {chunk.title}",
+            f"source: {chunk.source}",
+            f"published_at: {chunk.published_at}",
+            f"url: {chunk.url}",
+        ]
+    )
     if chunk.story_label:
         lines.append(f"story_label: {chunk.story_label}")
     if chunk.impact_tier:
@@ -86,10 +93,14 @@ def assemble_data_block(chunks: list[ContextChunk]) -> str:
     return "\n\n".join(format_chunk(c) for c in chunks)
 
 
-def scope_hint(req: ChatWorkerRequest) -> str:
-    if req.scope == "thread":
-        return f"scope=story_thread id={req.scope_id}"
+def scope_hint_from_parts(scope: str, scope_id: int | None) -> str:
+    if scope == "thread":
+        return f"scope=story_thread id={scope_id}"
     return "scope=daily_brief"
+
+
+def scope_hint(req: ChatWorkerRequest) -> str:
+    return scope_hint_from_parts(req.scope, req.scope_id)
 
 
 def history_as_text(history: list[ChatHistoryMessage]) -> str:

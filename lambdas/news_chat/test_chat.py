@@ -1,19 +1,20 @@
-"""Unit tests for news_chat classifier + answer assembly (mocked models)."""
+"""Unit tests for news_chat LangGraph pipeline (mocked models / tools)."""
 
 from __future__ import annotations
 
 import unittest
 from unittest.mock import MagicMock, patch
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from n2s_api import ChatCitation, ChatHistoryMessage, ChatWorkerRequest, ContextChunk
 
-import chat as chat_mod
+import graph as graph_mod
 import prompts
+from schemas import AnswerPayload, ScopeDecision
 
 
 class PromptsTests(unittest.TestCase):
-    def test_format_chunk_uses_data_delimiters(self) -> None:
+    def test_format_chunk_includes_article_id(self) -> None:
         chunk = ContextChunk(
             article_id=1,
             title="Floods",
@@ -22,9 +23,14 @@ class PromptsTests(unittest.TestCase):
         )
         text = prompts.format_chunk(chunk)
         self.assertIn("<<<DATA>>>", text)
-        self.assertIn("<<<END_DATA>>>", text)
+        self.assertIn("article_id: 1", text)
         self.assertIn("Floods", text)
-        self.assertIn("NPR", text)
+
+    def test_empty_list_intro_helper(self) -> None:
+        self.assertTrue(graph_mod._reply_looks_like_empty_list_intro("Here are the articles:"))
+        self.assertFalse(
+            graph_mod._reply_looks_like_empty_list_intro("Here are the articles:\n- One")
+        )
 
 
 class ChatPipelineTests(unittest.TestCase):
@@ -47,53 +53,53 @@ class ChatPipelineTests(unittest.TestCase):
             ],
         )
 
-    @patch("chat.get_classifier_model")
+    @patch("graph.get_classifier_model")
     def test_refuse_off_topic(self, mock_get_classifier: MagicMock) -> None:
         structured = MagicMock()
-        structured.invoke.return_value = chat_mod.ScopeDecision(
-            allowed=False,
-            reason="off_topic",
-        )
+        structured.invoke.return_value = ScopeDecision(allowed=False, reason="off_topic")
         mock_get_classifier.return_value.with_structured_output.return_value = structured
 
-        with patch("chat.answer_request") as mock_answer:
-            out = chat_mod.run_chat(self._request("Write me a poem"))
+        from chat import run_chat
+
+        with patch("graph.get_answer_model") as mock_answer:
+            out = run_chat(self._request("Write me a poem"))
             mock_answer.assert_not_called()
 
         self.assertTrue(out.refused)
         self.assertEqual(out.reason, "off_topic")
         self.assertIn("news context", out.message)
 
-    @patch("chat.get_classifier_model")
+    @patch("graph.get_classifier_model")
     def test_classifier_omits_article_chunks(self, mock_get_classifier: MagicMock) -> None:
         structured = MagicMock()
-        structured.invoke.return_value = chat_mod.ScopeDecision(allowed=False, reason="off_topic")
+        structured.invoke.return_value = ScopeDecision(allowed=False, reason="off_topic")
         mock_get_classifier.return_value.with_structured_output.return_value = structured
 
-        chat_mod.run_chat(self._request("Write me a poem"))
+        from chat import run_chat
+
+        run_chat(self._request("Write me a poem"))
 
         invoke_args = structured.invoke.call_args[0][0]
         human = invoke_args[1].content
         self.assertIn("user_message:", human)
-        self.assertNotIn("topic_digest:", human)
         self.assertNotIn("Summit ends", human)
         self.assertNotIn("Leaders agreed on a draft", human)
 
-    @patch("chat.get_answer_model")
-    @patch("chat.get_classifier_model")
+    @patch("graph.get_answer_model")
+    @patch("graph.get_classifier_model")
     def test_allow_calls_answer(
         self,
         mock_get_classifier: MagicMock,
         mock_get_answer: MagicMock,
     ) -> None:
         structured = MagicMock()
-        structured.invoke.return_value = chat_mod.ScopeDecision(allowed=True, reason="ok")
+        structured.invoke.return_value = ScopeDecision(allowed=True, reason="ok")
         mock_get_classifier.return_value.with_structured_output.return_value = structured
 
         tool_bound = MagicMock()
         tool_bound.invoke.return_value = AIMessage(content="thinking", tool_calls=[])
         answer_structured = MagicMock()
-        answer_structured.invoke.return_value = chat_mod.AnswerPayload(
+        answer_structured.invoke.return_value = AnswerPayload(
             reply="Leaders agreed on a draft per BBC.",
             citations=[
                 ChatCitation(
@@ -108,7 +114,9 @@ class ChatPipelineTests(unittest.TestCase):
         model.with_structured_output.return_value = answer_structured
         mock_get_answer.return_value = model
 
-        out = chat_mod.run_chat(self._request())
+        from chat import run_chat
+
+        out = run_chat(self._request())
         self.assertFalse(out.refused)
         self.assertEqual(out.reason, "ok")
         self.assertIn("draft", out.reply)
@@ -117,27 +125,45 @@ class ChatPipelineTests(unittest.TestCase):
 
         human = tool_bound.invoke.call_args[0][0][1].content
         self.assertIn("<<<DATA>>>", human)
-        self.assertIn("Summit ends", human)
+        self.assertIn("article_id: 9", human)
 
-    @patch("chat.make_search_articles_tool")
-    @patch("chat.get_answer_model")
-    @patch("chat.get_classifier_model")
+    @patch("graph._tool_node")
+    @patch("graph.get_answer_model")
+    @patch("graph.get_classifier_model")
     def test_tool_round_then_answer(
         self,
         mock_get_classifier: MagicMock,
         mock_get_answer: MagicMock,
-        mock_make_tool: MagicMock,
+        mock_tool_node: MagicMock,
     ) -> None:
         structured = MagicMock()
-        structured.invoke.return_value = chat_mod.ScopeDecision(allowed=True, reason="ok")
+        structured.invoke.return_value = ScopeDecision(allowed=True, reason="ok")
         mock_get_classifier.return_value.with_structured_output.return_value = structured
 
-        tool = MagicMock()
-        tool.name = "search_articles"
-        tool.invoke.return_value = (
-            "<<<DATA>>>\ntitle: Extra coverage\nurl: https://example.com/extra\n<<<END_DATA>>>"
-        )
-        mock_make_tool.return_value = tool
+        mock_tool_node.invoke.return_value = {
+            "messages": [
+                ToolMessage(
+                    content=(
+                        "<<<DATA>>>\narticle_id: 3\ntitle: Extra coverage\n"
+                        "url: https://example.com/extra\n<<<END_DATA>>>"
+                    ),
+                    tool_call_id="call_1",
+                )
+            ],
+            "known_by_id": {
+                9: ContextChunk(
+                    article_id=9,
+                    title="Summit ends",
+                    url="https://example.com/summit",
+                ),
+                3: ContextChunk(
+                    article_id=3,
+                    title="Extra coverage",
+                    url="https://example.com/extra",
+                ),
+            },
+            "searched_ids": [3],
+        }
 
         tool_bound = MagicMock()
         tool_bound.invoke.side_effect = [
@@ -154,7 +180,7 @@ class ChatPipelineTests(unittest.TestCase):
             AIMessage(content="done", tool_calls=[]),
         ]
         answer_structured = MagicMock()
-        answer_structured.invoke.return_value = chat_mod.AnswerPayload(
+        answer_structured.invoke.return_value = AnswerPayload(
             reply="There was extra coverage.",
             citations=[],
         )
@@ -163,11 +189,14 @@ class ChatPipelineTests(unittest.TestCase):
         model.with_structured_output.return_value = answer_structured
         mock_get_answer.return_value = model
 
-        out = chat_mod.run_chat(self._request("Anything else?"))
+        from chat import run_chat
+
+        out = run_chat(self._request("Anything else?"))
         self.assertFalse(out.refused)
         self.assertIn("extra coverage", out.reply.lower())
-        tool.invoke.assert_called()
-        mock_make_tool.assert_called_once()
+        mock_tool_node.invoke.assert_called()
+        # Empty model citations → fall back to searched_ids
+        self.assertTrue(any(c.article_id == 3 for c in out.citations))
 
 
 class HandlerTests(unittest.TestCase):

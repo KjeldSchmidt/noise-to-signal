@@ -1,88 +1,25 @@
-"""LangChain tools for news_chat (thin wrappers over internal APIs)."""
+"""LangGraph tools for news_chat (InjectedState + Command updates)."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import Annotated
 
-from langchain_core.tools import StructuredTool
+from langchain_core.messages import ToolMessage
+from langchain_core.tools import InjectedToolCallId, tool
+from langgraph.prebuilt import InjectedState
+from langgraph.types import Command
 from n2s_api import ArticleSearchRequest, ChatCitation, ContextChunk
 from n2s_web_client.client import search_articles as client_search_articles
 from pydantic import BaseModel, Field
 
 from embed import embed_text
 from prompts import assemble_data_block
+from state import ChatState
 
 
 class SearchArticlesArgs(BaseModel):
     query: str = Field(
         description=("Short search phrase (keywords or topic). Do not paste the full user message.")
-    )
-
-
-def _run_search(
-    *,
-    user_id: int,
-    exclude_article_ids: list[int],
-    on_results: Callable[[list[ContextChunk]], None],
-    query: str,
-) -> str:
-    text = (query or "").strip()
-    if not text:
-        return "No query provided."
-
-    embedding: list[float] | None
-    try:
-        embedding = embed_text(text)
-    except Exception as exc:  # noqa: BLE001 — tool should not crash the agent loop
-        embedding = None
-        embed_error = f" (embedding skipped: {exc})"
-    else:
-        embed_error = ""
-
-    try:
-        results = client_search_articles(
-            ArticleSearchRequest(
-                query=text,
-                user_id=user_id,
-                embedding=embedding,
-                limit=10,
-                exclude_article_ids=exclude_article_ids,
-            )
-        )
-    except Exception as exc:  # noqa: BLE001
-        return f"search_articles failed: {exc}"
-
-    on_results(results)
-    if not results:
-        return f"No matching articles found.{embed_error}"
-    return assemble_data_block(results) + embed_error
-
-
-def make_search_articles_tool(
-    *,
-    user_id: int,
-    exclude_article_ids: list[int],
-    on_results: Callable[[list[ContextChunk]], None],
-) -> StructuredTool:
-    """Build a search_articles tool closed over the current chat user/scope."""
-
-    def _invoke(query: str) -> str:
-        return _run_search(
-            user_id=user_id,
-            exclude_article_ids=exclude_article_ids,
-            on_results=on_results,
-            query=query,
-        )
-
-    return StructuredTool.from_function(
-        func=_invoke,
-        name="search_articles",
-        description=(
-            "Search the user's news database by title/summary text and semantic "
-            "similarity. Use when the page context is insufficient. Pass a short "
-            "search phrase, not the full chat message."
-        ),
-        args_schema=SearchArticlesArgs,
     )
 
 
@@ -116,3 +53,75 @@ def filter_citations(
         out.append(ChatCitation(article_id=article_id, title=title, url=url))
         seen.add(article_id)
     return out
+
+
+def _search_content(
+    *,
+    query: str,
+    user_id: int,
+    exclude_article_ids: list[int],
+) -> tuple[str, list[ContextChunk]]:
+    text = (query or "").strip()
+    if not text:
+        return "No query provided.", []
+
+    embedding: list[float] | None
+    try:
+        embedding = embed_text(text)
+    except Exception as exc:  # noqa: BLE001 — tool should not crash the agent loop
+        embedding = None
+        embed_error = f" (embedding skipped: {exc})"
+    else:
+        embed_error = ""
+
+    try:
+        results = client_search_articles(
+            ArticleSearchRequest(
+                query=text,
+                user_id=user_id,
+                embedding=embedding,
+                limit=10,
+                exclude_article_ids=exclude_article_ids,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        return f"search_articles failed: {exc}", []
+
+    if not results:
+        return f"No matching articles found.{embed_error}", []
+    return assemble_data_block(results) + embed_error, list(results)
+
+
+@tool("search_articles", args_schema=SearchArticlesArgs)
+def search_articles(
+    query: str,
+    state: Annotated[ChatState, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> Command:
+    """
+    Search the user's news database by title/summary text and semantic similarity.
+    Use when the page context is insufficient. Pass a short search phrase, not the
+    full chat message.
+    """
+    known = dict(state.get("known_by_id") or {})
+    content, results = _search_content(
+        query=query,
+        user_id=int(state["user_id"]),
+        exclude_article_ids=list(known.keys()),
+    )
+    found = collect_known_articles(results)
+    known.update(found)
+    searched = list(state.get("searched_ids") or [])
+    for article_id in found:
+        if article_id not in searched:
+            searched.append(article_id)
+    return Command(
+        update={
+            "known_by_id": known,
+            "searched_ids": searched,
+            "messages": [ToolMessage(content=content, tool_call_id=tool_call_id)],
+        }
+    )
+
+
+CHAT_TOOLS = [search_articles]

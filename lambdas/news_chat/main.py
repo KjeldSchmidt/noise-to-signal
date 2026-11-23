@@ -1,4 +1,4 @@
-"""news_chat — sync Lambda entrypoint (invoked by web)."""
+"""news_chat — sync Lambda entrypoint (LangGraph chat worker)."""
 
 from __future__ import annotations
 

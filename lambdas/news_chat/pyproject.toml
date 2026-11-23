@@ -1,11 +1,12 @@
 [project]
 name = "news_chat"
 version = "0.1.0"
-description = "noise-to-signal news chat — scope classifier + grounded RAG answers"
+description = "noise-to-signal news chat — LangGraph classify / tool agent / grounded answers"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "langchain[aws]>=1.4.0",
+    "langgraph>=1.2.20",
     "langsmith>=0.14.9",
     "n2s-api",
     "n2s-web-client",
