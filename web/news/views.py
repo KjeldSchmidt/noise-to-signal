@@ -537,6 +537,7 @@ def _chat(request: HttpRequest) -> JsonResponse:
         worker_req = ChatWorkerRequest(
             scope=scope,  # type: ignore[arg-type]
             scope_id=scope_id,
+            user_id=int(user.pk),
             message=message,
             history=history,
             chunks=chunks,
@@ -552,6 +553,7 @@ def _chat(request: HttpRequest) -> JsonResponse:
                 "refused": True,
                 "reason": result.reason,
                 "reply": result.message or result.reply,
+                "citations": [],
             }
         )
     return JsonResponse(
@@ -560,6 +562,7 @@ def _chat(request: HttpRequest) -> JsonResponse:
             "refused": False,
             "reason": "ok",
             "reply": result.reply,
+            "citations": [c.model_dump() for c in result.citations],
         }
     )
 

@@ -5,7 +5,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
-from n2s_api import ChatHistoryMessage, ChatWorkerRequest, ContextChunk
+from langchain_core.messages import AIMessage
+from n2s_api import ChatCitation, ChatHistoryMessage, ChatWorkerRequest, ContextChunk
 
 import chat as chat_mod
 import prompts
@@ -30,6 +31,7 @@ class ChatPipelineTests(unittest.TestCase):
     def _request(self, message: str = "What happened?") -> ChatWorkerRequest:
         return ChatWorkerRequest(
             scope="brief",
+            user_id=42,
             message=message,
             history=[ChatHistoryMessage(role="user", content="Earlier Q")],
             chunks=[
@@ -40,6 +42,7 @@ class ChatPipelineTests(unittest.TestCase):
                     place_label="Geneva",
                     story_label="Climate summit",
                     summary="Leaders agreed on a draft.",
+                    url="https://example.com/summit",
                 )
             ],
         )
@@ -87,19 +90,84 @@ class ChatPipelineTests(unittest.TestCase):
         structured.invoke.return_value = chat_mod.ScopeDecision(allowed=True, reason="ok")
         mock_get_classifier.return_value.with_structured_output.return_value = structured
 
-        answer = MagicMock()
-        answer.content = "Leaders agreed on a draft per BBC."
-        mock_get_answer.return_value.invoke.return_value = answer
+        tool_bound = MagicMock()
+        tool_bound.invoke.return_value = AIMessage(content="thinking", tool_calls=[])
+        answer_structured = MagicMock()
+        answer_structured.invoke.return_value = chat_mod.AnswerPayload(
+            reply="Leaders agreed on a draft per BBC.",
+            citations=[
+                ChatCitation(
+                    article_id=9,
+                    title="Summit ends",
+                    url="https://example.com/summit",
+                )
+            ],
+        )
+        model = MagicMock()
+        model.bind_tools.return_value = tool_bound
+        model.with_structured_output.return_value = answer_structured
+        mock_get_answer.return_value = model
 
         out = chat_mod.run_chat(self._request())
         self.assertFalse(out.refused)
         self.assertEqual(out.reason, "ok")
         self.assertIn("draft", out.reply)
+        self.assertEqual(len(out.citations), 1)
+        self.assertEqual(out.citations[0].article_id, 9)
 
-        invoke_args = mock_get_answer.return_value.invoke.call_args[0][0]
-        human = invoke_args[1].content
+        human = tool_bound.invoke.call_args[0][0][1].content
         self.assertIn("<<<DATA>>>", human)
         self.assertIn("Summit ends", human)
+
+    @patch("chat.make_search_articles_tool")
+    @patch("chat.get_answer_model")
+    @patch("chat.get_classifier_model")
+    def test_tool_round_then_answer(
+        self,
+        mock_get_classifier: MagicMock,
+        mock_get_answer: MagicMock,
+        mock_make_tool: MagicMock,
+    ) -> None:
+        structured = MagicMock()
+        structured.invoke.return_value = chat_mod.ScopeDecision(allowed=True, reason="ok")
+        mock_get_classifier.return_value.with_structured_output.return_value = structured
+
+        tool = MagicMock()
+        tool.name = "search_articles"
+        tool.invoke.return_value = (
+            "<<<DATA>>>\ntitle: Extra coverage\nurl: https://example.com/extra\n<<<END_DATA>>>"
+        )
+        mock_make_tool.return_value = tool
+
+        tool_bound = MagicMock()
+        tool_bound.invoke.side_effect = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "search_articles",
+                        "id": "call_1",
+                        "args": {"query": "extra coverage"},
+                    }
+                ],
+            ),
+            AIMessage(content="done", tool_calls=[]),
+        ]
+        answer_structured = MagicMock()
+        answer_structured.invoke.return_value = chat_mod.AnswerPayload(
+            reply="There was extra coverage.",
+            citations=[],
+        )
+        model = MagicMock()
+        model.bind_tools.return_value = tool_bound
+        model.with_structured_output.return_value = answer_structured
+        mock_get_answer.return_value = model
+
+        out = chat_mod.run_chat(self._request("Anything else?"))
+        self.assertFalse(out.refused)
+        self.assertIn("extra coverage", out.reply.lower())
+        tool.invoke.assert_called()
+        mock_make_tool.assert_called_once()
 
 
 class HandlerTests(unittest.TestCase):
@@ -113,9 +181,11 @@ class HandlerTests(unittest.TestCase):
             refused=False,
             reason="ok",
             reply="Hello",
+            citations=[],
         )
         payload = {
             "scope": "brief",
+            "user_id": 1,
             "message": "What is new?",
             "history": [],
             "chunks": [],
@@ -123,6 +193,7 @@ class HandlerTests(unittest.TestCase):
         out = handler(payload)
         self.assertEqual(out["reply"], "Hello")
         self.assertFalse(out["refused"])
+        self.assertEqual(out["citations"], [])
 
     def test_handler_invalid_payload(self) -> None:
         from main import handler

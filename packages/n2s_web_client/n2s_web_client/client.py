@@ -7,8 +7,11 @@ import urllib.error
 import urllib.request
 
 from n2s_api import (
+    ArticleSearchRequest,
+    ArticleSearchResponse,
     ArticleUpsert,
     ArticleUpsertResponse,
+    ContextChunk,
     Feed,
     FeedItem,
     FeedItemIngestRequest,
@@ -206,3 +209,27 @@ def upsert_article(
     except urllib.error.HTTPError as exc:
         err = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"upsert_article failed ({exc.code}): {err}") from exc
+
+
+def search_articles(
+    req: ArticleSearchRequest,
+    *,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> list[ContextChunk]:
+    """POST /api/internal/articles/search/ — title + embedding article search."""
+    base, auth = _base_and_token(base_url, token)
+    body = req.model_dump_json().encode("utf-8")
+    request = urllib.request.Request(
+        f"{base}/api/internal/articles/search/",
+        data=body,
+        headers=_auth_headers(auth),
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = ArticleSearchResponse.model_validate_json(response.read())
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"search_articles failed ({exc.code}): {err}") from exc
+    return list(payload.results)

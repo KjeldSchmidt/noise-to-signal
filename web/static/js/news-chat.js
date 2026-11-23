@@ -31,11 +31,37 @@
     status.classList.toggle("is-error", !!isError);
   }
 
-  function appendBubble(role, text) {
+  function appendBubble(role, text, citations) {
     if (empty) empty.remove();
     const el = document.createElement("div");
     el.className = "news-chat-bubble is-" + role;
-    el.textContent = text;
+    const body = document.createElement("div");
+    body.className = "news-chat-bubble-text";
+    body.textContent = text;
+    el.appendChild(body);
+
+    if (role === "assistant" && Array.isArray(citations) && citations.length) {
+      const sources = document.createElement("div");
+      sources.className = "news-chat-sources";
+      const label = document.createElement("span");
+      label.className = "news-chat-sources-label";
+      label.textContent = "Sources";
+      sources.appendChild(label);
+      citations.forEach(function (cite) {
+        if (!cite || !cite.url) return;
+        const link = document.createElement("a");
+        link.className = "news-chat-source-link";
+        link.href = cite.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = cite.title || cite.url;
+        sources.appendChild(link);
+      });
+      if (sources.querySelectorAll("a").length) {
+        el.appendChild(sources);
+      }
+    }
+
     messages.appendChild(el);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -107,7 +133,12 @@
           );
         }
         const reply = result.data.reply || "";
-        appendBubble(result.data.refused ? "refuse" : "assistant", reply);
+        const citations = result.data.refused ? [] : result.data.citations || [];
+        appendBubble(
+          result.data.refused ? "refuse" : "assistant",
+          reply,
+          citations
+        );
         history.push({ role: "user", content: message });
         if (!result.data.refused && reply) {
           history.push({ role: "assistant", content: reply });

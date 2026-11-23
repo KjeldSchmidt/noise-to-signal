@@ -91,7 +91,10 @@ class ChatEndpointTests(TestCase):
         mock_invoke.assert_called_once()
         req = mock_invoke.call_args[0][0]
         self.assertEqual(req.scope, "brief")
+        self.assertEqual(req.user_id, self.user.pk)
         self.assertTrue(any(c.title == "Summit ends" for c in req.chunks))
+        self.assertIn("citations", data)
+        self.assertEqual(data["citations"], [])
 
     @patch("news.views.invoke_news_chat")
     def test_refuse_path(self, mock_invoke) -> None:

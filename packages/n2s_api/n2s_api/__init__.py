@@ -5,6 +5,9 @@ from n2s_api.chat import (
     MAX_CHUNKS,
     MAX_HISTORY_TURNS,
     MAX_MESSAGE_CHARS,
+    ArticleSearchRequest,
+    ArticleSearchResponse,
+    ChatCitation,
     ChatHistoryMessage,
     ChatWorkerRequest,
     ChatWorkerResponse,
@@ -31,8 +34,11 @@ from n2s_api.items import (
 )
 
 __all__ = [
+    "ArticleSearchRequest",
+    "ArticleSearchResponse",
     "ArticleUpsert",
     "ArticleUpsertResponse",
+    "ChatCitation",
     "ChatHistoryMessage",
     "ChatWorkerRequest",
     "ChatWorkerResponse",

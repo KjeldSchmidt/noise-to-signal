@@ -15,7 +15,7 @@ from news.services.stories_feed import thread_timeline_articles, thread_visible_
 ChatRetrieveScope = Literal["brief", "thread"]
 
 
-def _article_to_chunk(article: Article) -> ContextChunk:
+def article_to_chunk(article: Article) -> ContextChunk:
     published = ""
     if article.published_at is not None:
         published = article.published_at.isoformat()
@@ -36,7 +36,7 @@ def _article_to_chunk(article: Article) -> ContextChunk:
 
 
 def _limit_chunks(articles: list[Article]) -> list[ContextChunk]:
-    return [_article_to_chunk(a) for a in articles[:MAX_CHUNKS]]
+    return [article_to_chunk(a) for a in articles[:MAX_CHUNKS]]
 
 
 def retrieve_brief_context(user: AbstractBaseUser) -> list[ContextChunk]:
@@ -81,8 +81,8 @@ def retrieve(
     Resolve grounded context for a chat scope.
 
     Returns None for unauthorized / missing thread scope.
-    A future ``query`` scope (embedding ANN) can plug in here without
-    changing the news_chat worker contract.
+    Ad-hoc title/ANN lookup is a news_chat tool via the internal search API,
+    not a retrieve() scope.
     """
     if scope == "brief":
         return retrieve_brief_context(user)

@@ -14,6 +14,9 @@ MAX_MESSAGE_CHARS = 2000
 MAX_HISTORY_TURNS = 12
 MAX_CHUNKS = 20
 MAX_CHUNK_CHARS = 2500
+MAX_CITATIONS = 10
+MAX_SEARCH_QUERY_CHARS = 500
+EMBEDDING_DIMENSIONS = 1024
 
 
 class ContextChunk(BaseModel):
@@ -47,6 +50,21 @@ class ContextChunk(BaseModel):
         return (value or "").strip()[:64]
 
 
+class ChatCitation(BaseModel):
+    """Article link the UI may render under an assistant reply."""
+
+    model_config = ConfigDict(frozen=True)
+
+    article_id: int
+    title: str = ""
+    url: str = ""
+
+    @field_validator("title", "url")
+    @classmethod
+    def _strip_short(cls, value: str) -> str:
+        return (value or "").strip()[:300]
+
+
 class ChatHistoryMessage(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -69,6 +87,7 @@ class ChatWorkerRequest(BaseModel):
 
     scope: ChatScope
     scope_id: int | None = None
+    user_id: int
     message: str
     history: list[ChatHistoryMessage] = Field(default_factory=list)
     chunks: list[ContextChunk] = Field(default_factory=list)
@@ -105,8 +124,51 @@ class ChatWorkerResponse(BaseModel):
     reason: RefusalReason = "ok"
     reply: str = ""
     message: str = ""
+    citations: list[ChatCitation] = Field(default_factory=list)
 
     @field_validator("reply", "message")
     @classmethod
     def _text(cls, value: str) -> str:
         return (value or "").strip()
+
+    @field_validator("citations")
+    @classmethod
+    def _citations(cls, value: list[ChatCitation]) -> list[ChatCitation]:
+        if len(value) > MAX_CITATIONS:
+            return value[:MAX_CITATIONS]
+        return value
+
+
+class ArticleSearchRequest(BaseModel):
+    """Internal API: title + optional embedding ANN article search."""
+
+    model_config = ConfigDict(frozen=True)
+
+    query: str
+    user_id: int
+    embedding: list[float] | None = None
+    limit: int = Field(default=10, ge=1, le=MAX_CHUNKS)
+    exclude_article_ids: list[int] = Field(default_factory=list)
+
+    @field_validator("query")
+    @classmethod
+    def _query(cls, value: str) -> str:
+        text = (value or "").strip()
+        if not text:
+            raise ValueError("query must be non-empty")
+        return text[:MAX_SEARCH_QUERY_CHARS]
+
+    @field_validator("embedding")
+    @classmethod
+    def _embedding_dims(cls, value: list[float] | None) -> list[float] | None:
+        if value is None:
+            return None
+        if len(value) != EMBEDDING_DIMENSIONS:
+            raise ValueError(f"embedding must have exactly {EMBEDDING_DIMENSIONS} dimensions")
+        return value
+
+
+class ArticleSearchResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    results: list[ContextChunk] = Field(default_factory=list)

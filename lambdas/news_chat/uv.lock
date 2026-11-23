@@ -504,6 +504,23 @@ dev = [
 ]
 
 [[package]]
+name = "n2s-web-client"
+version = "0.1.0"
+source = { directory = "../../packages/n2s_web_client" }
+dependencies = [
+    { name = "n2s-api" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "n2s-api", directory = "../../packages/n2s_api" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "ruff", specifier = ">=0.17.4" },
+    { name = "ty", specifier = ">=0.0.100" },
+]
+
+[[package]]
 name = "news-chat"
 version = "0.1.0"
 source = { virtual = "." }
@@ -511,6 +528,7 @@ dependencies = [
     { name = "langchain", extra = ["aws"] },
     { name = "langsmith" },
     { name = "n2s-api" },
+    { name = "n2s-web-client" },
     { name = "python-dotenv" },
 ]
 
@@ -526,6 +544,7 @@ requires-dist = [
     { name = "langchain", extras = ["aws"], specifier = ">=1.4.0" },
     { name = "langsmith", specifier = ">=0.14.9" },
     { name = "n2s-api", directory = "../../packages/n2s_api" },
+    { name = "n2s-web-client", directory = "../../packages/n2s_web_client" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
 ]
 

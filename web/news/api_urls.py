@@ -8,5 +8,6 @@ urlpatterns = [
     path("themes/", api.list_themes, name="internal_list_themes"),
     path("geocode/search/", api.geocode_search, name="internal_geocode_search"),
     path("feed-items/", api.ingest_feed_items, name="internal_ingest_feed_items"),
+    path("articles/search/", api.search_articles, name="internal_search_articles"),
     path("articles/", api.upsert_article, name="internal_upsert_article"),
 ]

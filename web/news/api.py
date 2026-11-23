@@ -11,6 +11,8 @@ from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from n2s_api import (
+    ArticleSearchRequest,
+    ArticleSearchResponse,
     ArticleUpsert,
     ArticleUpsertResponse,
     FeedItemIngestRequest,
@@ -31,6 +33,7 @@ from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
 from news.models import Article, EnrichmentStatus, Feed, GeoLevel, Theme
+from news.services.article_search import search_articles_by_user_id
 from news.services.feeds import feed_should_poll, feeds_for_list_api
 from news.services.geocode import search_places
 from news.services.themes import record_theme_suggestions
@@ -184,6 +187,31 @@ def _parse_published_at(value: str) -> datetime:
     if parsed is None:
         return datetime.now(UTC)
     return parsed
+
+
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_POST  # ty: ignore[invalid-argument-type]
+@require_internal_token
+def search_articles(request: HttpRequest) -> JsonResponse:
+    """Title + embedding article search scoped to a user's enabled feeds."""
+    try:
+        dto = ArticleSearchRequest.model_validate_json(request.body.decode("utf-8") or "{}")
+    except ValidationError as exc:
+        return JsonResponse(
+            {"error": "invalid search request", "detail": _validation_detail(exc)},
+            status=400,
+        )
+
+    results = search_articles_by_user_id(
+        user_id=dto.user_id,
+        query=dto.query,
+        embedding=dto.embedding,
+        limit=dto.limit,
+        exclude_article_ids=list(dto.exclude_article_ids),
+    )
+    if results is None:
+        return JsonResponse({"error": f"unknown user_id: {dto.user_id}"}, status=404)
+    return JsonResponse(ArticleSearchResponse(results=results).model_dump())
 
 
 @csrf_exempt
