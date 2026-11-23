@@ -18,6 +18,5 @@ lint-check:
 typecheck:
     uv run ty check
 
-# No unit tests in this package yet
 test:
-    @echo "n2s_api: no tests"
+    uv run pytest -q

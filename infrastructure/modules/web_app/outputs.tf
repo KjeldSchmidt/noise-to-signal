@@ -48,3 +48,11 @@ output "feed_items_queue_url" {
 output "feed_items_queue_arn" {
   value = aws_sqs_queue.feed_items.arn
 }
+
+output "analysis_artifacts_bucket_name" {
+  value = aws_s3_bucket.analysis.bucket
+}
+
+output "analysis_artifacts_bucket_arn" {
+  value = aws_s3_bucket.analysis.arn
+}

@@ -26,6 +26,12 @@ from n2s_api.chat import (
     ChatWorkerResponse,
     ContextChunk,
 )
+from n2s_api.embeddings_export import (
+    ArticleEmbeddingExportResponse,
+    ArticleEmbeddingExportRow,
+    decode_embedding_f32_b64,
+    encode_embedding_f32_b64,
+)
 from n2s_api.feeds import (
     Feed,
     FeedListResponse,
@@ -47,6 +53,8 @@ from n2s_api.items import (
 )
 
 __all__ = [
+    "ArticleEmbeddingExportResponse",
+    "ArticleEmbeddingExportRow",
     "ArticleSearchRequest",
     "ArticleSearchResponse",
     "ArticleUpsert",
@@ -84,4 +92,6 @@ __all__ = [
     "MAX_MESSAGE_CHARS",
     "ThemeDTO",
     "ThemeListResponse",
+    "decode_embedding_f32_b64",
+    "encode_embedding_f32_b64",
 ]

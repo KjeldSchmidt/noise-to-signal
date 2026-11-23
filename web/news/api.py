@@ -11,6 +11,8 @@ from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from n2s_api import (
+    ArticleEmbeddingExportResponse,
+    ArticleEmbeddingExportRow,
     ArticleSearchRequest,
     ArticleSearchResponse,
     ArticleUpsert,
@@ -27,6 +29,7 @@ from n2s_api import (
     GeocodeSearchResponse,
     ThemeDTO,
     ThemeListResponse,
+    encode_embedding_f32_b64,
 )
 from n2s_api import (
     Feed as FeedDTO,
@@ -190,6 +193,66 @@ def _parse_published_at(value: str) -> datetime:
     if parsed is None:
         return datetime.now(UTC)
     return parsed
+
+
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_GET  # ty: ignore[invalid-argument-type]
+@require_internal_token
+def export_article_embeddings(request: HttpRequest) -> JsonResponse:
+    """Paginated export of stored embeddings + theme slugs for theme_analysis."""
+    try:
+        cursor_raw = (request.GET.get("cursor") or "").strip()
+        cursor = int(cursor_raw) if cursor_raw else 0
+        if cursor < 0:
+            raise ValueError("cursor must be >= 0")
+        limit_raw = (request.GET.get("limit") or "200").strip()
+        limit = int(limit_raw)
+        if limit < 1 or limit > 500:
+            raise ValueError("limit must be 1..500")
+    except ValueError as exc:
+        return JsonResponse({"error": "invalid query", "detail": str(exc)}, status=400)
+
+    qs = (
+        Article.objects.filter(embedding__isnull=False)
+        .filter(id__gt=cursor)
+        .order_by("id")
+        .prefetch_related("themes")[: limit + 1]
+    )
+    rows = list(qs)
+    has_more = len(rows) > limit
+    page = rows[:limit]
+    theme_order = {
+        slug: idx
+        for idx, slug in enumerate(
+            Theme.objects.filter(is_active=True)
+            .order_by("sort_order", "slug")
+            .values_list("slug", flat=True)
+        )
+    }
+    articles: list[ArticleEmbeddingExportRow] = []
+    for article in page:
+        emb = article.embedding
+        if emb is None:
+            continue
+        values = [float(x) for x in list(emb)]
+        if len(values) != 1024:
+            continue
+        slugs = sorted(
+            (t.slug for t in article.themes.all() if t.is_active),
+            key=lambda s: (theme_order.get(s, 10_000), s),
+        )
+        articles.append(
+            ArticleEmbeddingExportRow(
+                id=article.id,
+                title=article.title,
+                theme_slugs=slugs,
+                embedding_b64=encode_embedding_f32_b64(values),
+            )
+        )
+    next_cursor = page[-1].id if has_more and page else None
+    return JsonResponse(
+        ArticleEmbeddingExportResponse(articles=articles, next_cursor=next_cursor).model_dump()
+    )
 
 
 @csrf_exempt  # ty: ignore[invalid-argument-type]

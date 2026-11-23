@@ -2,9 +2,11 @@
 
 from n2s_web_client.client import (
     complete_brief,
+    export_article_embeddings,
     geocode_search,
     get_brief_user_context,
     ingest_feed_items,
+    iter_article_embeddings,
     list_feeds,
     list_themes,
     search_articles,
@@ -14,9 +16,11 @@ from n2s_web_client.client import (
 
 __all__ = [
     "complete_brief",
+    "export_article_embeddings",
     "geocode_search",
     "get_brief_user_context",
     "ingest_feed_items",
+    "iter_article_embeddings",
     "list_feeds",
     "list_themes",
     "search_articles",

@@ -1,0 +1,149 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Theme–embedding analysis</h1>
+<p>
+  Compare LLM theme labels to Cohere article embeddings: cohesion metrics,
+  centroid heatmap, and UMAP scatter. Compute runs on the
+  <code>theme_analysis</code> Lambda; artifacts live in S3.
+</p>
+<p>
+  <a href="{% url 'admin:news_ops' %}">News ops</a>
+</p>
+
+{% if not configured %}
+  <p class="errornote">
+    Not configured locally (missing
+    <code>THEME_ANALYSIS_FUNCTION_NAME</code> /
+    <code>ANALYSIS_ARTIFACTS_BUCKET</code>). Deployed environments wire these via Terraform.
+  </p>
+{% else %}
+  <div style="margin: 1.5rem 0; padding: 1rem; border: 1px solid var(--border-color, #ccc);">
+    <h2>Refresh</h2>
+    <p>
+      Status:
+      {% if status %}
+        <strong>{{ status.status }}</strong>
+        {% if status.started_at %} · started {{ status.started_at }}{% endif %}
+        {% if status.finished_at %} · finished {{ status.finished_at }}{% endif %}
+        {% if status.error %}<br>Error: {{ status.error }}{% endif %}
+      {% else %}
+        <em>no status object yet</em>
+      {% endif %}
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="default" {% if status.status == "running" %}disabled{% endif %}>
+        Refresh analysis
+      </button>
+    </form>
+  </div>
+{% endif %}
+
+{% if latest %}
+  <div style="margin: 1.5rem 0;">
+    <h2>Summary</h2>
+    <p>
+      Generated {{ latest.generated_at }} ·
+      {{ latest.article_count }} articles ·
+      neighborhood purity @k=10:
+      {% if latest.neighborhood_purity_k10 != None %}
+        {{ latest.neighborhood_purity_k10 }}
+      {% else %}
+        n/a
+      {% endif %}
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Theme</th>
+          <th>Count</th>
+          <th>Within (mean cos)</th>
+          <th>Between (mean cos)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in latest.themes %}
+          <tr>
+            <td>{{ t.label }} <code>{{ t.slug }}</code></td>
+            <td>{{ t.count }}</td>
+            <td>{{ t.within_mean }}</td>
+            <td>{{ t.between_mean }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">No themed articles in report.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin: 1.5rem 0;">
+    <h2>Centroid heatmap</h2>
+    <div id="theme-heatmap" style="width:100%;height:520px;"></div>
+  </div>
+
+  <div style="margin: 1.5rem 0;">
+    <h2>UMAP scatter</h2>
+    <div id="theme-umap" style="width:100%;height:560px;"></div>
+  </div>
+
+  {{ latest_json|json_script:"theme-analysis-data" }}
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script>
+    (function () {
+      const el = document.getElementById("theme-analysis-data");
+      if (!el || typeof Plotly === "undefined") return;
+      const data = JSON.parse(el.textContent);
+
+      const heat = data.centroid_similarity || {};
+      const labels = heat.themes || [];
+      const matrix = heat.matrix || [];
+      if (labels.length && matrix.length) {
+        Plotly.newPlot("theme-heatmap", [{
+          z: matrix,
+          x: labels,
+          y: labels,
+          type: "heatmap",
+          colorscale: "Viridis",
+          zmin: 0,
+          zmax: 1,
+        }], {
+          margin: { t: 24, r: 24, b: 80, l: 80 },
+          xaxis: { tickangle: -45 },
+        }, {responsive: true, displayModeBar: false});
+      }
+
+      const points = (data.umap && data.umap.points) || [];
+      if (points.length) {
+        const byTheme = {};
+        points.forEach(function (p) {
+          const key = p.primary_theme || "unknown";
+          if (!byTheme[key]) byTheme[key] = { x: [], y: [], text: [] };
+          byTheme[key].x.push(p.x);
+          byTheme[key].y.push(p.y);
+          byTheme[key].text.push(p.title + " [" + (p.themes || []).join(", ") + "]");
+        });
+        const traces = Object.keys(byTheme).sort().map(function (theme) {
+          return {
+            x: byTheme[theme].x,
+            y: byTheme[theme].y,
+            text: byTheme[theme].text,
+            name: theme,
+            mode: "markers",
+            type: "scatter",
+            marker: { size: 7, opacity: 0.75 },
+            hoverinfo: "text+name",
+          };
+        });
+        Plotly.newPlot("theme-umap", traces, {
+          margin: { t: 24, r: 24, b: 40, l: 40 },
+          legend: { orientation: "h" },
+          xaxis: { title: "UMAP-1", zeroline: false },
+          yaxis: { title: "UMAP-2", zeroline: false },
+        }, {responsive: true, displayModeBar: false});
+      }
+    })();
+  </script>
+{% elif configured %}
+  <p><em>No report yet. Click Refresh analysis to generate one.</em></p>
+{% endif %}
+{% endblock %}

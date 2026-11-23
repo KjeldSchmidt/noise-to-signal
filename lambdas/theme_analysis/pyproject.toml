@@ -1,0 +1,34 @@
+[project]
+name = "theme_analysis"
+version = "0.1.0"
+description = "Theme–embedding alignment analysis worker (UMAP + cohesion metrics → S3)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.35.0",
+    "n2s-api",
+    "n2s-web-client",
+    "numpy>=2.0.0",
+    "umap-learn>=0.5.7",
+]
+
+[tool.uv.sources]
+n2s-api = { path = "../../packages/n2s_api", editable = false }
+n2s-web-client = { path = "../../packages/n2s_web_client", editable = false }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.4",
+    "ty>=0.0.100",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"

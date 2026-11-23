@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from n2s_api import (
+    ArticleEmbeddingExportResponse,
+    ArticleEmbeddingExportRow,
     ArticleSearchRequest,
     ArticleSearchResponse,
     ArticleUpsert,
@@ -236,6 +239,52 @@ def search_articles(
         err = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"search_articles failed ({exc.code}): {err}") from exc
     return list(payload.results)
+
+
+def export_article_embeddings(
+    *,
+    cursor: int = 0,
+    limit: int = 200,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> ArticleEmbeddingExportResponse:
+    """GET /api/internal/articles/embeddings/ — keyset page of vectors + themes."""
+    base, auth = _base_and_token(base_url, token)
+    query = urllib.parse.urlencode({"cursor": cursor, "limit": limit})
+    request = urllib.request.Request(
+        f"{base}/api/internal/articles/embeddings/?{query}",
+        headers=_auth_headers(auth),
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return ArticleEmbeddingExportResponse.model_validate_json(response.read())
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"export_article_embeddings failed ({exc.code}): {err}") from exc
+
+
+def iter_article_embeddings(
+    *,
+    page_size: int = 200,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> list[ArticleEmbeddingExportRow]:
+    """Fetch every embedded article page (caller should expect up to ~10k rows)."""
+    out: list[ArticleEmbeddingExportRow] = []
+    cursor = 0
+    while True:
+        page = export_article_embeddings(
+            cursor=cursor,
+            limit=page_size,
+            base_url=base_url,
+            token=token,
+        )
+        out.extend(page.articles)
+        if page.next_cursor is None:
+            break
+        cursor = page.next_cursor
+    return out
 
 
 def get_brief_user_context(

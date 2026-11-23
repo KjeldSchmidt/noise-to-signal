@@ -195,6 +195,75 @@ resource "aws_iam_role_policy" "lambda_invoke_brief_builder" {
   policy = data.aws_iam_policy_document.lambda_invoke_brief_builder[0].json
 }
 
+data "aws_iam_policy_document" "lambda_invoke_theme_analysis" {
+  count = var.theme_analysis_function_name != "" ? 1 : 0
+
+  statement {
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.theme_analysis_function_name}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_invoke_theme_analysis" {
+  count = var.theme_analysis_function_name != "" ? 1 : 0
+
+  name   = "invoke-theme-analysis"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_invoke_theme_analysis[0].json
+}
+
+resource "aws_s3_bucket" "analysis" {
+  bucket = "${local.name_prefix}-analysis"
+  tags   = local.tags
+}
+
+resource "aws_s3_bucket_public_access_block" "analysis" {
+  bucket = aws_s3_bucket.analysis.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "analysis" {
+  bucket = aws_s3_bucket.analysis.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+data "aws_iam_policy_document" "lambda_analysis_s3" {
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+    ]
+    resources = ["${aws_s3_bucket.analysis.arn}/theme-analysis/*"]
+  }
+
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.analysis.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["theme-analysis/*"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_analysis_s3" {
+  name   = "analysis-s3"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_analysis_s3.json
+}
+
 resource "aws_lambda_function" "web" {
   function_name = local.name_prefix
   role          = aws_iam_role.lambda.arn
@@ -234,6 +303,12 @@ resource "aws_lambda_function" "web" {
       var.brief_builder_function_name != "" ? {
         BRIEF_BUILDER_FUNCTION_NAME = var.brief_builder_function_name
       } : {},
+      var.theme_analysis_function_name != "" ? {
+        THEME_ANALYSIS_FUNCTION_NAME = var.theme_analysis_function_name
+      } : {},
+      {
+        ANALYSIS_ARTIFACTS_BUCKET = aws_s3_bucket.analysis.bucket
+      },
     )
   }
 

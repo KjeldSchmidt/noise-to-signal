@@ -8,6 +8,7 @@ from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.views.decorators.http import require_http_methods
 
+from news.admin_theme_analysis import theme_analysis_view
 from news.services.requeue import articles_for_requeue, requeue_articles
 from news.services.threading import dissolve_singleton_threads, reconcile_story_threads
 
@@ -152,7 +153,7 @@ def news_ops_view(request):
 
 
 def patch_admin_urls() -> None:
-    """Register /admin/news/ops/ on the default AdminSite."""
+    """Register /admin/news/ops/ and theme-analysis on the default AdminSite."""
     if getattr(admin.site, "_news_ops_urls_patched", False):
         return
 
@@ -165,6 +166,11 @@ def patch_admin_urls() -> None:
                 admin.site.admin_view(news_ops_view),
                 name="news_ops",
             ),
+            path(
+                "news/theme-analysis/",
+                admin.site.admin_view(theme_analysis_view),
+                name="news_theme_analysis",
+            ),
             *original_get_urls(),
         ]
 
@@ -174,3 +180,7 @@ def patch_admin_urls() -> None:
 
 def ops_admin_url() -> str:
     return reverse("admin:news_ops")
+
+
+def theme_analysis_admin_url() -> str:
+    return reverse("admin:news_theme_analysis")

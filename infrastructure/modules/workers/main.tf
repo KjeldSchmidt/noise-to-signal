@@ -112,9 +112,43 @@ locals {
     for name, cfg in var.workers : name => cfg
     if try(cfg.use_agentcore_memory, false) && var.agentcore_memory_enabled
   }
+  analysis_writers = {
+    for name, cfg in var.workers : name => cfg
+    if try(cfg.write_analysis_artifacts, false) && var.analysis_artifacts_bucket_arn != ""
+  }
 
   # aws_region.name is deprecated; id is the region string (e.g. eu-central-1).
   aws_region = data.aws_region.current.id
+}
+
+data "aws_iam_policy_document" "analysis_s3" {
+  count = length(local.analysis_writers) > 0 ? 1 : 0
+
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+    ]
+    resources = ["${var.analysis_artifacts_bucket_arn}/theme-analysis/*"]
+  }
+
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [var.analysis_artifacts_bucket_arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["theme-analysis/*"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "analysis_s3" {
+  for_each = local.analysis_writers
+
+  name   = "analysis-s3"
+  role   = aws_iam_role.worker[each.key].id
+  policy = data.aws_iam_policy_document.analysis_s3[0].json
 }
 
 resource "aws_iam_role_policy" "sqs_consume" {
@@ -245,6 +279,9 @@ resource "aws_lambda_function" "worker" {
           LANGSMITH_TRACING_SAMPLING_RATE = tostring(each.value.langsmith_tracing_sampling_rate)
         } : {},
       ) : {},
+      try(each.value.write_analysis_artifacts, false) && var.analysis_artifacts_bucket_name != "" ? {
+        ANALYSIS_ARTIFACTS_BUCKET = var.analysis_artifacts_bucket_name
+      } : {},
     )
   }
 

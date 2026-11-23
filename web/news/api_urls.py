@@ -9,6 +9,11 @@ urlpatterns = [
     path("geocode/search/", api.geocode_search, name="internal_geocode_search"),
     path("feed-items/", api.ingest_feed_items, name="internal_ingest_feed_items"),
     path("articles/search/", api.search_articles, name="internal_search_articles"),
+    path(
+        "articles/embeddings/",
+        api.export_article_embeddings,
+        name="internal_export_article_embeddings",
+    ),
     path("articles/", api.upsert_article, name="internal_upsert_article"),
     path(
         "briefs/users/<int:user_id>/context/",
