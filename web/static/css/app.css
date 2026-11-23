@@ -1115,6 +1115,68 @@ h1, h2, h3 {
   white-space: pre-wrap;
 }
 
+.news-chat-bubble.is-assistant .news-chat-bubble-text,
+.news-chat-bubble.is-refuse .news-chat-bubble-text {
+  white-space: normal;
+}
+
+.news-chat-bubble-text > :first-child {
+  margin-top: 0;
+}
+
+.news-chat-bubble-text > :last-child {
+  margin-bottom: 0;
+}
+
+.news-chat-bubble-text p,
+.news-chat-bubble-text ul,
+.news-chat-bubble-text ol,
+.news-chat-bubble-text pre,
+.news-chat-bubble-text blockquote {
+  margin: 0.45em 0;
+}
+
+.news-chat-bubble-text ul,
+.news-chat-bubble-text ol {
+  padding-left: 1.25em;
+}
+
+.news-chat-bubble-text li + li {
+  margin-top: 0.2em;
+}
+
+.news-chat-bubble-text code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.news-chat-bubble-text pre {
+  overflow-x: auto;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.news-chat-bubble-text pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.news-chat-bubble-text a {
+  color: #0f6b5c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.news-chat-bubble-text blockquote {
+  padding-left: 0.75em;
+  border-left: 3px solid var(--line);
+  color: var(--muted, #6b7280);
+}
+
 .news-chat-bubble.is-user {
   align-self: flex-end;
   background: #0f6b5c;

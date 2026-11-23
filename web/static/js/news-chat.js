@@ -31,13 +31,32 @@
     status.classList.toggle("is-error", !!isError);
   }
 
+  function renderMarkdown(text) {
+    const raw = String(text || "");
+    if (!raw) return "";
+    const html =
+      typeof marked !== "undefined" && marked.parse
+        ? marked.parse(raw, { breaks: true, gfm: true })
+        : raw;
+    if (typeof DOMPurify !== "undefined" && DOMPurify.sanitize) {
+      return DOMPurify.sanitize(html, {
+        USE_PROFILES: { html: true },
+      });
+    }
+    return html;
+  }
+
   function appendBubble(role, text, citations) {
     if (empty) empty.remove();
     const el = document.createElement("div");
     el.className = "news-chat-bubble is-" + role;
     const body = document.createElement("div");
     body.className = "news-chat-bubble-text";
-    body.textContent = text;
+    if (role === "assistant" || role === "refuse") {
+      body.innerHTML = renderMarkdown(text);
+    } else {
+      body.textContent = text;
+    }
     el.appendChild(body);
 
     if (role === "assistant" && Array.isArray(citations) && citations.length) {

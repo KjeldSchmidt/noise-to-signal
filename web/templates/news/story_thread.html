@@ -81,6 +81,8 @@
 {% block extra_js %}
 <script src="{% static 'js/story-thread.js' %}" defer></script>
 {% if user.is_authenticated %}
+<script src="{% static 'js/vendor/marked.min.js' %}" defer></script>
+<script src="{% static 'js/vendor/purify.min.js' %}" defer></script>
 <script src="{% static 'js/news-chat.js' %}" defer></script>
 {% endif %}
 {% endblock %}
