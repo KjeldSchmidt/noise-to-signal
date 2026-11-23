@@ -15,7 +15,11 @@ from news.services.stories_feed import thread_timeline_articles, thread_visible_
 ChatRetrieveScope = Literal["brief", "thread"]
 
 
-def article_to_chunk(article: Article) -> ContextChunk:
+def article_to_chunk(
+    article: Article,
+    *,
+    similarity: float | None = None,
+) -> ContextChunk:
     published = ""
     if article.published_at is not None:
         published = article.published_at.isoformat()
@@ -32,6 +36,7 @@ def article_to_chunk(article: Article) -> ContextChunk:
         impact_tier=article.impact_tier or "",
         place_label=article.place_label or "",
         url=article.url or "",
+        similarity=similarity,
     )
 
 

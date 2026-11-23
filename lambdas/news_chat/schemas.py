@@ -16,7 +16,12 @@ class ScopeDecision(BaseModel):
 
 
 class AnswerPayload(BaseModel):
-    reply: str = Field(description="Concise answer for the user")
+    reply: str = Field(
+        description=(
+            "Concise answer for the user. For article lists use Markdown "
+            "[Title](url) links; do not dump bare URLs or a sources footer."
+        )
+    )
     citations: list[ChatCitation] = Field(
         default_factory=list,
         description=(

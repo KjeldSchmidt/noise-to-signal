@@ -31,6 +31,16 @@
     status.classList.toggle("is-error", !!isError);
   }
 
+  function normalizeUrl(href) {
+    try {
+      const parsed = new URL(String(href || ""), window.location.origin);
+      parsed.hash = "";
+      return parsed.href.replace(/\/$/, "");
+    } catch (_err) {
+      return String(href || "").trim();
+    }
+  }
+
   function renderMarkdown(text) {
     const raw = String(text || "");
     if (!raw) return "";
@@ -54,29 +64,41 @@
     body.className = "news-chat-bubble-text";
     if (role === "assistant" || role === "refuse") {
       body.innerHTML = renderMarkdown(text);
+      body.querySelectorAll("a[href]").forEach(function (anchor) {
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+      });
     } else {
       body.textContent = text;
     }
     el.appendChild(body);
 
     if (role === "assistant" && Array.isArray(citations) && citations.length) {
-      const sources = document.createElement("div");
-      sources.className = "news-chat-sources";
-      const label = document.createElement("span");
-      label.className = "news-chat-sources-label";
-      label.textContent = "Sources";
-      sources.appendChild(label);
-      citations.forEach(function (cite) {
-        if (!cite || !cite.url) return;
-        const link = document.createElement("a");
-        link.className = "news-chat-source-link";
-        link.href = cite.url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = cite.title || cite.url;
-        sources.appendChild(link);
+      const linked = {};
+      body.querySelectorAll("a[href]").forEach(function (anchor) {
+        linked[normalizeUrl(anchor.getAttribute("href"))] = true;
       });
-      if (sources.querySelectorAll("a").length) {
+      const missing = citations.filter(function (cite) {
+        return cite && cite.url && !linked[normalizeUrl(cite.url)];
+      });
+      // Skip the Sources footer when the reply already linked every citation
+      // (typical for pure article lists).
+      if (missing.length) {
+        const sources = document.createElement("div");
+        sources.className = "news-chat-sources";
+        const label = document.createElement("span");
+        label.className = "news-chat-sources-label";
+        label.textContent = "Sources";
+        sources.appendChild(label);
+        missing.forEach(function (cite) {
+          const link = document.createElement("a");
+          link.className = "news-chat-source-link";
+          link.href = cite.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = cite.title || cite.url;
+          sources.appendChild(link);
+        });
         el.appendChild(sources);
       }
     }

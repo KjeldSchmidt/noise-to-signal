@@ -33,11 +33,20 @@ class ContextChunk(BaseModel):
     impact_tier: str = ""
     place_label: str = ""
     url: str = ""
+    # Cosine similarity vs search query embedding (None = title/scope hit, not ANN).
+    similarity: float | None = None
 
     @field_validator("title", "source", "story_label", "impact_tier", "place_label", "url")
     @classmethod
     def _strip_short(cls, value: str) -> str:
         return (value or "").strip()[:300]
+
+    @field_validator("similarity")
+    @classmethod
+    def _similarity(cls, value: float | None) -> float | None:
+        if value is None:
+            return None
+        return max(0.0, min(1.0, float(value)))
 
     @field_validator("summary")
     @classmethod

@@ -11,7 +11,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from news.models import Article, Feed, FeedMute
-from news.services.article_search import search_articles_for_user
+from news.services.article_search import MIN_EMBEDDING_SIMILARITY, search_articles_for_user
 
 User = get_user_model()
 
@@ -63,6 +63,16 @@ class ArticleSearchServiceTests(TestCase):
             embedding_model="test",
             embedded_at=self.now,
         )
+        self.weak_vector = Article.objects.create(
+            feed=self.feed,
+            title="Unrelated sports scores",
+            url="https://example.com/sports",
+            summary="Local match results.",
+            published_at=self.now,
+            embedding=_vec(0.1),
+            embedding_model="test",
+            embedded_at=self.now,
+        )
         self.out_of_scope = Article.objects.create(
             feed=self.other_feed,
             title="Floods hit coastal towns",
@@ -92,6 +102,20 @@ class ArticleSearchServiceTests(TestCase):
         self.assertIn(self.in_scope.pk, ids)
         self.assertIn(self.vector_match.pk, ids)
         self.assertNotIn(self.out_of_scope.pk, ids)
+        for chunk in chunks:
+            if chunk.article_id in {self.in_scope.pk, self.vector_match.pk}:
+                self.assertIsNotNone(chunk.similarity)
+                self.assertGreaterEqual(chunk.similarity or 0.0, MIN_EMBEDDING_SIMILARITY)
+
+    def test_embedding_cutoff_drops_weak_neighbors(self) -> None:
+        chunks = search_articles_for_user(
+            user=self.user,
+            query="zzz-no-title-hit",
+            embedding=_vec(1.0),
+            limit=10,
+        )
+        ids = {c.article_id for c in chunks}
+        self.assertNotIn(self.weak_vector.pk, ids)
 
     def test_exclude_article_ids(self) -> None:
         chunks = search_articles_for_user(

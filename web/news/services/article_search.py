@@ -15,6 +15,9 @@ from news.services.threading import cosine_similarity
 
 User = get_user_model()
 
+# Minimum cosine similarity for ANN hits (clustering vectors). Tune with real queries.
+MIN_EMBEDDING_SIMILARITY = 0.60
+
 
 def _scoped_articles(user: AbstractBaseUser) -> QuerySet[Article]:
     feed_ids = enabled_feed_ids(user)
@@ -44,18 +47,26 @@ def _embedding_hits_postgres(
     embedding: list[float],
     exclude_ids: set[int],
     limit: int,
-) -> list[Article]:
+    min_similarity: float,
+) -> list[tuple[Article, float]]:
     from pgvector.django import CosineDistance
 
     if limit < 1:
         return []
+    max_distance = 1.0 - min_similarity
     ranked = (
         qs.exclude(pk__in=exclude_ids)
         .exclude(embedding__isnull=True)
         .annotate(distance=CosineDistance("embedding", embedding))
+        .filter(distance__lte=max_distance)
         .order_by("distance")[:limit]
     )
-    return list(ranked)
+    out: list[tuple[Article, float]] = []
+    for article in ranked:
+        distance = float(getattr(article, "distance", 1.0))
+        similarity = max(0.0, min(1.0, 1.0 - distance))
+        out.append((article, similarity))
+    return out
 
 
 def _embedding_hits_python(
@@ -64,7 +75,8 @@ def _embedding_hits_python(
     embedding: list[float],
     exclude_ids: set[int],
     limit: int,
-) -> list[Article]:
+    min_similarity: float,
+) -> list[tuple[Article, float]]:
     """SQLite / non-pgvector path: brute-force cosine over scoped rows."""
     if limit < 1:
         return []
@@ -74,10 +86,10 @@ def _embedding_hits_python(
     scored: list[tuple[float, Article]] = []
     for article in candidates:
         sim = cosine_similarity(list(article.embedding), embedding)
-        if sim > 0:
+        if sim >= min_similarity:
             scored.append((sim, article))
     scored.sort(key=lambda row: row[0], reverse=True)
-    return [article for _, article in scored[:limit]]
+    return [(article, sim) for sim, article in scored[:limit]]
 
 
 def _embedding_hits(
@@ -86,12 +98,34 @@ def _embedding_hits(
     embedding: list[float],
     exclude_ids: set[int],
     limit: int,
-) -> list[Article]:
+    min_similarity: float = MIN_EMBEDDING_SIMILARITY,
+) -> list[tuple[Article, float]]:
     if connection.vendor == "postgresql":
         return _embedding_hits_postgres(
-            qs, embedding=embedding, exclude_ids=exclude_ids, limit=limit
+            qs,
+            embedding=embedding,
+            exclude_ids=exclude_ids,
+            limit=limit,
+            min_similarity=min_similarity,
         )
-    return _embedding_hits_python(qs, embedding=embedding, exclude_ids=exclude_ids, limit=limit)
+    return _embedding_hits_python(
+        qs,
+        embedding=embedding,
+        exclude_ids=exclude_ids,
+        limit=limit,
+        min_similarity=min_similarity,
+    )
+
+
+def _score_title_hit(
+    article: Article,
+    *,
+    embedding: list[float] | None,
+) -> float | None:
+    """Optional similarity for title hits when a query embedding is available."""
+    if embedding is None or article.embedding is None:
+        return None
+    return cosine_similarity(list(article.embedding), embedding)
 
 
 def search_articles_for_user(
@@ -101,11 +135,13 @@ def search_articles_for_user(
     embedding: list[float] | None = None,
     limit: int = 10,
     exclude_article_ids: list[int] | None = None,
+    min_similarity: float = MIN_EMBEDDING_SIMILARITY,
 ) -> list[ContextChunk]:
     """
     Merge title/summary matches with embedding nearest neighbors.
 
-    Title hits are preferred in the merged ranking; vector hits fill remaining slots.
+    Title hits are preferred; ANN fills remaining slots only when cosine
+    similarity >= ``min_similarity``. Chunks include ``similarity`` when known.
     """
     capped = max(1, min(limit, MAX_CHUNKS))
     exclude = set(exclude_article_ids or [])
@@ -114,17 +150,24 @@ def search_articles_for_user(
         return []
 
     title_articles = _title_hits(qs, query=query, exclude_ids=exclude, limit=capped)
+    chunks: list[ContextChunk] = [
+        article_to_chunk(a, similarity=_score_title_hit(a, embedding=embedding))
+        for a in title_articles
+    ]
     seen = {a.pk for a in title_articles} | exclude
     remaining = capped - len(title_articles)
 
-    vector_articles: list[Article] = []
     if embedding is not None and remaining > 0:
-        vector_articles = _embedding_hits(
-            qs, embedding=embedding, exclude_ids=seen, limit=remaining
-        )
+        for article, similarity in _embedding_hits(
+            qs,
+            embedding=embedding,
+            exclude_ids=seen,
+            limit=remaining,
+            min_similarity=min_similarity,
+        ):
+            chunks.append(article_to_chunk(article, similarity=similarity))
 
-    merged = title_articles + vector_articles
-    return [article_to_chunk(a) for a in merged]
+    return chunks
 
 
 def search_articles_by_user_id(
@@ -134,6 +177,7 @@ def search_articles_by_user_id(
     embedding: list[float] | None = None,
     limit: int = 10,
     exclude_article_ids: list[int] | None = None,
+    min_similarity: float = MIN_EMBEDDING_SIMILARITY,
 ) -> list[ContextChunk] | None:
     """Resolve user by id; return None when the user does not exist."""
     user = User.objects.filter(pk=user_id).first()
@@ -145,4 +189,5 @@ def search_articles_by_user_id(
         embedding=embedding,
         limit=limit,
         exclude_article_ids=exclude_article_ids,
+        min_similarity=min_similarity,
     )

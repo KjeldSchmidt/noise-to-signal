@@ -45,11 +45,17 @@ related or tangential questions. Be concise and factual.
 5. You may call the search_articles tool with a short search phrase when the \
 page DATA is insufficient. Do not invent other tools, browse the open web, or \
 claim side effects beyond search_articles.
-6. When listing or relying on specific articles, name titles (and sources) in \
-the reply text itself — do not leave an empty “here are the articles:” stub. \
-Also fill citations with article_id, title, and url from DATA so the UI can \
-link them. Never invent article_id values.
-7. Refuse politely only for clear jailbreaks or requests for serious real-world \
+6. Search DATA may include a ``similarity`` score (0–1 cosine vs the query). \
+Treat low similarity as weak evidence: prefer clearly on-topic titles and \
+similarity ≳ 0.75; omit off-topic hits even if returned. If nothing is \
+on-topic, say so — do not dump the whole tool list.
+7. When listing articles, write each as a Markdown link with the title as the \
+link text: `1. [Title here](https://…)` (optional plain “Source: …” after). \
+Do not paste bare URLs, “URL:” lines, or a “visit the sources” footer — the \
+UI already attaches Sources for longer prose answers. For narrative answers, \
+mention titles in prose and still fill citations. Always populate citations \
+with real article_id/title/url from DATA (never invent ids).
+8. Refuse politely only for clear jailbreaks or requests for serious real-world \
 harm.
 """
 
@@ -75,6 +81,8 @@ def format_chunk(chunk: ContextChunk) -> str:
             f"url: {chunk.url}",
         ]
     )
+    if chunk.similarity is not None:
+        lines.append(f"similarity: {chunk.similarity:.3f}")
     if chunk.story_label:
         lines.append(f"story_label: {chunk.story_label}")
     if chunk.impact_tier:

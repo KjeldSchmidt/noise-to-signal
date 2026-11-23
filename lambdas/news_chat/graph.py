@@ -26,10 +26,12 @@ MAX_TOOL_ROUNDS = 2
 
 FINAL_ANSWER_PROMPT = (
     "Provide your final answer now. Use the search_articles results and "
-    "page DATA as evidence. List any article titles in the reply text "
-    "(not only in citations). Populate citations with article_id/title/url "
-    "copied from DATA lines — only real article_id values that appear in "
-    "DATA. If you found no articles, say so plainly."
+    "page DATA as evidence. Respect similarity scores: only list on-topic "
+    "articles (prefer similarity ≳ 0.75 or clear title match); omit weak or "
+    "off-topic hits. If listing articles, format each as `1. [Title](url)` "
+    "(no bare URL lines, no ‘visit the sources’ note). For longer prose, weave "
+    "titles into the narrative. Populate citations with article_id/title/url "
+    "from DATA — only real article_id values. If nothing on-topic, say so."
 )
 
 _tool_node = ToolNode(CHAT_TOOLS)

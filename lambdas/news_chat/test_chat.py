@@ -26,6 +26,15 @@ class PromptsTests(unittest.TestCase):
         self.assertIn("article_id: 1", text)
         self.assertIn("Floods", text)
 
+    def test_format_chunk_includes_similarity(self) -> None:
+        chunk = ContextChunk(
+            article_id=2,
+            title="Strike",
+            similarity=0.812,
+        )
+        text = prompts.format_chunk(chunk)
+        self.assertIn("similarity: 0.812", text)
+
     def test_empty_list_intro_helper(self) -> None:
         self.assertTrue(graph_mod._reply_looks_like_empty_list_intro("Here are the articles:"))
         self.assertFalse(
