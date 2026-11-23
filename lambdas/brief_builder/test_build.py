@@ -93,11 +93,67 @@ class BriefDispatchTests(unittest.TestCase):
         self.assertTrue(out["ok"])
         client.record_preference.assert_called_once_with(7, "User likes science.")
 
+    @patch.object(build_mod, "get_preference_client")
+    def test_list_preferences(self, mock_get: MagicMock) -> None:
+        from n2s_preferences import PreferenceRecord
+
+        client = MagicMock()
+        client.list_preference_records.return_value = [
+            PreferenceRecord(id="r1", text="Likes climate"),
+        ]
+        mock_get.return_value = client
+        out = build_mod.dispatch(BriefBuilderRequest(action="list_preferences", user_id=7))
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["memories"], [{"id": "r1", "text": "Likes climate"}])
+
+    @patch.object(build_mod, "get_preference_client")
+    def test_delete_preference(self, mock_get: MagicMock) -> None:
+        client = MagicMock()
+        client.delete_preference_record.return_value = True
+        mock_get.return_value = client
+        out = build_mod.dispatch(
+            BriefBuilderRequest(
+                action="delete_preference",
+                user_id=7,
+                memory_record_id="r1",
+            )
+        )
+        self.assertTrue(out["ok"])
+        client.delete_preference_record.assert_called_once_with(7, "r1")
+
     @patch.object(build_mod, "run_build")
     def test_build_dispatch(self, mock_build: MagicMock) -> None:
         out = build_mod.dispatch(BriefBuilderRequest(action="build", user_id=1, brief_id=9))
         self.assertTrue(out["ok"])
         mock_build.assert_called_once()
+
+
+class ThemeAffinityScoreTests(unittest.TestCase):
+    def test_boosts_and_sorts(self) -> None:
+        from prompts import apply_theme_affinity_scores
+
+        cands = [
+            BriefCandidateDTO(
+                article_id=1,
+                title="Sports",
+                url="https://example.com/s",
+                themes=["sports"],
+                score=0.5,
+            ),
+            BriefCandidateDTO(
+                article_id=2,
+                title="Climate",
+                url="https://example.com/c",
+                themes=["environment"],
+                score=0.5,
+            ),
+        ]
+        out = apply_theme_affinity_scores(
+            cands,
+            [("environment", 2.0), ("sports", -1.0)],
+        )
+        self.assertEqual(out[0].article_id, 2)
+        self.assertGreater(out[0].score, out[1].score)
 
 
 if __name__ == "__main__":

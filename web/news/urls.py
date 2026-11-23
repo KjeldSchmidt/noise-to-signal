@@ -15,6 +15,21 @@ urlpatterns = [
         name="story_thread",
     ),
     path("settings/", views.settings_page, name="settings"),
+    path(
+        "settings/preferences/",
+        views.stored_preferences,
+        name="stored_preferences",
+    ),
+    path(
+        "settings/preferences/memory/delete/",
+        views.delete_stored_memory,
+        name="delete_stored_memory",
+    ),
+    path(
+        "settings/preferences/theme/delete/",
+        views.delete_theme_leaning,
+        name="delete_theme_leaning",
+    ),
     path("feeds/<int:feed_id>/mute/", views.mute_feed, name="mute_feed"),
     path("feeds/<int:feed_id>/unmute/", views.unmute_feed, name="unmute_feed"),
     path(
@@ -30,6 +45,11 @@ urlpatterns = [
         name="delete_location",
     ),
     path("articles/<int:article_id>/feedback/", views.feedback, name="feedback"),
+    path(
+        "articles/<int:article_id>/theme-affinity/",
+        views.theme_affinity,
+        name="theme_affinity",
+    ),
     path("chat/", views.chat, name="chat"),
     path("followups/", views.followups, name="followups"),
     path(

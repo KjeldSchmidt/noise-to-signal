@@ -98,24 +98,6 @@
     "news/views.py": [
       {
         "rule": "invalid-argument-type",
-        "startColumn": 24,
-        "endColumn": 36,
-        "lineCount": 1
-      },
-      {
-        "rule": "invalid-argument-type",
-        "startColumn": 39,
-        "endColumn": 51,
-        "lineCount": 1
-      },
-      {
-        "rule": "invalid-argument-type",
-        "startColumn": 38,
-        "endColumn": 50,
-        "lineCount": 1
-      },
-      {
-        "rule": "invalid-argument-type",
         "startColumn": 34,
         "endColumn": 46,
         "lineCount": 1
@@ -181,9 +163,39 @@
         "lineCount": 1
       },
       {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
         "rule": "invalid-argument-type",
-        "startColumn": 14,
-        "endColumn": 20,
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
+        "lineCount": 1
+      },
+      {
+        "rule": "no-matching-overload",
+        "startColumn": 0,
+        "endColumn": 15,
+        "lineCount": 1
+      },
+      {
+        "rule": "invalid-argument-type",
+        "startColumn": 0,
+        "endColumn": 13,
         "lineCount": 1
       },
       {

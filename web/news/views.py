@@ -52,11 +52,21 @@ from news.services import (
     thread_visible_in_scope,
 )
 from news.services.brief import resolve_brief_page
-from news.services.brief_invoke import invoke_brief_builder, invoke_preference_record
+from news.services.brief_invoke import (
+    delete_preference_memory,
+    invoke_brief_builder,
+    invoke_preference_record,
+    list_preference_memories,
+)
 from news.services.chat_invoke import invoke_news_chat
 from news.services.chat_rate_limit import check_and_increment
 from news.services.chat_retrieve import retrieve
 from news.services.geocode import reverse_geocode_place, search_places
+from news.services.theme_affinity import (
+    affinities_for_user,
+    bump_theme_affinity,
+    delete_theme_affinity,
+)
 
 
 def landing(request: HttpRequest) -> HttpResponse:
@@ -94,7 +104,6 @@ def brief(request: HttpRequest) -> HttpResponse:
                 brief_id=state.brief.id,
             )
         )
-    pending_questions = next_questions(user, limit=1)
     feed_count = len(enabled_feed_ids(user))
     return render(
         request,
@@ -104,7 +113,6 @@ def brief(request: HttpRequest) -> HttpResponse:
             "brief_phase": state.phase,
             "brief_id": state.brief.id if state.brief else None,
             "brief_poll": state.poll,
-            "pending_question": pending_questions[0] if pending_questions else None,
             "feed_count": feed_count,
         },
     )
@@ -420,6 +428,60 @@ def delete_location(request: HttpRequest, location_id: int) -> HttpResponse:
 
 
 @login_required
+def stored_preferences(request: HttpRequest) -> JsonResponse:
+    """JSON: AgentCore memories + theme leanings for the Settings modal."""
+    user = cast(AbstractBaseUser, request.user)
+    memories = list_preference_memories(int(user.pk))
+    themes = [
+        {
+            "slug": row.theme.slug,
+            "label": row.theme.label,
+            "more_count": row.more_count,
+            "less_count": row.less_count,
+        }
+        for row in affinities_for_user(user)
+    ]
+    return JsonResponse({"ok": True, "memories": memories, "themes": themes})
+
+
+@login_required
+@require_POST
+def delete_stored_memory(request: HttpRequest) -> HttpResponse:
+    user = cast(AbstractBaseUser, request.user)
+    record_id = (request.POST.get("record_id") or "").strip()
+    if not record_id:
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            body = {}
+        record_id = str(body.get("record_id") or "").strip()
+    if not record_id:
+        return JsonResponse({"ok": False, "error": "Missing record_id."}, status=400)
+    ok = delete_preference_memory(int(user.pk), record_id)
+    if not ok:
+        return JsonResponse({"ok": False, "error": "Could not delete memory."}, status=502)
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def delete_theme_leaning(request: HttpRequest) -> HttpResponse:
+    user = cast(AbstractBaseUser, request.user)
+    slug = (request.POST.get("theme") or "").strip()
+    if not slug:
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            body = {}
+        slug = str(body.get("theme") or "").strip()
+    if not slug:
+        return JsonResponse({"ok": False, "error": "Missing theme."}, status=400)
+    if not delete_theme_affinity(user, theme_slug=slug):
+        return JsonResponse({"ok": False, "error": "Theme leaning not found."}, status=404)
+    return JsonResponse({"ok": True})
+
+
+@login_required
 @require_POST
 def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
     user = cast(AbstractBaseUser, request.user)
@@ -440,19 +502,65 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
         article=article,
         defaults={"verdict": verdict},
     )
-    invoke_preference_record(
-        int(user.pk),
-        f"The user marked the article «{article.title}» as {verdict.replace('_', ' ')}.",
-    )
-    labels = {
-        RelevanceFeedback.Verdict.RELEVANT: "Marked as relevant",
-        RelevanceFeedback.Verdict.NOT_RELEVANT: "Marked as not relevant",
-        RelevanceFeedback.Verdict.SKIP: "Skipped",
+    # Theme chips + brief chat own AgentCore writes; verdicts only dismiss.
+    labels: dict[str, str] = {
+        RelevanceFeedback.Verdict.RELEVANT.value: "Marked as relevant",
+        RelevanceFeedback.Verdict.NOT_RELEVANT.value: "Marked as not relevant",
+        RelevanceFeedback.Verdict.SKIP.value: "Skipped",
     }
     message = labels[verdict]
     if wants_json:
         return JsonResponse(
             {"ok": True, "verdict": verdict, "message": message, "article_id": article.id}
+        )
+    messages.success(request, message)
+    return redirect("brief")
+
+
+@login_required
+@require_POST
+def theme_affinity(request: HttpRequest, article_id: int) -> HttpResponse:
+    """Increment more/less count for a theme on a brief article (no AgentCore)."""
+    user = cast(AbstractBaseUser, request.user)
+    article = get_object_or_404(Article.objects.prefetch_related("themes"), pk=article_id)
+    slug = (request.POST.get("theme") or "").strip()
+    direction = (request.POST.get("direction") or "").strip()
+    wants_json = request.headers.get(
+        "X-Requested-With"
+    ) == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or "")
+    if direction not in ("more", "less"):
+        if wants_json:
+            return JsonResponse({"ok": False, "error": "Unknown direction."}, status=400)
+        messages.error(request, "Unknown theme action.")
+        return redirect("brief")
+    article_slugs = {t.slug for t in article.themes.all()}
+    if slug not in article_slugs:
+        if wants_json:
+            return JsonResponse({"ok": False, "error": "Theme not on this article."}, status=400)
+        messages.error(request, "Theme not on this article.")
+        return redirect("brief")
+    affinity = bump_theme_affinity(
+        user,
+        theme_slug=slug,
+        direction="more" if direction == "more" else "less",
+    )
+    if affinity is None:
+        if wants_json:
+            return JsonResponse({"ok": False, "error": "Unknown theme."}, status=400)
+        messages.error(request, "Unknown theme.")
+        return redirect("brief")
+    label = affinity.theme.label
+    message = f"More {label}" if direction == "more" else f"Less {label}"
+    if wants_json:
+        return JsonResponse(
+            {
+                "ok": True,
+                "theme": slug,
+                "direction": direction,
+                "message": message,
+                "more_count": affinity.more_count,
+                "less_count": affinity.less_count,
+            }
         )
     messages.success(request, message)
     return redirect("brief")

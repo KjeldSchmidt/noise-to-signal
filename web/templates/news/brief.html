@@ -35,14 +35,6 @@
 
     <div class="brief-toast-host" data-brief-toast aria-live="polite"></div>
 
-    {% if pending_question %}
-    <aside class="callout">
-      <p>Help sharpen the filter:</p>
-      <p><strong>{{ pending_question.prompt }}</strong></p>
-      <a class="btn ghost" href="{% url 'answer_followup' pending_question.id %}">Answer</a>
-    </aside>
-    {% endif %}
-
     {% if not feed_count %}
     <div class="empty">
       <p>All catalog feeds are muted. Re-enable some in Settings to fill your brief.</p>
@@ -72,6 +64,20 @@
         {% if item.article.summary %}
         <p class="summary">{{ item.article.summary }}</p>
         {% endif %}
+        {% with themes=item.article.themes.all %}
+        {% if themes %}
+        <div class="theme-chip-row" data-theme-affinity-url="{% url 'theme_affinity' item.article.id %}">
+          {% for theme in themes|slice:":4" %}
+          <form method="post" action="{% url 'theme_affinity' item.article.id %}" class="theme-chip-form">
+            {% csrf_token %}
+            <input type="hidden" name="theme" value="{{ theme.slug }}">
+            <button type="submit" name="direction" value="more" class="btn small ghost theme-chip">More {{ theme.label }}</button>
+            <button type="submit" name="direction" value="less" class="btn small ghost theme-chip">Less {{ theme.label }}</button>
+          </form>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
         <form method="post" action="{% url 'feedback' item.article.id %}" class="feedback-row">
           {% csrf_token %}
           <button type="submit" name="verdict" value="relevant" class="btn small yes">Relevant</button>

@@ -12,7 +12,7 @@ from n2s_preferences import get_preference_client
 from n2s_web_client import complete_brief, get_brief_user_context
 
 from llm_model import get_brief_model
-from prompts import BRIEF_SYSTEM, build_evaluate_user_message
+from prompts import BRIEF_SYSTEM, apply_theme_affinity_scores, build_evaluate_user_message
 from schemas import BriefSelection
 from state import BriefState
 
@@ -31,7 +31,9 @@ def fetch_preferences(state: BriefState) -> dict[str, Any]:
 
 def load_user_context(state: BriefState) -> dict[str, Any]:
     ctx = get_brief_user_context(state["user_id"])
-    return {"context": ctx, "candidates": list(ctx.candidates)}
+    affinities = [(a.slug, float(a.weight)) for a in ctx.theme_affinities]
+    candidates = apply_theme_affinity_scores(list(ctx.candidates), affinities)
+    return {"context": ctx, "candidates": candidates}
 
 
 def evaluate(state: BriefState) -> dict[str, Any]:

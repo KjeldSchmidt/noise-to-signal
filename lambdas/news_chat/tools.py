@@ -23,6 +23,15 @@ class SearchArticlesArgs(BaseModel):
     )
 
 
+class SavePreferenceArgs(BaseModel):
+    text: str = Field(
+        description=(
+            "Short free-form reading preference to remember "
+            "(e.g. 'less US election horse-race, more policy analysis')."
+        )
+    )
+
+
 def collect_known_articles(chunks: list[ContextChunk]) -> dict[int, ContextChunk]:
     known: dict[int, ContextChunk] = {}
     for chunk in chunks:
@@ -124,4 +133,70 @@ def search_articles(
     )
 
 
-CHAT_TOOLS = [search_articles]
+def _record_preference(user_id: int, text: str) -> str:
+    content = (text or "").strip()
+    if not content:
+        return "No preference text provided."
+    try:
+        from n2s_preferences import get_preference_client
+    except ImportError:
+        return "Preference memory is unavailable."
+    client = get_preference_client()
+    if client is None:
+        return "Preference memory is not configured."
+    try:
+        client.record_preference(user_id, content[:2000])
+    except Exception as exc:  # noqa: BLE001
+        return f"Could not save preference: {exc}"
+    return f"Saved preference: {content[:400]}"
+
+
+def _list_preferences(user_id: int) -> str:
+    try:
+        from n2s_preferences import get_preference_client
+    except ImportError:
+        return "Preference memory is unavailable."
+    client = get_preference_client()
+    if client is None:
+        return "Preference memory is not configured."
+    try:
+        records = client.list_preference_records(user_id)
+    except Exception as exc:  # noqa: BLE001
+        return f"Could not list preferences: {exc}"
+    if not records:
+        return "No stored preferences yet."
+    lines = [f"- {r.text}" for r in records[:25]]
+    return "Stored preferences:\n" + "\n".join(lines)
+
+
+@tool("save_preference", args_schema=SavePreferenceArgs)
+def save_preference(
+    text: str,
+    state: Annotated[ChatState, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> Command:
+    """
+    Remember a free-form reading preference for future briefs (brief scope only).
+    Call when the user states a lasting taste preference worth storing.
+    """
+    if state.get("scope") != "brief":
+        content = "Preference tools are only available on the daily brief chat."
+    else:
+        content = _record_preference(int(state["user_id"]), text)
+    return Command(update={"messages": [ToolMessage(content=content, tool_call_id=tool_call_id)]})
+
+
+@tool("list_preferences")
+def list_preferences(
+    state: Annotated[ChatState, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
+) -> Command:
+    """List stored free-form reading preferences (brief scope only)."""
+    if state.get("scope") != "brief":
+        content = "Preference tools are only available on the daily brief chat."
+    else:
+        content = _list_preferences(int(state["user_id"]))
+    return Command(update={"messages": [ToolMessage(content=content, tool_call_id=tool_call_id)]})
+
+
+CHAT_TOOLS = [search_articles, save_preference, list_preferences]

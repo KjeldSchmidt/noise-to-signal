@@ -7,11 +7,17 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 BriefStatus = Literal["pending", "ready", "failed"]
-BriefWorkerAction = Literal["build", "record_preference", "erase_preferences"]
+BriefWorkerAction = Literal[
+    "build",
+    "record_preference",
+    "erase_preferences",
+    "list_preferences",
+    "delete_preference",
+]
 
 
 class BriefBuilderRequest(BaseModel):
-    """Async Lambda payload from Django (Event invoke)."""
+    """Lambda payload from Django (Event or RequestResponse)."""
 
     action: BriefWorkerAction = "build"
     user_id: int
@@ -19,6 +25,8 @@ class BriefBuilderRequest(BaseModel):
     """Required when action=build."""
     preference_text: str = ""
     """Required when action=record_preference — free-text signal for AgentCore."""
+    memory_record_id: str = ""
+    """Required when action=delete_preference."""
 
     @field_validator("user_id")
     @classmethod
@@ -62,13 +70,27 @@ class BriefTasteDTO(BaseModel):
     answer: str
 
 
+class BriefThemeAffinityDTO(BaseModel):
+    slug: str
+    label: str
+    more_count: int = 0
+    less_count: int = 0
+    weight: float = 0.0
+
+
 class BriefUserContextResponse(BaseModel):
     user_id: int
     languages: list[str] = Field(default_factory=list)
     locations: list[BriefLocationDTO] = Field(default_factory=list)
     taste_answers: list[BriefTasteDTO] = Field(default_factory=list)
     recent_feedback: list[BriefFeedbackDTO] = Field(default_factory=list)
+    theme_affinities: list[BriefThemeAffinityDTO] = Field(default_factory=list)
     candidates: list[BriefCandidateDTO] = Field(default_factory=list)
+
+
+class PreferenceMemoryDTO(BaseModel):
+    id: str
+    text: str
 
 
 class BriefItemUpsert(BaseModel):

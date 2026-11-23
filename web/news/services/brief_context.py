@@ -10,6 +10,7 @@ from n2s_api import (
     BriefFeedbackDTO,
     BriefLocationDTO,
     BriefTasteDTO,
+    BriefThemeAffinityDTO,
     BriefUserContextResponse,
 )
 
@@ -17,6 +18,7 @@ from news.models import FollowUpAnswer, LocationOfInterest, RelevanceFeedback
 from news.services.brief import CANDIDATE_LIMIT
 from news.services.feeds import enabled_feed_ids, preferred_content_languages
 from news.services.stories_feed import build_stories_feed
+from news.services.theme_affinity import affinities_for_user, affinity_weight
 
 User = get_user_model()
 
@@ -86,12 +88,24 @@ def build_brief_user_context(user_id: int) -> BriefUserContextResponse:
         .order_by("-created_at")[:30]
     ]
 
+    theme_affinities = [
+        BriefThemeAffinityDTO(
+            slug=row.theme.slug,
+            label=row.theme.label,
+            more_count=row.more_count,
+            less_count=row.less_count,
+            weight=round(affinity_weight(row.more_count, row.less_count), 4),
+        )
+        for row in affinities_for_user(user)
+    ]
+
     return BriefUserContextResponse(
         user_id=user_id,
         languages=list(preferred_content_languages(user)),
         locations=locations,
         taste_answers=taste,
         recent_feedback=feedback,
+        theme_affinities=theme_affinities,
         candidates=candidates,
     )
 

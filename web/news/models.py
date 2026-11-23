@@ -327,6 +327,35 @@ class RelevanceFeedback(TimeStampedModel):
         return f"{self.user}: {self.article} → {self.verdict}"
 
 
+class UserThemeAffinity(TimeStampedModel):
+    """Per-user more/less counts for curated themes (log-damped in ranking)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="theme_affinities",
+    )
+    theme = models.ForeignKey(
+        Theme,
+        on_delete=models.CASCADE,
+        related_name="user_affinities",
+    )
+    more_count = models.PositiveIntegerField(default=0)
+    less_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "theme"],
+                name="uniq_userthemeaffinity_user_theme",
+            )
+        ]
+        ordering = ["theme__sort_order", "theme__slug"]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} {self.theme_id} +{self.more_count}/-{self.less_count}"
+
+
 class FollowUpQuestion(TimeStampedModel):
     """Catalog of taste-discovery questions (seeded / placeholder AI)."""
 

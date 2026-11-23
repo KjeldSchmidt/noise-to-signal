@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 
 from django.contrib.auth.models import AbstractBaseUser
-from django.db.models import Prefetch
+from django.db.models import Prefetch, prefetch_related_objects
 from django.utils import timezone
 
 from news.models import Article, RelevanceFeedback, UserBrief, UserBriefItem
@@ -38,9 +38,9 @@ def latest_brief(user: AbstractBaseUser) -> UserBrief | None:
         .prefetch_related(
             Prefetch(
                 "items",
-                queryset=UserBriefItem.objects.select_related("article", "article__feed").order_by(
-                    "rank"
-                ),
+                queryset=UserBriefItem.objects.select_related("article", "article__feed")
+                .prefetch_related("article__themes")
+                .order_by("rank"),
             )
         )
         .order_by("-created_at")
@@ -62,6 +62,7 @@ def ranked_from_brief(brief: UserBrief) -> list[RankedItem]:
     items = list(
         UserBriefItem.objects.filter(brief=brief)
         .select_related("article", "article__feed")
+        .prefetch_related("article__themes")
         .order_by("rank")
     )
     return [
@@ -103,6 +104,8 @@ def interim_ranked_items(user: AbstractBaseUser, *, limit: int = INTERIM_LIMIT) 
         )
         if len(ranked) >= limit:
             break
+    if ranked:
+        prefetch_related_objects([item.article for item in ranked], "themes")
     return ranked
 
 

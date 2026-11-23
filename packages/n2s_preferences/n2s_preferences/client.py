@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import uuid
+from dataclasses import dataclass
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,22 @@ DEFAULT_NAMESPACE_TEMPLATE = "/preferences/{actorId}"
 
 def actor_id_for_user(user_id: int) -> str:
     return str(user_id)
+
+
+@dataclass(frozen=True)
+class PreferenceRecord:
+    id: str
+    text: str
+
+
+def _text_from_record(record: dict[str, Any]) -> str:
+    content = record.get("content") or {}
+    text = content.get("text") if isinstance(content, dict) else None
+    if not text:
+        text = record.get("text") or ""
+    if isinstance(text, dict):
+        text = json.dumps(text, ensure_ascii=False)
+    return str(text).strip() if text else ""
 
 
 class PreferenceMemoryClient:
@@ -87,24 +104,18 @@ class PreferenceMemoryClient:
 
         texts: list[str] = []
         for record in response.get("memoryRecordSummaries") or response.get("memoryRecords") or []:
-            content = record.get("content") or {}
-            text = content.get("text") if isinstance(content, dict) else None
-            if not text:
-                # Some shapes nest preference JSON under content
-                text = record.get("text") or ""
-            if isinstance(text, dict):
-                text = json.dumps(text, ensure_ascii=False)
+            text = _text_from_record(record)
             if text:
-                texts.append(str(text).strip())
-        return [t for t in texts if t]
+                texts.append(text)
+        return texts
 
-    def delete_all_for_user(self, user_id: int) -> int:
-        """List and delete long-term memory records for actorId (GDPR erase)."""
+    def list_preference_records(self, user_id: int) -> list[PreferenceRecord]:
+        """List long-term preference memory records with ids (for Settings UI)."""
         if not self.memory_id:
-            return 0
+            return []
         actor = actor_id_for_user(user_id)
         namespace = self.namespace_for(actor)
-        deleted = 0
+        out: list[PreferenceRecord] = []
         next_token: str | None = None
         while True:
             kwargs: dict[str, Any] = {
@@ -124,17 +135,35 @@ class PreferenceMemoryClient:
                 record_id = record.get("memoryRecordId") or record.get("recordId")
                 if not record_id:
                     continue
-                try:
-                    self.client.delete_memory_record(
-                        memoryId=self.memory_id,
-                        memoryRecordId=record_id,
-                    )
-                    deleted += 1
-                except Exception:
-                    logger.exception("delete_memory_record failed id=%s", record_id)
+                text = _text_from_record(record) or "(empty preference)"
+                out.append(PreferenceRecord(id=str(record_id), text=text))
             next_token = page.get("nextToken")
             if not next_token:
                 break
+        return out
+
+    def delete_preference_record(self, user_id: int, record_id: str) -> bool:
+        """Delete one long-term memory record. user_id reserved for actor scoping checks."""
+        _ = user_id
+        rid = (record_id or "").strip()
+        if not self.memory_id or not rid:
+            return False
+        try:
+            self.client.delete_memory_record(
+                memoryId=self.memory_id,
+                memoryRecordId=rid,
+            )
+            return True
+        except Exception:
+            logger.exception("delete_memory_record failed id=%s", rid)
+            return False
+
+    def delete_all_for_user(self, user_id: int) -> int:
+        """List and delete long-term memory records for actorId (GDPR erase)."""
+        deleted = 0
+        for record in self.list_preference_records(user_id):
+            if self.delete_preference_record(user_id, record.id):
+                deleted += 1
         return deleted
 
 

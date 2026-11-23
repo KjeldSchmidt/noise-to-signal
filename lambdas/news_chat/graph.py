@@ -21,7 +21,7 @@ from prompts import (
 )
 from schemas import AnswerPayload, RefusalReason, ScopeDecision
 from state import ChatState
-from tools import CHAT_TOOLS, collect_known_articles, filter_citations
+from tools import CHAT_TOOLS, collect_known_articles, filter_citations, search_articles
 
 MAX_TOOL_ROUNDS = 2
 
@@ -105,8 +105,14 @@ def refuse(state: ChatState) -> dict[str, Any]:
     return {}
 
 
+def _tools_for_scope(state: ChatState) -> list[object]:
+    if state.get("scope") == "brief":
+        return list(CHAT_TOOLS)
+    return [search_articles]
+
+
 def agent(state: ChatState) -> dict[str, Any]:
-    model = get_answer_model().bind_tools(CHAT_TOOLS)
+    model = get_answer_model().bind_tools(_tools_for_scope(state))
     response = model.invoke(state["messages"])
     return {"messages": [response]}
 

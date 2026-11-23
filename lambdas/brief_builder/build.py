@@ -59,6 +59,22 @@ def run_erase_preferences(req: BriefBuilderRequest) -> int:
     return client.delete_all_for_user(req.user_id)
 
 
+def run_list_preferences(req: BriefBuilderRequest) -> list[dict[str, str]]:
+    client = get_preference_client()
+    if client is None:
+        logger.warning("AGENTCORE_MEMORY_ID unset; returning empty preference list")
+        return []
+    return [{"id": r.id, "text": r.text} for r in client.list_preference_records(req.user_id)]
+
+
+def run_delete_preference(req: BriefBuilderRequest) -> bool:
+    client = get_preference_client()
+    if client is None:
+        logger.warning("AGENTCORE_MEMORY_ID unset; cannot delete preference")
+        return False
+    return client.delete_preference_record(req.user_id, req.memory_record_id)
+
+
 def dispatch(req: BriefBuilderRequest) -> dict[str, object]:
     if req.action == "build":
         run_build(req)
@@ -69,4 +85,10 @@ def dispatch(req: BriefBuilderRequest) -> dict[str, object]:
     if req.action == "erase_preferences":
         deleted = run_erase_preferences(req)
         return {"ok": True, "action": "erase_preferences", "deleted": deleted}
+    if req.action == "list_preferences":
+        memories = run_list_preferences(req)
+        return {"ok": True, "action": "list_preferences", "memories": memories}
+    if req.action == "delete_preference":
+        ok = run_delete_preference(req)
+        return {"ok": ok, "action": "delete_preference"}
     raise ValueError(f"unknown action: {req.action}")

@@ -236,20 +236,28 @@ h1, h2, h3 {
 }
 .break { word-break: break-all; }
 
+/* Overlay — must not push page/chat layout (e.g. “Logged in” after OAuth). */
 .flash {
+  position: fixed;
+  top: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
   list-style: none;
   margin: 0;
-  padding: 0.75rem 1.5rem 0;
+  padding: 0;
   width: min(880px, calc(100% - 2rem));
-  margin-inline: auto;
+  pointer-events: none;
 }
 
 .flash li {
+  pointer-events: auto;
   background: #dff0e4;
   border: 1px solid #b7d8c2;
   padding: 0.65rem 0.9rem;
   border-radius: 10px;
   margin-bottom: 0.4rem;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.12);
 }
 
 .flash li.error { background: #f7e2de; border-color: #e3b5ad; }
@@ -370,6 +378,81 @@ h1, h2, h3 {
 .summary { color: var(--muted); margin: 0 0 0.85rem; }
 
 .feedback-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.theme-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.65rem 0 0.5rem;
+}
+
+.theme-chip-form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.theme-chip {
+  font-size: 0.82rem;
+  padding: 0.28rem 0.55rem;
+}
+
+.prefs-modal {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0;
+  width: min(520px, calc(100% - 2rem));
+  max-height: min(80vh, 640px);
+  background: #fffdf8;
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgba(28, 25, 23, 0.18);
+}
+
+.prefs-modal::backdrop {
+  background: rgba(28, 25, 23, 0.35);
+}
+
+.prefs-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: 1rem 1.15rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.prefs-modal-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.prefs-modal-body {
+  padding: 0.85rem 1.15rem 1.25rem;
+  overflow: auto;
+  max-height: min(60vh, 480px);
+}
+
+.prefs-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.prefs-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.prefs-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
 
 .callout {
   border: 1px dashed var(--accent);

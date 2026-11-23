@@ -9,7 +9,9 @@ from n2s_api.brief import (
     BriefItemUpsert,
     BriefLocationDTO,
     BriefTasteDTO,
+    BriefThemeAffinityDTO,
     BriefUserContextResponse,
+    PreferenceMemoryDTO,
 )
 from n2s_api.chat import (
     MAX_CHUNK_CHARS,
@@ -57,8 +59,10 @@ __all__ = [
     "BriefItemUpsert",
     "BriefLocationDTO",
     "BriefTasteDTO",
+    "BriefThemeAffinityDTO",
     "BriefUserContextResponse",
     "ChatCitation",
+    "PreferenceMemoryDTO",
     "ChatHistoryMessage",
     "ChatWorkerRequest",
     "ChatWorkerResponse",

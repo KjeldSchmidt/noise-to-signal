@@ -37,6 +37,38 @@ class PreferenceClientTests(unittest.TestCase):
         texts = client.retrieve_preferences(3)
         self.assertEqual(texts, ["Prefers climate coverage"])
 
+    def test_list_preference_records(self) -> None:
+        api = MagicMock()
+        api.list_memory_records.return_value = {
+            "memoryRecordSummaries": [
+                {"memoryRecordId": "r1", "content": {"text": "Likes science"}},
+                {"memoryRecordId": "r2", "content": {"text": ""}},
+            ]
+        }
+        client = PreferenceMemoryClient(
+            memory_id="mem-1",
+            region="eu-central-1",
+            client=api,
+        )
+        records = client.list_preference_records(3)
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0].id, "r1")
+        self.assertEqual(records[0].text, "Likes science")
+        self.assertEqual(records[1].text, "(empty preference)")
+
+    def test_delete_preference_record(self) -> None:
+        api = MagicMock()
+        client = PreferenceMemoryClient(
+            memory_id="mem-1",
+            region="eu-central-1",
+            client=api,
+        )
+        self.assertTrue(client.delete_preference_record(3, "r1"))
+        api.delete_memory_record.assert_called_once_with(
+            memoryId="mem-1",
+            memoryRecordId="r1",
+        )
+
     def test_delete_all(self) -> None:
         api = MagicMock()
         api.list_memory_records.return_value = {

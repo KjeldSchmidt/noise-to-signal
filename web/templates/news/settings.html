@@ -7,6 +7,30 @@
   <p class="muted">Languages, locations, and which feeds to include. Catalog feeds are on by default for languages you enable.</p>
 </section>
 
+<section class="block" id="stored-preferences">
+  <h2>Stored preferences</h2>
+  <p class="muted">Free-form memories and theme leanings that shape your brief. You can review or delete them anytime.</p>
+  <button
+    type="button"
+    class="btn ghost"
+    data-prefs-open
+    data-list-url="{% url 'stored_preferences' %}"
+    data-delete-memory-url="{% url 'delete_stored_memory' %}"
+    data-delete-theme-url="{% url 'delete_theme_leaning' %}"
+    data-csrf="{{ csrf_token }}"
+  >Show stored preferences</button>
+</section>
+
+<dialog class="prefs-modal" data-prefs-modal>
+  <form method="dialog" class="prefs-modal-head">
+    <h2>Stored preferences</h2>
+    <button type="submit" class="btn ghost small" value="close" aria-label="Close">Close</button>
+  </form>
+  <div class="prefs-modal-body" data-prefs-body>
+    <p class="muted">Loading…</p>
+  </div>
+</dialog>
+
 <section class="block" id="languages">
   <h2>Content languages</h2>
   <p class="muted">Only stories from feeds in these languages appear in your brief and Stories.</p>
@@ -153,4 +177,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/settings-locations.js' %}" defer></script>
+<script src="{% static 'js/settings-preferences.js' %}" defer></script>
 {% endblock %}
