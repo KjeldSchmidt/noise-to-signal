@@ -110,8 +110,11 @@ locals {
   }
   agentcore_users = {
     for name, cfg in var.workers : name => cfg
-    if try(cfg.use_agentcore_memory, false) && var.agentcore_memory_id != ""
+    if try(cfg.use_agentcore_memory, false) && var.agentcore_memory_enabled
   }
+
+  # aws_region.name is deprecated; id is the region string (e.g. eu-central-1).
+  aws_region = data.aws_region.current.id
 }
 
 resource "aws_iam_role_policy" "sqs_consume" {
@@ -135,19 +138,19 @@ data "aws_iam_policy_document" "bedrock_invoke" {
       "bedrock:ConverseStream",
     ]
     resources = [
-      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/cohere.embed-multilingual-v3",
-      "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/cohere.embed-multilingual-v3",
+      "arn:aws:bedrock:${local.aws_region}:${data.aws_caller_identity.current.account_id}:foundation-model/cohere.embed-multilingual-v3",
+      "arn:aws:bedrock:${local.aws_region}::foundation-model/cohere.embed-multilingual-v3",
       "arn:aws:bedrock:*::foundation-model/cohere.embed-multilingual-v3",
-      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/amazon.nova-micro-v1:0",
-      "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/amazon.nova-micro-v1:0",
+      "arn:aws:bedrock:${local.aws_region}:${data.aws_caller_identity.current.account_id}:foundation-model/amazon.nova-micro-v1:0",
+      "arn:aws:bedrock:${local.aws_region}::foundation-model/amazon.nova-micro-v1:0",
       "arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0",
-      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:foundation-model/amazon.nova-lite-v1:0",
-      "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/amazon.nova-lite-v1:0",
+      "arn:aws:bedrock:${local.aws_region}:${data.aws_caller_identity.current.account_id}:foundation-model/amazon.nova-lite-v1:0",
+      "arn:aws:bedrock:${local.aws_region}::foundation-model/amazon.nova-lite-v1:0",
       "arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0",
       # Cross-region inference profile (required for on-demand Nova Converse).
-      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.amazon.nova-micro-v1:0",
-      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.amazon.nova-lite-v1:0",
-      "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:inference-profile/*",
+      "arn:aws:bedrock:${local.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.amazon.nova-micro-v1:0",
+      "arn:aws:bedrock:${local.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.amazon.nova-lite-v1:0",
+      "arn:aws:bedrock:${local.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/*",
     ]
   }
 
@@ -170,7 +173,8 @@ resource "aws_iam_role_policy" "bedrock_invoke" {
 }
 
 data "aws_iam_policy_document" "agentcore_memory" {
-  count = var.agentcore_memory_arn != "" ? 1 : 0
+  # Use plan-time bool — memory id/arn from a new module are unknown until apply.
+  count = var.agentcore_memory_enabled ? 1 : 0
 
   statement {
     actions = [
@@ -181,9 +185,10 @@ data "aws_iam_policy_document" "agentcore_memory" {
       "bedrock-agentcore:DeleteMemoryRecord",
       "bedrock-agentcore:GetMemory",
     ]
+    # Account/region scope only — concrete memory ARN is unknown until apply
+    # when the memory resource is created in the same plan.
     resources = [
-      var.agentcore_memory_arn,
-      "${var.agentcore_memory_arn}/*",
+      "arn:aws:bedrock-agentcore:${local.aws_region}:${data.aws_caller_identity.current.account_id}:memory/*",
     ]
   }
 }
@@ -218,13 +223,13 @@ resource "aws_lambda_function" "worker" {
         INTERNAL_API_TOKEN = local.app_secret.INTERNAL_API_TOKEN
       },
       try(each.value.invoke_bedrock, false) ? {
-        BEDROCK_REGION                   = var.bedrock_region != "" ? var.bedrock_region : data.aws_region.current.name
+        BEDROCK_REGION                   = var.bedrock_region != "" ? var.bedrock_region : local.aws_region
         BEDROCK_EXTRACT_MODEL_ID         = "eu.amazon.nova-micro-v1:0"
         BEDROCK_CHAT_CLASSIFIER_MODEL_ID = "eu.amazon.nova-micro-v1:0"
         BEDROCK_CHAT_ANSWER_MODEL_ID     = "eu.amazon.nova-lite-v1:0"
         BEDROCK_BRIEF_MODEL_ID           = "eu.amazon.nova-lite-v1:0"
       } : {},
-      try(each.value.use_agentcore_memory, false) && var.agentcore_memory_id != "" ? {
+      try(each.value.use_agentcore_memory, false) && var.agentcore_memory_enabled ? {
         AGENTCORE_MEMORY_ID            = var.agentcore_memory_id
         AGENTCORE_PREFERENCE_NAMESPACE = var.agentcore_preference_namespace
       } : {},

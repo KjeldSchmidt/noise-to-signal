@@ -73,8 +73,8 @@ module "workers" {
   public_hostname                = "noise-to-signal.fyi"
   app_secret_arn                 = module.web.app_secret_arn
   feed_items_queue_arn           = module.web.feed_items_queue_arn
+  agentcore_memory_enabled       = true
   agentcore_memory_id            = module.preference_memory.memory_id
-  agentcore_memory_arn           = module.preference_memory.memory_arn
   agentcore_preference_namespace = module.preference_memory.namespace_template
 
   workers = {
