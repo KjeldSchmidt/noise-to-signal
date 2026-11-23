@@ -356,41 +356,6 @@ class UserThemeAffinity(TimeStampedModel):
         return f"{self.user_id} {self.theme_id} +{self.more_count}/-{self.less_count}"
 
 
-class FollowUpQuestion(TimeStampedModel):
-    """Catalog of taste-discovery questions (seeded / placeholder AI)."""
-
-    prompt = models.TextField()
-    sort_order = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ["sort_order", "id"]
-
-    def __str__(self) -> str:
-        return self.prompt[:80]
-
-
-class FollowUpAnswer(TimeStampedModel):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="followup_answers",
-    )
-    question = models.ForeignKey(
-        FollowUpQuestion,
-        on_delete=models.CASCADE,
-        related_name="answers",
-    )
-    answer = models.TextField()
-
-    class Meta:
-        unique_together = ("user", "question")
-        ordering = ["-updated_at"]
-
-    def __str__(self) -> str:
-        return f"{self.user} / Q{self.question_id}"
-
-
 class UserBrief(TimeStampedModel):
     """One personalized brief run for a user (async worker fills items)."""
 

@@ -9,10 +9,10 @@ from n2s_api import BriefCandidateDTO, BriefUserContextResponse
 BRIEF_SYSTEM = """You personalize a short daily news brief for one reader.
 
 Pick 5–8 articles from the candidate list (by article_id only). Prefer:
-- alignment with stated preferences and taste answers
+- alignment with stated free-form preferences
 - theme leanings (positive weight = more of that theme; negative = less)
 - locations of interest when place/geo matches
-- higher impact_tier and candidate score when taste is unclear
+- higher impact_tier and candidate score when preferences are unclear
 - diversity of topics (avoid near-duplicates)
 
 Candidates are pre-sorted with theme affinity already folded into score —
@@ -55,8 +55,6 @@ def build_evaluate_user_message(
         }
         for loc in context.locations
     ]
-    taste = [{"q": t.question, "a": t.answer} for t in context.taste_answers]
-    feedback = [{"title": f.title, "verdict": f.verdict} for f in context.recent_feedback[:15]]
     theme_affinities = [
         {
             "slug": a.slug,
@@ -86,9 +84,7 @@ def build_evaluate_user_message(
         "preferences": preferences,
         "languages": context.languages,
         "locations": locs,
-        "taste_answers": taste,
         "theme_affinities": theme_affinities,
-        "recent_feedback": feedback,
         "candidates": cands,
     }
     return (

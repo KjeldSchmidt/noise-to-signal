@@ -3,7 +3,7 @@ import os
 from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
 
-from news.models import Feed, FollowUpQuestion
+from news.models import Feed
 
 # Catalog rows are also applied by migration 0012 for deploy envs.
 # Keep FEEDS in sync with news/migrations/0012_seed_multilingual_catalog_feeds.py.
@@ -139,17 +139,9 @@ FEEDS = [
 # Retired from the catalog; deactivate on re-seed so existing DBs drop them.
 RETIRED_FEED_URLS = ("https://hnrss.org/frontpage",)
 
-QUESTIONS = [
-    "Which topics should almost always surface in your brief?",
-    "What kinds of stories do you want filtered out aggressively?",
-    "Do you prefer deep analysis, short wire updates, or a mix?",
-    "Any regions or beats you care about more than the global average?",
-    "How technical should tech coverage be for you?",
-]
-
 
 class Command(BaseCommand):
-    help = "Seed curated/recommended feeds and follow-up questions."
+    help = "Seed curated/recommended feeds."
 
     def handle(self, *args, **options):
         site_domain = os.environ.get("SITE_DOMAIN", "127.0.0.1:8000")
@@ -180,10 +172,3 @@ class Command(BaseCommand):
             feed.is_active = False
             feed.save(update_fields=["is_active", "updated_at"])
             self.stdout.write(f"Deactivated retired feed: {feed.title}")
-
-        for i, prompt in enumerate(QUESTIONS):
-            FollowUpQuestion.objects.update_or_create(
-                prompt=prompt,
-                defaults={"sort_order": i, "is_active": True},
-            )
-        self.stdout.write(f"Seeded {len(QUESTIONS)} follow-up questions.")

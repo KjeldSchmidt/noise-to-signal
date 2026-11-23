@@ -22,15 +22,12 @@ from pydantic import ValidationError
 from news.forms import (
     ContentLanguagesForm,
     CustomFeedForm,
-    FollowUpAnswerForm,
     LocationOfInterestForm,
 )
 from news.models import (
     Article,
     Feed,
     FeedMute,
-    FollowUpAnswer,
-    FollowUpQuestion,
     LocationOfInterest,
     RelevanceFeedback,
     Subscription,
@@ -45,7 +42,6 @@ from news.services import (
     catalog_feeds,
     catalog_languages,
     enabled_feed_ids,
-    next_questions,
     preferred_content_languages,
     recommend_feeds,
     thread_timeline_articles,
@@ -55,7 +51,6 @@ from news.services.brief import resolve_brief_page
 from news.services.brief_invoke import (
     delete_preference_memory,
     invoke_brief_builder,
-    invoke_preference_record,
     list_preference_memories,
 )
 from news.services.chat_invoke import invoke_news_chat
@@ -564,50 +559,6 @@ def theme_affinity(request: HttpRequest, article_id: int) -> HttpResponse:
         )
     messages.success(request, message)
     return redirect("brief")
-
-
-@login_required
-def followups(request: HttpRequest) -> HttpResponse:
-    questions = next_questions(request.user, limit=5)
-    answered = (
-        FollowUpAnswer.objects.filter(user=request.user)
-        .select_related("question")
-        .order_by("-updated_at")
-    )
-    return render(
-        request,
-        "news/followups.html",
-        {"questions": questions, "answered": answered},
-    )
-
-
-@login_required
-def answer_followup(request: HttpRequest, question_id: int) -> HttpResponse:
-    user = cast(AbstractBaseUser, request.user)
-    question = get_object_or_404(FollowUpQuestion, pk=question_id, is_active=True)
-    if request.method == "POST":
-        form = FollowUpAnswerForm(request.POST)
-        if form.is_valid():
-            answer_text = form.cleaned_data["answer"]
-            FollowUpAnswer.objects.update_or_create(
-                user=user,
-                question=question,
-                defaults={"answer": answer_text},
-            )
-            invoke_preference_record(
-                int(user.pk),
-                f"Taste question: {question.prompt}\nUser answer: {answer_text}",
-            )
-            messages.success(request, "Saved — that will shape future filtering.")
-            return redirect("followups")
-    else:
-        existing = FollowUpAnswer.objects.filter(user=user, question=question).first()
-        form = FollowUpAnswerForm(instance=existing)
-    return render(
-        request,
-        "news/answer_followup.html",
-        {"question": question, "form": form},
-    )
 
 
 def _parse_chat_json(request: HttpRequest) -> dict[str, Any] | None:

@@ -2,7 +2,7 @@ from typing import Any, cast
 
 from django import forms
 
-from news.models import Feed, FollowUpAnswer, LocationOfInterest
+from news.models import Feed, LocationOfInterest
 from news.services.feeds import CONTENT_LANGUAGE_LABELS, catalog_languages
 
 
@@ -78,14 +78,3 @@ class LocationOfInterestForm(forms.ModelForm):
         self.fields["label"].required = True
         for name in ("country_code", "admin1", "locality", "geo_level"):
             self.fields[name].required = False
-
-
-class FollowUpAnswerForm(forms.ModelForm):
-    class Meta:
-        model = FollowUpAnswer
-        fields = ("answer",)
-        widgets = {
-            "answer": forms.Textarea(
-                attrs={"rows": 3, "placeholder": "A sentence or two is enough…"}
-            ),
-        }

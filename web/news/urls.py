@@ -51,10 +51,4 @@ urlpatterns = [
         name="theme_affinity",
     ),
     path("chat/", views.chat, name="chat"),
-    path("followups/", views.followups, name="followups"),
-    path(
-        "followups/<int:question_id>/answer/",
-        views.answer_followup,
-        name="answer_followup",
-    ),
 ]

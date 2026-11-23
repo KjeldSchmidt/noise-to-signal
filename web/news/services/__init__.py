@@ -7,7 +7,6 @@ from .feeds import (
     enabled_feed_ids,
     preferred_content_languages,
 )
-from .followups import next_questions, unanswered_questions
 from .places import place_dict_match, places_match
 from .ranking import RankedItem, rank_items, recommend_feeds
 from .stories_feed import (
@@ -42,7 +41,6 @@ __all__ = [
     "cosine_similarity",
     "dissolve_singleton_threads",
     "enabled_feed_ids",
-    "next_questions",
     "place_dict_match",
     "places_match",
     "preferred_content_languages",
@@ -51,5 +49,4 @@ __all__ = [
     "reconcile_story_threads",
     "thread_timeline_articles",
     "thread_visible_in_scope",
-    "unanswered_questions",
 ]

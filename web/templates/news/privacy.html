@@ -25,7 +25,7 @@
     <p>
       Noise to Signal is a personal news product. It aggregates feeds you choose or enable, ranks stories
       for your brief, and personalizes what you see using settings you configure and preference memory
-      learned from your feedback and taste answers.
+      learned from theme leanings and free-form preferences you share in chat.
     </p>
   </section>
 
@@ -42,13 +42,14 @@
         feeds, and similar configuration needed to run your account.
       </li>
       <li>
-        <strong>Relevance and taste signals.</strong> Feedback on stories (relevant / not / skip) and
-        answers to short taste questions.
+        <strong>Dismiss and theme signals.</strong> When you mark stories relevant / not / skip we
+        remember that so they leave your brief. Theme more/less taps update per-theme leanings stored
+        in our application database.
       </li>
       <li>
-        <strong>Preference memory.</strong> From those signals we extract and store lasting preference
-        records (for example topics, tones, or sources you tend to want or avoid) so returning briefs
-        stay personalized. These records are stored in
+        <strong>Preference memory.</strong> Free-form preferences you share in brief chat are stored as
+        lasting preference records (for example topics, tones, or sources you tend to want or avoid)
+        so returning briefs stay personalized. These records are stored in
         <strong>Amazon Bedrock AgentCore Memory</strong> in an <strong>EU AWS region</strong>, scoped
         to your user id, and used only to personalize your own experience.
       </li>

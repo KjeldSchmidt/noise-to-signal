@@ -59,17 +59,6 @@ class BriefLocationDTO(BaseModel):
     geo_level: str = ""
 
 
-class BriefFeedbackDTO(BaseModel):
-    article_id: int
-    title: str
-    verdict: str
-
-
-class BriefTasteDTO(BaseModel):
-    question: str
-    answer: str
-
-
 class BriefThemeAffinityDTO(BaseModel):
     slug: str
     label: str
@@ -82,8 +71,6 @@ class BriefUserContextResponse(BaseModel):
     user_id: int
     languages: list[str] = Field(default_factory=list)
     locations: list[BriefLocationDTO] = Field(default_factory=list)
-    taste_answers: list[BriefTasteDTO] = Field(default_factory=list)
-    recent_feedback: list[BriefFeedbackDTO] = Field(default_factory=list)
     theme_affinities: list[BriefThemeAffinityDTO] = Field(default_factory=list)
     candidates: list[BriefCandidateDTO] = Field(default_factory=list)
 

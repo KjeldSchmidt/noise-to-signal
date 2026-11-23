@@ -5,8 +5,6 @@ from news.models import (
     Article,
     Feed,
     FeedMute,
-    FollowUpAnswer,
-    FollowUpQuestion,
     LocationOfInterest,
     RelevanceFeedback,
     StoryThread,
@@ -124,13 +122,3 @@ class ArticleAdmin(admin.ModelAdmin):
 class RelevanceFeedbackAdmin(admin.ModelAdmin):
     list_display = ("user", "article", "verdict", "created_at")
     list_filter = ("verdict",)
-
-
-@admin.register(FollowUpQuestion)
-class FollowUpQuestionAdmin(admin.ModelAdmin):
-    list_display = ("prompt", "sort_order", "is_active")
-
-
-@admin.register(FollowUpAnswer)
-class FollowUpAnswerAdmin(admin.ModelAdmin):
-    list_display = ("user", "question", "updated_at")
