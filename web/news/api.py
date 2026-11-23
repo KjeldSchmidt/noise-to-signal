@@ -288,8 +288,8 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
     )
 
 
-@csrf_exempt
-@require_GET
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_GET  # ty: ignore[invalid-argument-type]
 @require_internal_token
 def brief_user_context(request: HttpRequest, user_id: int) -> JsonResponse:
     """User settings + Stories-scored candidates for brief_builder."""
@@ -297,8 +297,8 @@ def brief_user_context(request: HttpRequest, user_id: int) -> JsonResponse:
     return JsonResponse(payload.model_dump())
 
 
-@csrf_exempt
-@require_POST
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_POST  # ty: ignore[invalid-argument-type]
 @require_internal_token
 def complete_brief(request: HttpRequest) -> JsonResponse:
     """Mark a pending UserBrief ready/failed and replace its items."""

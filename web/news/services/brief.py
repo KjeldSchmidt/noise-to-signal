@@ -57,7 +57,13 @@ def brief_is_fresh(brief: UserBrief, *, now: datetime | None = None) -> bool:
 
 
 def ranked_from_brief(brief: UserBrief) -> list[RankedItem]:
-    items = list(brief.items.all()) if brief.pk else []
+    if not brief.pk:
+        return []
+    items = list(
+        UserBriefItem.objects.filter(brief=brief)
+        .select_related("article", "article__feed")
+        .order_by("rank")
+    )
     return [
         RankedItem(
             article=item.article,

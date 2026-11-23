@@ -84,17 +84,18 @@ def oauth_popup_done(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def brief(request: HttpRequest) -> HttpResponse:
-    state = resolve_brief_page(request.user)
+    user = cast(AbstractBaseUser, request.user)
+    state = resolve_brief_page(user)
     if state.kick and state.brief is not None:
         invoke_brief_builder(
             BriefBuilderRequest(
                 action="build",
-                user_id=int(request.user.pk),
+                user_id=int(user.pk),
                 brief_id=state.brief.id,
             )
         )
-    pending_questions = next_questions(request.user, limit=1)
-    feed_count = len(enabled_feed_ids(request.user))
+    pending_questions = next_questions(user, limit=1)
+    feed_count = len(enabled_feed_ids(user))
     return render(
         request,
         "news/brief.html",
@@ -421,6 +422,7 @@ def delete_location(request: HttpRequest, location_id: int) -> HttpResponse:
 @login_required
 @require_POST
 def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
+    user = cast(AbstractBaseUser, request.user)
     article = get_object_or_404(Article, pk=article_id)
     verdict = request.POST.get("verdict")
     allowed = {c.value for c in RelevanceFeedback.Verdict}
@@ -434,12 +436,12 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
         return redirect("brief")
 
     RelevanceFeedback.objects.update_or_create(
-        user=request.user,
+        user=user,
         article=article,
         defaults={"verdict": verdict},
     )
     invoke_preference_record(
-        int(request.user.pk),
+        int(user.pk),
         f"The user marked the article «{article.title}» as {verdict.replace('_', ' ')}.",
     )
     labels = {
@@ -473,24 +475,25 @@ def followups(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def answer_followup(request: HttpRequest, question_id: int) -> HttpResponse:
+    user = cast(AbstractBaseUser, request.user)
     question = get_object_or_404(FollowUpQuestion, pk=question_id, is_active=True)
     if request.method == "POST":
         form = FollowUpAnswerForm(request.POST)
         if form.is_valid():
             answer_text = form.cleaned_data["answer"]
             FollowUpAnswer.objects.update_or_create(
-                user=request.user,
+                user=user,
                 question=question,
                 defaults={"answer": answer_text},
             )
             invoke_preference_record(
-                int(request.user.pk),
+                int(user.pk),
                 f"Taste question: {question.prompt}\nUser answer: {answer_text}",
             )
             messages.success(request, "Saved — that will shape future filtering.")
             return redirect("followups")
     else:
-        existing = FollowUpAnswer.objects.filter(user=request.user, question=question).first()
+        existing = FollowUpAnswer.objects.filter(user=user, question=question).first()
         form = FollowUpAnswerForm(instance=existing)
     return render(
         request,

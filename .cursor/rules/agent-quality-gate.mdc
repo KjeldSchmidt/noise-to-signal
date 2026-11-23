@@ -1,0 +1,43 @@
+---
+description: Before finishing agent work, run CI-parity quality checks on touched packages
+alwaysApply: true
+---
+
+# Agent quality gate (CI parity)
+
+Human commits may skip hooks. **Agent-authored code must pass the same gates as `.github/workflows/quality.yml` before the task is done.**
+
+## When
+
+- After substantive edits to code under `web/`, `runner/`, `lambdas/`, `packages/`, or `infrastructure/`
+- **Not** mid-turn while still exploring or iterating with the user — run once at the end of the change set (or before declaring done / opening a PR)
+- Skip only for pure docs/config with no code impact, or when the user explicitly says to skip checks
+
+## What (match CI)
+
+For each **touched package** (directory with its own justfile), run:
+
+1. `just fmt` then verify with `fmt-check` (or format then check)
+2. `just lint` (auto-fix) then `lint-check`
+3. `just typecheck`
+4. `just test` when tests exist and the change can affect behavior
+
+Prefer package-scoped commands:
+
+```text
+just --justfile <pkg>/justfile --working-directory <pkg> <recipe>
+```
+
+Use root `just check` only when many packages changed or selective scope is unclear.
+
+## Conscious scope
+
+- Map changed files → package roots; only check those packages
+- If a shared package changed (`packages/*`), also typecheck/test direct dependents you edited in the same task
+- State briefly which packages you checked (or why you skipped)
+
+## Don't
+
+- Treat “looks fine” or editor diagnostics alone as enough
+- Leave ruff/ty failures for CI
+- Skip because checks are slow — run them; fix failures before finishing

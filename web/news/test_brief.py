@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any, cast
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -17,10 +18,15 @@ from news.services.brief import BRIEF_TTL, brief_is_fresh, resolve_brief_page
 User = get_user_model()
 
 
+def _create_user(**kwargs: Any) -> Any:
+    # django-stubs types User.objects as Manager[AbstractBaseUser] without create_user.
+    return cast(Any, User.objects).create_user(**kwargs)
+
+
 @override_settings(INTERNAL_API_TOKEN="test-internal-token")
 class BriefApiTests(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user(username="brief-api", password="x")
+        self.user = _create_user(username="brief-api", password="x")
         self.feed = Feed.objects.create(
             title="Brief Feed",
             url="https://example.com/brief.xml",
@@ -76,7 +82,7 @@ class BriefApiTests(TestCase):
 
 class BriefFreshnessTests(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user(username="brief-fresh", password="x")
+        self.user = _create_user(username="brief-fresh", password="x")
         self.feed = Feed.objects.create(
             title="Fresh Feed",
             url="https://example.com/fresh.xml",
@@ -110,13 +116,14 @@ class BriefFreshnessTests(TestCase):
             state = resolve_brief_page(self.user)
         self.assertEqual(state.phase, "personalizing")
         self.assertTrue(state.kick)
+        assert state.brief is not None
         self.assertEqual(state.brief.status, UserBrief.Status.PENDING)
 
 
 @override_settings(DEBUG=True, BRIEF_BUILDER_FUNCTION_NAME="")
 class BriefPageTests(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user(username="brief-page", password="x")
+        self.user = _create_user(username="brief-page", password="x")
         self.client = Client()
         self.client.force_login(self.user)
         self.feed = Feed.objects.create(
