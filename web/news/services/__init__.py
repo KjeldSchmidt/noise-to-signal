@@ -7,6 +7,13 @@ from .feeds import (
     enabled_feed_ids,
     preferred_content_languages,
 )
+from .impact import (
+    article_impact_score,
+    blend_relevance_impact,
+    score_article,
+    thread_impact_score,
+    tier_weight,
+)
 from .places import place_dict_match, places_match
 from .ranking import RankedItem, rank_items, recommend_feeds
 from .stories_feed import (
@@ -31,7 +38,9 @@ __all__ = [
     "RankedItem",
     "StoriesFeedPage",
     "StoryFeedEntry",
+    "article_impact_score",
     "assign_story_thread",
+    "blend_relevance_impact",
     "build_stories_feed",
     "build_stories_feed_page",
     "catalog_feed_ids",
@@ -47,6 +56,9 @@ __all__ = [
     "rank_items",
     "recommend_feeds",
     "reconcile_story_threads",
+    "score_article",
+    "thread_impact_score",
     "thread_timeline_articles",
     "thread_visible_in_scope",
+    "tier_weight",
 ]

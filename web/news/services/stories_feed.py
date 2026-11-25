@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Literal
@@ -10,22 +9,13 @@ from typing import Literal
 from django.db.models import Count, Min
 from django.utils import timezone
 
-from news.models import Article, Feed, ImpactTier, StoryThread
+from news.models import Article, Feed, StoryThread
+from news.services.impact import article_impact_score, thread_impact_score
 
 EntryKind = Literal["article", "thread"]
 
-HALF_LIFE_HOURS = 36.0
-COVERAGE_BOOST_K = 0.45
 DEFAULT_PAGE_SIZE = 21
 FETCH_CAP = 400
-
-TIER_WEIGHTS: dict[str, float] = {
-    ImpactTier.COMMERCIAL: 0.15,
-    ImpactTier.EPHEMERAL: 0.4,
-    "": 0.35,
-    ImpactTier.NOTABLE: 1.0,
-    ImpactTier.MAJOR: 2.5,
-}
 
 
 @dataclass(frozen=True)
@@ -71,36 +61,6 @@ def format_thread_span(first: datetime, last: datetime) -> str:
         return f"{hours} hour{'s' if hours != 1 else ''}"
     days = max(1, int(round(delta.total_seconds() / 86400)))
     return f"{days} day{'s' if days != 1 else ''}"
-
-
-def tier_weight(tier: str) -> float:
-    """Map impact_tier (including blank) to a ranking weight."""
-    return TIER_WEIGHTS.get(tier, TIER_WEIGHTS[""])
-
-
-def article_impact_score(
-    tier: str,
-    published_at: datetime,
-    *,
-    now: datetime,
-) -> float:
-    """Decayed importance for a single article."""
-    age_hours = max(0.0, (now - published_at).total_seconds() / 3600.0)
-    return tier_weight(tier) * (0.5 ** (age_hours / HALF_LIFE_HOURS))
-
-
-def thread_impact_score(members: list[Article], *, now: datetime) -> float:
-    """Max member score with a log-damped boost from additional coverage."""
-    scores = [
-        article_impact_score(member.impact_tier, member.published_at, now=now) for member in members
-    ]
-    if not scores:
-        return 0.0
-    base = max(scores)
-    if base <= 0.0:
-        return 0.0
-    others = sum(scores) - base
-    return base * (1.0 + COVERAGE_BOOST_K * math.log1p(others / base))
 
 
 def build_stories_feed(

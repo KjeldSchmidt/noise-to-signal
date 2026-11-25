@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from news.models import Article, Feed, ImpactTier, StoryThread
+from news.services.impact import HALF_LIFE_HOURS
 from news.services.stories_feed import (
-    HALF_LIFE_HOURS,
     build_stories_feed,
     build_stories_feed_page,
     format_thread_span,

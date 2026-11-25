@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import connection
 from django.db.models import Q, QuerySet
+from django.utils import timezone
 from n2s_api import MAX_CHUNKS, ContextChunk
 
 from news.models import Article
 from news.services.chat_retrieve import article_to_chunk
 from news.services.feeds import enabled_feed_ids
+from news.services.impact import blend_relevance_impact, score_article
 from news.services.threading import cosine_similarity
 
 User = get_user_model()
@@ -136,12 +140,14 @@ def search_articles_for_user(
     limit: int = 10,
     exclude_article_ids: list[int] | None = None,
     min_similarity: float = MIN_EMBEDDING_SIMILARITY,
+    now: datetime | None = None,
 ) -> list[ContextChunk]:
     """
     Merge title/summary matches with embedding nearest neighbors.
 
-    Title hits are preferred; ANN fills remaining slots only when cosine
-    similarity >= ``min_similarity``. Chunks include ``similarity`` when known.
+    Title hits are preferred for recall; ANN fills remaining slots only when
+    cosine similarity >= ``min_similarity``. Final order is relevance × impact
+    (decayed tier weight). Chunks still expose raw ``similarity`` when known.
     """
     capped = max(1, min(limit, MAX_CHUNKS))
     exclude = set(exclude_article_ids or [])
@@ -149,13 +155,25 @@ def search_articles_for_user(
     if not qs.exists():
         return []
 
-    title_articles = _title_hits(qs, query=query, exclude_ids=exclude, limit=capped)
-    chunks: list[ContextChunk] = [
-        article_to_chunk(a, similarity=_score_title_hit(a, embedding=embedding))
-        for a in title_articles
-    ]
+    clock = now or timezone.now()
+    # Oversample then re-rank so a high-impact neighbor can displace fluff.
+    fetch_cap = min(MAX_CHUNKS, max(capped * 3, capped))
+    title_articles = _title_hits(qs, query=query, exclude_ids=exclude, limit=fetch_cap)
+    ranked: list[tuple[float, ContextChunk]] = []
+    for article in title_articles:
+        similarity = _score_title_hit(article, embedding=embedding)
+        chunk = article_to_chunk(article, similarity=similarity)
+        ranked.append(
+            (
+                blend_relevance_impact(
+                    similarity=similarity,
+                    impact=score_article(article, now=clock),
+                ),
+                chunk,
+            )
+        )
     seen = {a.pk for a in title_articles} | exclude
-    remaining = capped - len(title_articles)
+    remaining = fetch_cap - len(title_articles)
 
     if embedding is not None and remaining > 0:
         for article, similarity in _embedding_hits(
@@ -165,9 +183,19 @@ def search_articles_for_user(
             limit=remaining,
             min_similarity=min_similarity,
         ):
-            chunks.append(article_to_chunk(article, similarity=similarity))
+            chunk = article_to_chunk(article, similarity=similarity)
+            ranked.append(
+                (
+                    blend_relevance_impact(
+                        similarity=similarity,
+                        impact=score_article(article, now=clock),
+                    ),
+                    chunk,
+                )
+            )
 
-    return chunks
+    ranked.sort(key=lambda row: row[0], reverse=True)
+    return [chunk for _, chunk in ranked[:capped]]
 
 
 def search_articles_by_user_id(

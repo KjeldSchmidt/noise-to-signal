@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from news.models import Article, Feed, FeedMute
+from news.models import Article, Feed, FeedMute, ImpactTier
 from news.services.article_search import MIN_EMBEDDING_SIMILARITY, search_articles_for_user
 
 User = get_user_model()
@@ -125,6 +125,33 @@ class ArticleSearchServiceTests(TestCase):
         )
         ids = {c.article_id for c in chunks}
         self.assertNotIn(self.in_scope.pk, ids)
+
+    def test_impact_reorders_title_hits(self) -> None:
+        """Equal lexical relevance: major outranks ephemeral."""
+        major = Article.objects.create(
+            feed=self.feed,
+            title="Floods hit inland cities",
+            url="https://example.com/floods-major",
+            summary="Widespread damage.",
+            published_at=self.now,
+            impact_tier=ImpactTier.MAJOR,
+        )
+        ephemeral = Article.objects.create(
+            feed=self.feed,
+            title="Floods hit coastal towns again",
+            url="https://example.com/floods-ephemeral",
+            summary="Minor street flooding.",
+            published_at=self.now,
+            impact_tier=ImpactTier.EPHEMERAL,
+        )
+        chunks = search_articles_for_user(
+            user=self.user,
+            query="Floods hit",
+            limit=5,
+            now=self.now,
+        )
+        ids = [c.article_id for c in chunks]
+        self.assertLess(ids.index(major.pk), ids.index(ephemeral.pk))
 
 
 @override_settings(INTERNAL_API_TOKEN="test-internal-token")
