@@ -10,10 +10,17 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
+from news.admin_custom_pages import custom_admin_page
 from news.services.theme_analysis_artifacts import load_latest, load_status, mark_running
 from news.services.theme_analysis_invoke import invoke_theme_analysis
 
 
+@custom_admin_page(
+    name="news_theme_analysis",
+    path="news/theme-analysis/",
+    title="Theme analysis",
+    description="Theme–embedding analysis report and async refresh.",
+)
 @require_http_methods(["GET", "POST"])
 def theme_analysis_view(request: HttpRequest) -> HttpResponse:
     """Custom admin page: view S3 report + async Refresh."""

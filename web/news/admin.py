@@ -1,8 +1,9 @@
 from django.contrib import admin
 
-from news.admin_ops import patch_admin_urls
+from news.admin_ops import patch_admin_site
 from news.models import (
     Article,
+    ChatRateLimitBucket,
     Feed,
     FeedMute,
     LocationOfInterest,
@@ -11,10 +12,13 @@ from news.models import (
     Subscription,
     Theme,
     ThemeSuggestion,
+    UserBrief,
+    UserBriefItem,
     UserContentLanguage,
+    UserThemeAffinity,
 )
 
-patch_admin_urls()
+patch_admin_site()
 
 
 @admin.register(Feed)
@@ -122,3 +126,43 @@ class ArticleAdmin(admin.ModelAdmin):
 class RelevanceFeedbackAdmin(admin.ModelAdmin):
     list_display = ("user", "article", "verdict", "created_at")
     list_filter = ("verdict",)
+
+
+@admin.register(UserThemeAffinity)
+class UserThemeAffinityAdmin(admin.ModelAdmin):
+    list_display = ("user", "theme", "more_count", "less_count", "updated_at")
+    list_filter = ("theme",)
+    search_fields = ("user__username", "user__email", "theme__slug", "theme__label")
+    raw_id_fields = ("user", "theme")
+
+
+class UserBriefItemInline(admin.TabularInline):
+    model = UserBriefItem
+    extra = 0
+    raw_id_fields = ("article",)
+    ordering = ("rank",)
+
+
+@admin.register(UserBrief)
+class UserBriefAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "status", "ready_at", "created_at")
+    list_filter = ("status",)
+    search_fields = ("user__username", "user__email", "error")
+    raw_id_fields = ("user",)
+    inlines = (UserBriefItemInline,)
+
+
+@admin.register(UserBriefItem)
+class UserBriefItemAdmin(admin.ModelAdmin):
+    list_display = ("brief", "rank", "article", "score", "created_at")
+    list_filter = ("brief__status",)
+    search_fields = ("reason", "article__title")
+    raw_id_fields = ("brief", "article")
+
+
+@admin.register(ChatRateLimitBucket)
+class ChatRateLimitBucketAdmin(admin.ModelAdmin):
+    list_display = ("user", "bucket_key", "window_start", "count", "updated_at")
+    list_filter = ("bucket_key",)
+    search_fields = ("user__username", "user__email", "bucket_key")
+    raw_id_fields = ("user",)

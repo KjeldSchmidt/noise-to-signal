@@ -1,0 +1,41 @@
+---
+description: Custom Django admin tools use @custom_admin_page; register all news models
+globs: web/**/admin*.py
+alwaysApply: false
+---
+
+# Django admin custom pages & model registration
+
+## Custom admin pages
+
+Staff tool views (non-ModelAdmin) must be annotated so they get a URL **and** appear in the Tools block on `/admin/`.
+
+### Do
+
+```python
+from news.admin_custom_pages import custom_admin_page
+
+@custom_admin_page(
+    name="news_my_tool",
+    path="news/my-tool/",
+    title="My tool",
+    description="One-line what this page does.",
+)
+@require_http_methods(["GET", "POST"])
+def my_tool_view(request: HttpRequest) -> HttpResponse:
+    ...
+```
+
+- Put the view in `web/news/admin_*.py` and ensure the module is imported before `patch_admin_site()` (e.g. import from `admin_ops.py` like theme analysis)
+- Prefer linking from the admin index (automatic); changelist shortcuts are optional extras
+- Keep `web/news/test_admin_index.py` green — it asserts every registered custom page is on the index
+
+### Don't
+
+- Mount custom admin URLs only via ad-hoc `get_urls` paths without `@custom_admin_page`
+- Hard-code a parallel list of tools on the index template
+- Rely on a cursor rule alone without the registry + test
+
+## ModelAdmin registration
+
+Every concrete model in `news.models` must have a `ModelAdmin` in `web/news/admin.py` (`@admin.register`). `test_all_concrete_news_models_registered` enforces this.

@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from django import forms
 from django.contrib import admin, messages
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.views.decorators.http import require_http_methods
 
-from news.admin_theme_analysis import theme_analysis_view
+from news.admin_custom_pages import custom_admin_page, iter_custom_admin_pages
 from news.services.requeue import articles_for_requeue, requeue_articles
 from news.services.threading import dissolve_singleton_threads, reconcile_story_threads
+
+_ADMIN_SITE_PATCHED = False
 
 
 class RequeueForm(forms.Form):
@@ -70,8 +73,14 @@ class ReconcileForm(forms.Form):
     )
 
 
+@custom_admin_page(
+    name="news_ops",
+    path="news/ops/",
+    title="News ops",
+    description="Dissolve / reconcile story threads and requeue article enrichment.",
+)
 @require_http_methods(["GET", "POST"])
-def news_ops_view(request):
+def news_ops_view(request: HttpRequest) -> HttpResponse:
     """Custom admin page: dissolve / reconcile / requeue."""
     requeue_form = RequeueForm(prefix="requeue")
     reconcile_form = ReconcileForm(prefix="reconcile")
@@ -152,30 +161,51 @@ def news_ops_view(request):
     return render(request, "admin/news/ops.html", context)
 
 
-def patch_admin_urls() -> None:
-    """Register /admin/news/ops/ and theme-analysis on the default AdminSite."""
-    if getattr(admin.site, "_news_ops_urls_patched", False):
+def patch_admin_site() -> None:
+    """Mount annotated custom pages and expose them on the admin index."""
+    global _ADMIN_SITE_PATCHED
+
+    # Side-effect: register @custom_admin_page views defined in sibling modules.
+    import news.admin_theme_analysis as _admin_theme_analysis  # noqa: F401
+
+    if _ADMIN_SITE_PATCHED:
         return
 
     original_get_urls = admin.site.get_urls
+    original_each_context = admin.site.each_context
 
-    def get_urls():
-        return [
+    def get_urls() -> list:
+        custom = [
             path(
-                "news/ops/",
-                admin.site.admin_view(news_ops_view),
-                name="news_ops",
-            ),
-            path(
-                "news/theme-analysis/",
-                admin.site.admin_view(theme_analysis_view),
-                name="news_theme_analysis",
-            ),
-            *original_get_urls(),
+                page.path,
+                admin.site.admin_view(page.view),
+                name=page.name,
+            )
+            for page in iter_custom_admin_pages()
         ]
+        return [*custom, *original_get_urls()]
+
+    def each_context(request: HttpRequest) -> dict[str, object]:
+        ctx: dict[str, object] = dict(original_each_context(request))
+        ctx["custom_admin_pages"] = [
+            {
+                "name": page.name,
+                "title": page.title,
+                "description": page.description,
+                "url": reverse(f"admin:{page.name}"),
+            }
+            for page in iter_custom_admin_pages()
+        ]
+        return ctx
 
     admin.site.get_urls = get_urls  # type: ignore[method-assign]
-    admin.site._news_ops_urls_patched = True  # type: ignore[attr-defined]
+    admin.site.each_context = each_context  # type: ignore[method-assign]
+    _ADMIN_SITE_PATCHED = True
+
+
+def patch_admin_urls() -> None:
+    """Backward-compatible alias for ``patch_admin_site``."""
+    patch_admin_site()
 
 
 def ops_admin_url() -> str:
