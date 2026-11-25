@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Custom admin pages
 
-Staff tool views (non-ModelAdmin) must be annotated so they get a URL **and** appear in the Tools block on `/admin/`.
+Staff tool views (non-ModelAdmin) must be annotated so they get a URL **and** appear in the Tools block on `/admin/` and in the left nav sidebar on other admin pages.
 
 ### Do
 
@@ -27,8 +27,7 @@ def my_tool_view(request: HttpRequest) -> HttpResponse:
 ```
 
 - Put the view in `web/news/admin_*.py` and ensure the module is imported before `patch_admin_site()` (e.g. import from `admin_ops.py` like theme analysis)
-- Prefer linking from the admin index (automatic); changelist shortcuts are optional extras
-- Keep `web/news/test_admin_index.py` green — it asserts every registered custom page is on the index
+- Prefer linking from the admin index / sidebar (automatic via `custom_admin_pages`); changelist object-tools shortcuts are optional extras
 
 ### Don't
 

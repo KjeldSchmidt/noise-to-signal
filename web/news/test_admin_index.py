@@ -46,6 +46,20 @@ class AdminIndexCustomPagesTests(TestCase):
                 self.assertContains(response, page.title)
                 self.assertContains(response, reverse(f"admin:{page.name}"))
 
+    def test_sidebar_lists_every_custom_page(self) -> None:
+        """Non-index admin pages include Tools links in the left nav."""
+        self.client.force_login(self.staff)
+        # Ops is staff-accessible; index clears nav-sidebar so use another admin page.
+        response = self.client.get(reverse("admin:news_ops"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="custom-admin-pages-nav"')
+        pages = iter_custom_admin_pages()
+        self.assertTrue(pages)
+        for page in pages:
+            with self.subTest(page=page.name):
+                self.assertContains(response, page.title)
+                self.assertContains(response, reverse(f"admin:{page.name}"))
+
 
 class AdminModelRegistrationTests(TestCase):
     def test_all_concrete_news_models_registered(self) -> None:

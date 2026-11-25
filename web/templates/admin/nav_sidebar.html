@@ -1,0 +1,31 @@
+{% load i18n %}
+<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="{% translate 'Toggle navigation' %}"></button>
+<nav class="sticky" id="nav-sidebar" aria-label="{% translate 'Sidebar' %}">
+  <input type="search" id="nav-filter"
+         placeholder="{% translate 'Start typing to filter…' %}"
+         aria-label="{% translate 'Filter navigation items' %}">
+  {% if custom_admin_pages %}
+  <div class="module" id="custom-admin-pages-nav">
+    <table>
+      <caption>
+        <a href="{% url 'admin:index' %}" class="section" title="{% translate 'Tools' %}">{% translate 'Tools' %}</a>
+      </caption>
+      <thead class="visually-hidden">
+        <tr>
+          <th scope="col">{% translate 'Page' %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for page in custom_admin_pages %}
+        <tr class="model-{{ page.name }}{% if page.url in request.path|urlencode %} current-model{% endif %}">
+          <th scope="row" id="tools-{{ page.name }}">
+            <a href="{{ page.url }}"{% if page.url in request.path|urlencode %} aria-current="page"{% endif %}>{{ page.title }}</a>
+          </th>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% include 'admin/app_list.html' with app_list=available_apps show_changelinks=False %}
+</nav>
