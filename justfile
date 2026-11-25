@@ -11,7 +11,6 @@ setup-repo:
 fmt:
     just --justfile infrastructure/justfile --working-directory infrastructure fmt
     just --justfile web/justfile --working-directory web fmt
-    just --justfile runner/justfile --working-directory runner fmt
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer fmt
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser fmt
     just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat fmt
@@ -24,7 +23,6 @@ fmt:
 fmt-check:
     just --justfile infrastructure/justfile --working-directory infrastructure fmt-check
     just --justfile web/justfile --working-directory web fmt-check
-    just --justfile runner/justfile --working-directory runner fmt-check
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer fmt-check
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser fmt-check
     just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat fmt-check
@@ -37,7 +35,6 @@ fmt-check:
 # Auto-fix lint issues (manual / agent; not CI)
 lint:
     just --justfile web/justfile --working-directory web lint
-    just --justfile runner/justfile --working-directory runner lint
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer lint
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser lint
     just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat lint
@@ -49,7 +46,6 @@ lint:
 
 lint-check:
     just --justfile web/justfile --working-directory web lint-check
-    just --justfile runner/justfile --working-directory runner lint-check
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer lint-check
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser lint-check
     just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat lint-check
@@ -61,7 +57,6 @@ lint-check:
 
 typecheck:
     just --justfile web/justfile --working-directory web typecheck
-    just --justfile runner/justfile --working-directory runner typecheck
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer typecheck
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser typecheck
     just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat typecheck
@@ -73,7 +68,6 @@ typecheck:
 
 test:
     just --justfile web/justfile --working-directory web test
-    just --justfile runner/justfile --working-directory runner test
     just --justfile lambdas/feed_consumer/justfile --working-directory lambdas/feed_consumer test
     just --justfile lambdas/news_parser/justfile --working-directory lambdas/news_parser test
     just --justfile lambdas/news_chat/justfile --working-directory lambdas/news_chat test

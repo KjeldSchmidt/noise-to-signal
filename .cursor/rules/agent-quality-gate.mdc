@@ -9,7 +9,7 @@ Human commits may skip hooks. **Agent-authored code must pass the same gates as 
 
 ## When
 
-- After substantive edits to code under `web/`, `runner/`, `lambdas/`, `packages/`, or `infrastructure/`
+- After substantive edits to code under `web/`, `lambdas/`, `packages/`, or `infrastructure/`
 - **Not** mid-turn while still exploring or iterating with the user — run once at the end of the change set (or before declaring done / opening a PR)
 - Skip only for pure docs/config with no code impact, or when the user explicitly says to skip checks
 

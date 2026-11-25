@@ -10,7 +10,7 @@ All **LLM and embedding** invocations must go through LangChain (e.g. `init_chat
 ## Why
 
 - LangSmith traces model I/O as child runs (prompts, structured outputs), not only LangGraph node state
-- Structured output, retries, and provider swaps stay consistent with `runner/` and `news_parser`
+- Structured output, retries, and provider swaps stay consistent with `brief_builder`, `news_chat`, and `news_parser`
 
 ## Do
 

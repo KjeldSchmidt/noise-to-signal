@@ -51,6 +51,11 @@ class BriefCandidateDTO(BaseModel):
     story_label: str = ""
     place_label: str = ""
     country_code: str = ""
+    geo_level: str = ""
+    admin1: str = ""
+    locality: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
     themes: list[str] = Field(default_factory=list)
     score: float = 0.0
     article_count: int = 1
@@ -68,6 +73,8 @@ class BriefLocationDTO(BaseModel):
     admin1: str = ""
     locality: str = ""
     geo_level: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class BriefThemeAffinityDTO(BaseModel):

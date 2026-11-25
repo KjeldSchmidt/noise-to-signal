@@ -9,7 +9,6 @@ on:
       - "web/**"
       - "lambdas/**"
       - "packages/**"
-      - "runner/**"
       - "justfile"
       - ".github/workflows/deploy-infra.yml"
       - ".github/workflows/deploy-env.yml"

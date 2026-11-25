@@ -1,48 +1,40 @@
 # noise-to-signal
 
-A personal news aggregator: subscribe to RSS feeds, pre-filter a daily brief against your taste, give relevance feedback, and answer short follow-up questions. The **web UI** is a Django app; the **AI/LangGraph core** lives under `runner/` and is developed separately.
+A personal news aggregator: subscribe to RSS feeds, build a personalized daily brief against your taste, give relevance feedback, and ask short follow-up questions. The **web UI** is Django; enrichment, brief personalization, and chat run as **LangGraph workers on AWS Lambda** with **Amazon Bedrock** (EU).
 
 ## Repository layout
 
 | Path | Role |
 |------|------|
-| [`web/`](web/) | Django + UV frontend MVP (placeholder ranking) |
-| [`runner/`](runner/) | Hand-written LangGraph / Bedrock core — keep separate |
+| [`web/`](web/) | Django app (feeds, stories, briefs, settings, internal API) |
+| [`lambdas/`](lambdas/) | Workers: feed consumer, news parser, brief builder, news chat, story summarizer |
+| [`packages/`](packages/) | Shared contracts (`n2s_api`), web client, AgentCore preference client |
 | [`infrastructure/`](infrastructure/) | Lambda + Function URL + ECR; DBs on shared tck-labs RDS |
 
-## Architecture overview (AI core)
-
-The recommendation pipeline is a **LangGraph** state machine with **LangChain** LLM calls on **Amazon Bedrock**. Runs evaluate candidates against preferences, pause for human review, then fold feedback back into taste. Observability uses LangGraph event streaming. Daily candidate input is designed as an event-driven batch into a per-user inbox.
+## Architecture overview
 
 ```
-Feeds / events ──► Inbox batch
-                      │
-                      ▼
-              Fetch preferences
-                      │
-                      ▼
-              Evaluate & rank (LLM)
-                      │
-                      ▼
-              Present next best item
-                 │            │
-            (below bar)   (worth showing)
-                 │            │
-                 ▼            ▼
-               Done     Human review / follow-ups
-                              │
-                              ▼
-                    Update preferences
+RSS feeds ──► feed_consumer ──► news_parser (enrich)
+                                      │
+                                      ▼
+                              Postgres (articles / threads)
+                                      │
+              ┌───────────────────────┼───────────────────────┐
+              ▼                       ▼                       ▼
+         Stories feed          brief_builder            news_chat
+         (impact×decay)     (AgentCore prefs +          (grounded Q&A;
+                             theme/LOI ranking →         may save prefs)
+                             UserBrief)
 ```
 
-## Web MVP
+**Preference memory** uses **Amazon Bedrock AgentCore Memory** (`USER_PREFERENCE` strategy) in an EU region — not mem0. Theme more/less leanings live in Postgres and fold into brief candidate scores with locations of interest.
 
-Clickable product shell with **placeholder AI**:
+## Web app
 
 - Google sign-in (django-allauth; no end-user passwords)
-- Curated feed catalog, recommendations, custom RSS URL
-- Daily brief with relevance feedback (relevant / not / skip)
-- Taste follow-up questions
+- Curated feed catalog, custom RSS, stories feed, daily brief
+- Theme leanings, locations of interest, free-form prefs via brief chat
+- Relevance feedback (relevant / not / skip)
 
 See [`web/README.md`](web/README.md) for local run and Google OAuth.
 
@@ -57,4 +49,4 @@ just run
 ## Hosting (AWS)
 
 - **Compute:** Lambda + CloudFront (scale to zero) — see [`infrastructure/README.md`](infrastructure/README.md)
-- **Database:** dedicated Postgres DBs `noise_to_signal_dev` / `noise_to_signal_prod` on the shared [tck-labs-base](../tck-labs-base) RDS host (not Render)
+- **Database:** dedicated Postgres DBs `noise_to_signal_dev` / `noise_to_signal_prod` on the shared [tck-labs-base](../tck-labs-base) RDS host

@@ -21,6 +21,6 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        for dir in web runner lambdas/feed_consumer lambdas/news_parser lambdas/news_chat lambdas/brief_builder lambdas/story_summarizer packages/n2s_api packages/n2s_web_client packages/n2s_preferences; do
+        for dir in web lambdas/feed_consumer lambdas/news_parser lambdas/news_chat lambdas/brief_builder lambdas/story_summarizer packages/n2s_api packages/n2s_web_client packages/n2s_preferences; do
           (cd "$dir" && uv sync --group dev)
         done

@@ -8,5 +8,4 @@
 **/staticfiles/
 **/node_modules/
 infrastructure/**/.terraform/
-runner/
 *.egg-info/

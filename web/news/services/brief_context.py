@@ -92,6 +92,11 @@ def build_brief_user_context(user_id: int) -> BriefUserContextResponse:
                     story_label=article.story_label or "",
                     place_label=article.place_label or "",
                     country_code=article.country_code or "",
+                    geo_level=article.geo_level or "",
+                    admin1=article.admin1 or "",
+                    locality=article.locality or "",
+                    latitude=article.latitude,
+                    longitude=article.longitude,
                     themes=themes,
                     score=round(float(entry.score), 4),
                     article_count=1,
@@ -124,6 +129,11 @@ def build_brief_user_context(user_id: int) -> BriefUserContextResponse:
                     story_label=thread.label or lead.story_label or "",
                     place_label=lead.place_label or "",
                     country_code=lead.country_code or "",
+                    geo_level=lead.geo_level or "",
+                    admin1=lead.admin1 or "",
+                    locality=lead.locality or "",
+                    latitude=lead.latitude,
+                    longitude=lead.longitude,
                     themes=_themes_for_articles(member_ids),
                     score=round(float(entry.score), 4),
                     article_count=max(entry.article_count, len(member_ids), 2),
@@ -141,6 +151,8 @@ def build_brief_user_context(user_id: int) -> BriefUserContextResponse:
             admin1=loc.admin1 or "",
             locality=loc.locality or "",
             geo_level=loc.geo_level or "",
+            latitude=loc.latitude,
+            longitude=loc.longitude,
         )
         for loc in LocationOfInterest.objects.filter(user=user).order_by("id")
     ]

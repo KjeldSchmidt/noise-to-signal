@@ -1,10 +1,12 @@
-"""Prompts for brief selection."""
+"""Prompts and candidate personalization for brief selection."""
 
 from __future__ import annotations
 
 import json
+import math
 
-from n2s_api import BriefCandidateDTO, BriefUserContextResponse
+from n2s_api import BriefCandidateDTO, BriefLocationDTO, BriefUserContextResponse
+from n2s_api.places import places_match
 
 BRIEF_SYSTEM = """You personalize a short daily news brief for one reader.
 
@@ -17,29 +19,58 @@ Pick 5–8 items from the candidate list by candidate_id only
 - diversity of topics (avoid near-duplicates)
 - story threads when they cover a developing event better than a single article
 
-Candidates are pre-sorted with theme affinity already folded into score —
+Candidates are pre-sorted with theme affinity and location match already
+folded into score (multiplicative personalization on Stories impact) —
 respect that ordering unless preferences clearly contradict it.
 
 Write a one-sentence reason per pick in the reader's language mix when possible.
 Only use candidate_id values from the candidate list. Rank starting at 1.
 """
 
-# How strongly theme affinity weights shift candidate scores before the LLM.
-THEME_AFFINITY_SCORE_SCALE = 0.18
+# Bounded multiplicative personalization on Stories impact scores.
+THEME_AFFINITY_ALPHA = 0.35
+PLACE_MATCH_BETA = 0.45
+
+
+def _best_place_match(cand: BriefCandidateDTO, locations: list[BriefLocationDTO]) -> float:
+    if not locations:
+        return 0.0
+    best = 0.0
+    for loc in locations:
+        score = places_match(cand, loc)
+        if score > best:
+            best = score
+    return best
+
+
+def apply_personalization_scores(
+    candidates: list[BriefCandidateDTO],
+    affinities: list[tuple[str, float]],
+    locations: list[BriefLocationDTO],
+) -> list[BriefCandidateDTO]:
+    """Return candidates with Stories score × theme_factor × place_factor, sorted desc.
+
+    theme_factor = 1 + α * tanh(Σ theme weights)
+    place_factor = 1 + β * max LOI match in [0, 1]
+    Neutral prefs leave ordering unchanged.
+    """
+    weight_by_slug = {slug: weight for slug, weight in affinities}
+    boosted: list[BriefCandidateDTO] = []
+    for cand in candidates:
+        theme_sum = sum(weight_by_slug.get(slug, 0.0) for slug in cand.themes)
+        theme_factor = 1.0 + THEME_AFFINITY_ALPHA * math.tanh(theme_sum)
+        place_factor = 1.0 + PLACE_MATCH_BETA * _best_place_match(cand, locations)
+        new_score = float(cand.score) * theme_factor * place_factor
+        boosted.append(cand.model_copy(update={"score": round(new_score, 4)}))
+    return sorted(boosted, key=lambda c: c.score, reverse=True)
 
 
 def apply_theme_affinity_scores(
     candidates: list[BriefCandidateDTO],
     affinities: list[tuple[str, float]],
 ) -> list[BriefCandidateDTO]:
-    """Return candidates with score += scale * sum(theme weights), sorted desc."""
-    weight_by_slug = {slug: weight for slug, weight in affinities}
-    boosted: list[BriefCandidateDTO] = []
-    for cand in candidates:
-        boost = sum(weight_by_slug.get(slug, 0.0) for slug in cand.themes)
-        new_score = float(cand.score) + THEME_AFFINITY_SCORE_SCALE * boost
-        boosted.append(cand.model_copy(update={"score": round(new_score, 4)}))
-    return sorted(boosted, key=lambda c: c.score, reverse=True)
+    """Backward-compatible wrapper — theme only, no place boost."""
+    return apply_personalization_scores(candidates, affinities, [])
 
 
 def build_evaluate_user_message(
@@ -54,6 +85,7 @@ def build_evaluate_user_message(
             "country_code": loc.country_code,
             "admin1": loc.admin1,
             "locality": loc.locality,
+            "geo_level": loc.geo_level,
         }
         for loc in context.locations
     ]
@@ -78,6 +110,9 @@ def build_evaluate_user_message(
             "story_label": c.story_label,
             "place_label": c.place_label,
             "country_code": c.country_code,
+            "geo_level": c.geo_level,
+            "admin1": c.admin1,
+            "locality": c.locality,
             "themes": c.themes,
             "score": c.score,
             "article_count": c.article_count,

@@ -8,4 +8,6 @@ class PrivacyPageTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Preference memory")
         self.assertContains(response, "Amazon Bedrock AgentCore Memory")
+        self.assertContains(response, "90 days")
+        self.assertContains(response, "erase")
         self.assertContains(response, 'href="/privacy/"')

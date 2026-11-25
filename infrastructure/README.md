@@ -40,7 +40,7 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 - **`story_summarizer`** — async Event-invoked by web after a new article joins a story thread (`STORY_SUMMARIZER_FUNCTION_NAME`); non-personal AI digest on `StoryThread` (6h TTL).
 - Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / model IDs when `invoke_bedrock`; + `AGENTCORE_MEMORY_ID` when `use_agentcore_memory`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL`, `NEWS_CHAT_FUNCTION_NAME`, `BRIEF_BUILDER_FUNCTION_NAME`, `STORY_SUMMARIZER_FUNCTION_NAME`.
 - Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
-- Per-env AgentCore Memory (`modules/agentcore_memory`) with `USER_PREFERENCE` strategy; erase via `python manage.py erase_preference_memory --email …` (enqueues worker).
+- Per-env AgentCore Memory (`modules/agentcore_memory`) with `USER_PREFERENCE` strategy (production preference path; the old mem0 runner PoC is retired). STM events expire at 90 days; LTM records until erase-on-request via `python manage.py erase_preference_memory --email …` (enqueues worker) or Settings per-record delete.
 
 ## pgvector + Bedrock (embeddings + place/themes)
 
@@ -67,7 +67,7 @@ Similarity lanes (applied in the web upsert path). Articles often have **no** st
 
 **SCALING HOTSPOT:** story assignment uses a global Postgres advisory lock (`pg_advisory_xact_lock`) to avoid missed pairs under concurrent `news_parser` upserts. Fine now; may serialize linking under heavy load — see `news.services.threading` and `rg "SCALING HOTSPOT"`.
 
-Geo matching against user `LocationOfInterest` uses admin containment (`places_match`); city-level haversine (~50 km) only between locality peers — never against a country centroid.
+Geo matching against user `LocationOfInterest` uses admin containment (`n2s_api.places.places_match`); city-level haversine (~50 km) only between locality peers — never against a country centroid. Brief ranking multiplies Stories impact by theme (`1 + α·tanh(Σw)`) and place (`1 + β·match`) factors before the LLM picks items.
 
 ## Cost model
 

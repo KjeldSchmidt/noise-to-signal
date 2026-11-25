@@ -55,6 +55,17 @@ from n2s_api.items import (
     ThemeDTO,
     ThemeListResponse,
 )
+from n2s_api.places import (
+    LOCALITY_RADIUS_KM,
+    SCORE_ADMIN1,
+    SCORE_COUNTRY,
+    SCORE_LOCALITY_EXACT,
+    SCORE_LOCALITY_NEAR,
+    SCORE_UPWARD_COUNTRY,
+    haversine_km,
+    place_dict_match,
+    places_match,
+)
 
 __all__ = [
     "ArticleEmbeddingExportResponse",
@@ -94,12 +105,21 @@ __all__ = [
     "GeocodePlace",
     "GeocodeSearchRequest",
     "GeocodeSearchResponse",
+    "LOCALITY_RADIUS_KM",
     "MAX_CHUNK_CHARS",
     "MAX_CHUNKS",
     "MAX_HISTORY_TURNS",
     "MAX_MESSAGE_CHARS",
+    "SCORE_ADMIN1",
+    "SCORE_COUNTRY",
+    "SCORE_LOCALITY_EXACT",
+    "SCORE_LOCALITY_NEAR",
+    "SCORE_UPWARD_COUNTRY",
     "ThemeDTO",
     "ThemeListResponse",
     "decode_embedding_f32_b64",
     "encode_embedding_f32_b64",
+    "haversine_km",
+    "place_dict_match",
+    "places_match",
 ]

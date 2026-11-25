@@ -117,9 +117,11 @@
     <ul class="legal-list">
       <li>Account and settings data are kept while your account remains active.</li>
       <li>
-        Preference memory records are retained while needed to personalize your briefs, subject to
-        retention limits we configure on AgentCore Memory, and are deleted when your account is
-        deleted or when you ask us to erase them.
+        Preference memory has two layers in Amazon Bedrock AgentCore Memory: short-term preference
+        events expire after <strong>90 days</strong>; long-term preference records extracted for
+        personalization are kept while needed to personalize your briefs and are erased when you
+        ask us (Settings per-record delete, or email us for a full erase). Theme leanings live in
+        our application database with your account settings.
       </li>
       <li>Operational logs are kept only as long as needed for security and troubleshooting.</li>
     </ul>

@@ -162,9 +162,9 @@ class BriefDispatchTests(unittest.TestCase):
         mock_build.assert_called_once()
 
 
-class ThemeAffinityScoreTests(unittest.TestCase):
-    def test_boosts_and_sorts(self) -> None:
-        from prompts import apply_theme_affinity_scores
+class PersonalizationScoreTests(unittest.TestCase):
+    def test_theme_boosts_and_sorts(self) -> None:
+        from prompts import apply_personalization_scores
 
         cands = [
             BriefCandidateDTO(
@@ -182,12 +182,79 @@ class ThemeAffinityScoreTests(unittest.TestCase):
                 score=0.5,
             ),
         ]
-        out = apply_theme_affinity_scores(
+        out = apply_personalization_scores(
             cands,
             [("environment", 2.0), ("sports", -1.0)],
+            [],
         )
         self.assertEqual(out[0].article_id, 2)
         self.assertGreater(out[0].score, out[1].score)
+        self.assertLess(out[1].score, 0.5)
+
+    def test_neutral_is_identity(self) -> None:
+        from prompts import apply_personalization_scores
+
+        cands = [
+            BriefCandidateDTO(
+                article_id=1,
+                title="A",
+                url="https://example.com/a",
+                score=1.2,
+            ),
+            BriefCandidateDTO(
+                article_id=2,
+                title="B",
+                url="https://example.com/b",
+                score=0.8,
+            ),
+        ]
+        out = apply_personalization_scores(cands, [], [])
+        self.assertEqual([c.article_id for c in out], [1, 2])
+        self.assertAlmostEqual(out[0].score, 1.2, places=4)
+        self.assertAlmostEqual(out[1].score, 0.8, places=4)
+
+    def test_place_match_raises_local(self) -> None:
+        from n2s_api import BriefLocationDTO
+
+        from prompts import PLACE_MATCH_BETA, apply_personalization_scores
+
+        cands = [
+            BriefCandidateDTO(
+                article_id=1,
+                title="Remote",
+                url="https://example.com/r",
+                country_code="us",
+                geo_level="country",
+                score=1.0,
+            ),
+            BriefCandidateDTO(
+                article_id=2,
+                title="Cologne",
+                url="https://example.com/c",
+                country_code="de",
+                geo_level="locality",
+                admin1="North Rhine-Westphalia",
+                locality="Cologne",
+                latitude=50.94,
+                longitude=6.96,
+                score=1.0,
+            ),
+        ]
+        locations = [
+            BriefLocationDTO(
+                label="Cologne",
+                country_code="de",
+                geo_level="locality",
+                admin1="North Rhine-Westphalia",
+                locality="Cologne",
+                latitude=50.94,
+                longitude=6.96,
+            )
+        ]
+        out = apply_personalization_scores(cands, [], locations)
+        self.assertEqual(out[0].article_id, 2)
+        self.assertAlmostEqual(out[0].score, 1.0 * (1.0 + PLACE_MATCH_BETA * 1.0), places=4)
+        self.assertAlmostEqual(out[1].score, 1.0, places=4)
 
 
 if __name__ == "__main__":

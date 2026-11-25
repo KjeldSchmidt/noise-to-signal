@@ -1,6 +1,6 @@
 # noise-to-signal (web)
 
-Django frontend for the personal news aggregator MVP. Placeholder ranking and follow-up questions — the LangGraph core in `../runner` is intentionally untouched.
+Django frontend for the personal news aggregator. Personalized briefs are built by the `brief_builder` Lambda (AgentCore preferences + theme/LOI ranking); chat and enrichment live under `../lambdas/`.
 
 Auth is **Google-only** (django-allauth) for humans. Django still has a `User` row per person; passwords are not used for end users.
 
