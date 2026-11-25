@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Literal
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -23,7 +24,39 @@ from schemas import AnswerPayload, RefusalReason, ScopeDecision
 from state import ChatState
 from tools import CHAT_TOOLS, collect_known_articles, filter_citations, search_articles
 
+logger = logging.getLogger(__name__)
+
 MAX_TOOL_ROUNDS = 2
+
+
+def _tool_call_audit(tool_calls: list[Any]) -> list[dict[str, Any]]:
+    """Compact tool-call summary for logs (no preference text bodies)."""
+    out: list[dict[str, Any]] = []
+    for call in tool_calls:
+        if isinstance(call, dict):
+            name = str(call.get("name") or "")
+            raw_args = call.get("args")
+        else:
+            name = str(getattr(call, "name", "") or "")
+            raw_args = getattr(call, "args", None)
+        args: dict[str, Any] = dict(raw_args) if isinstance(raw_args, dict) else {}
+        if name == "save_preference":
+            text = str(args.get("text") or "")
+            args = {"text_chars": len(text.strip())}
+        elif name == "search_articles":
+            query = str(args.get("query") or "")
+            if len(query) > 120:
+                query = f"{query[:120]}…"
+            args = {
+                "query": query,
+                "country_code": args.get("country_code"),
+                "published_after": args.get("published_after"),
+            }
+        else:
+            args = {}
+        out.append({"name": name, "args": args})
+    return out
+
 
 FINAL_ANSWER_PROMPT = (
     "Provide your final answer now. Use the search_articles results and "
@@ -118,6 +151,20 @@ def _tools_for_scope(state: ChatState) -> list[object]:
 def agent(state: ChatState) -> dict[str, Any]:
     model = get_answer_model().bind_tools(_tools_for_scope(state))
     response = model.invoke(state["messages"])
+    tool_calls = getattr(response, "tool_calls", None) or []
+    rounds = int(state.get("tool_rounds") or 0)
+    if tool_calls:
+        logger.info(
+            "news_chat agent tool_calls user_id=%s round=%s calls=%s",
+            state.get("user_id"),
+            rounds,
+            _tool_call_audit(list(tool_calls)),
+        )
+    elif rounds == 0:
+        logger.info(
+            "news_chat agent answered without tools user_id=%s",
+            state.get("user_id"),
+        )
     return {"messages": [response]}
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from langchain_core.messages import ToolMessage
@@ -15,6 +16,12 @@ from pydantic import BaseModel, Field
 from embed import embed_text
 from prompts import assemble_data_block
 from state import ChatState
+
+logger = logging.getLogger(__name__)
+
+# Search query is a short keyword phrase (not the full chat message). Cap length
+# in logs so accidental long args stay bounded; do not log preference text.
+_LOG_QUERY_MAX = 120
 
 
 class SearchArticlesArgs(BaseModel):
@@ -78,6 +85,46 @@ def filter_citations(
     return out
 
 
+def _log_search_call(
+    *,
+    user_id: int,
+    query: str,
+    country_code: str | None,
+    published_after: str | None,
+    hit_count: int,
+    article_ids: list[int],
+    country_codes: list[str],
+    embed_ok: bool,
+    error: str | None = None,
+) -> None:
+    """CloudWatch-friendly tool audit — filters + ids only (no summaries/prefs)."""
+    q = query if len(query) <= _LOG_QUERY_MAX else f"{query[:_LOG_QUERY_MAX]}…"
+    if error:
+        logger.info(
+            "search_articles user_id=%s query=%r country_code=%s published_after=%s "
+            "embed_ok=%s error=%s",
+            user_id,
+            q,
+            country_code,
+            published_after,
+            embed_ok,
+            error,
+        )
+        return
+    logger.info(
+        "search_articles user_id=%s query=%r country_code=%s published_after=%s "
+        "embed_ok=%s hits=%s article_ids=%s result_country_codes=%s",
+        user_id,
+        q,
+        country_code,
+        published_after,
+        embed_ok,
+        hit_count,
+        article_ids,
+        country_codes,
+    )
+
+
 def _search_content(
     *,
     query: str,
@@ -96,8 +143,10 @@ def _search_content(
     except Exception as exc:  # noqa: BLE001 — tool should not crash the agent loop
         embedding = None
         embed_error = f" (embedding skipped: {exc})"
+        embed_ok = False
     else:
         embed_error = ""
+        embed_ok = True
 
     code = (country_code or "").strip().lower()[:2] or None
     after = (published_after or "").strip() or None
@@ -115,11 +164,36 @@ def _search_content(
             )
         )
     except Exception as exc:  # noqa: BLE001
+        _log_search_call(
+            user_id=user_id,
+            query=text,
+            country_code=code,
+            published_after=after,
+            hit_count=0,
+            article_ids=[],
+            country_codes=[],
+            embed_ok=embed_ok,
+            error=str(exc),
+        )
         return f"search_articles failed: {exc}", []
 
-    if not results:
+    hits = list(results)
+    article_ids = [c.article_id for c in hits if c.article_id is not None]
+    country_codes = [(c.country_code or "") for c in hits]
+    _log_search_call(
+        user_id=user_id,
+        query=text,
+        country_code=code,
+        published_after=after,
+        hit_count=len(hits),
+        article_ids=article_ids,
+        country_codes=country_codes,
+        embed_ok=embed_ok,
+    )
+
+    if not hits:
         return f"No matching articles found.{embed_error}", []
-    return assemble_data_block(results) + embed_error, list(results)
+    return assemble_data_block(hits) + embed_error, hits
 
 
 @tool("search_articles", args_schema=SearchArticlesArgs)
@@ -205,10 +279,18 @@ def save_preference(
     Remember a free-form reading preference for future briefs (brief scope only).
     Call when the user states a lasting taste preference worth storing.
     """
+    user_id = int(state["user_id"])
+    # Preference body can be user-authored — log length only, never the text.
+    logger.info(
+        "save_preference user_id=%s scope=%s text_chars=%s",
+        user_id,
+        state.get("scope"),
+        len((text or "").strip()),
+    )
     if state.get("scope") != "brief":
         content = "Preference tools are only available on the daily brief chat."
     else:
-        content = _record_preference(int(state["user_id"]), text)
+        content = _record_preference(user_id, text)
     return Command(update={"messages": [ToolMessage(content=content, tool_call_id=tool_call_id)]})
 
 
@@ -218,10 +300,12 @@ def list_preferences(
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:
     """List stored free-form reading preferences (brief scope only)."""
+    user_id = int(state["user_id"])
+    logger.info("list_preferences user_id=%s scope=%s", user_id, state.get("scope"))
     if state.get("scope") != "brief":
         content = "Preference tools are only available on the daily brief chat."
     else:
-        content = _list_preferences(int(state["user_id"]))
+        content = _list_preferences(user_id)
     return Command(update={"messages": [ToolMessage(content=content, tool_call_id=tool_call_id)]})
 
 

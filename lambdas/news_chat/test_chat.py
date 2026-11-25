@@ -13,6 +13,64 @@ import prompts
 from schemas import AnswerPayload, ScopeDecision
 
 
+class ToolAuditTests(unittest.TestCase):
+    def test_tool_call_audit_redacts_preference_text(self) -> None:
+        audited = graph_mod._tool_call_audit(
+            [
+                {
+                    "name": "search_articles",
+                    "args": {
+                        "query": "Germany news",
+                        "country_code": "de",
+                        "published_after": "2026-11-23T00:00:00Z",
+                    },
+                },
+                {
+                    "name": "save_preference",
+                    "args": {"text": "secret taste preference"},
+                },
+                {"name": "list_preferences", "args": {}},
+            ]
+        )
+        self.assertEqual(audited[0]["args"]["country_code"], "de")
+        self.assertEqual(audited[0]["args"]["query"], "Germany news")
+        self.assertEqual(audited[1]["args"], {"text_chars": 23})
+        self.assertNotIn("secret", str(audited))
+        self.assertEqual(audited[2]["args"], {})
+
+    @patch("tools.embed_text", return_value=[0.1] * 1024)
+    @patch("tools.client_search_articles")
+    def test_search_content_logs_filters(
+        self,
+        mock_search: MagicMock,
+        _mock_embed: MagicMock,
+    ) -> None:
+        import tools as tools_mod
+
+        mock_search.return_value = [
+            ContextChunk(
+                article_id=7,
+                title="Berlin flood",
+                country_code="de",
+                url="https://example.com/de",
+            )
+        ]
+        with self.assertLogs(tools_mod.logger, level="INFO") as cm:
+            content, hits = tools_mod._search_content(
+                query="Germany top stories",
+                user_id=42,
+                exclude_article_ids=[],
+                country_code="de",
+                published_after="2026-11-23T00:00:00Z",
+            )
+        self.assertEqual(len(hits), 1)
+        self.assertIn("Berlin flood", content)
+        joined = "\n".join(cm.output)
+        self.assertIn("country_code=de", joined)
+        self.assertIn("hits=1", joined)
+        self.assertIn("article_ids=[7]", joined)
+
+
 class PromptsTests(unittest.TestCase):
     def test_format_preferences_block(self) -> None:
         text = prompts.format_preferences(["Likes science", "  "])
