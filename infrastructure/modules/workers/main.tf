@@ -282,7 +282,7 @@ resource "aws_lambda_function" "worker" {
       try(each.value.write_analysis_artifacts, false) && var.analysis_artifacts_enabled ? {
         ANALYSIS_ARTIFACTS_BUCKET = var.analysis_artifacts_bucket_name
         # UMAP/Numba cannot cache under read-only /var/lang site-packages.
-        NUMBA_CACHE_DIR           = "/tmp/numba_cache"
+        NUMBA_CACHE_DIR = "/tmp/numba_cache"
       } : {},
     )
   }
