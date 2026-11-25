@@ -66,13 +66,37 @@
         {% endif %}
         {% with themes=item.article.themes.all %}
         {% if themes %}
-        <div class="theme-chip-row" data-theme-affinity-url="{% url 'theme_affinity' item.article.id %}">
+        <div class="theme-chip-row" data-article-id="{{ item.article.id }}">
           {% for theme in themes|slice:":4" %}
-          <form method="post" action="{% url 'theme_affinity' item.article.id %}" class="theme-chip-form">
+          <form
+            method="post"
+            action="{% url 'theme_affinity' item.article.id %}"
+            class="theme-chip-form"
+            data-article-id="{{ item.article.id }}"
+            data-theme-slug="{{ theme.slug }}"
+          >
             {% csrf_token %}
             <input type="hidden" name="theme" value="{{ theme.slug }}">
-            <button type="submit" name="direction" value="more" class="btn small ghost theme-chip">More {{ theme.label }}</button>
-            <button type="submit" name="direction" value="less" class="btn small ghost theme-chip">Less {{ theme.label }}</button>
+            <input type="hidden" name="previous" value="neutral" class="theme-chip-previous">
+            <span class="theme-chip" role="group" aria-label="{{ theme.label }} preference">
+              <span class="theme-chip-label">{{ theme.label }}</span>
+              <button
+                type="submit"
+                name="direction"
+                value="more"
+                class="theme-chip-vote"
+                title="More {{ theme.label }}"
+                aria-label="More {{ theme.label }}"
+              >▲</button>
+              <button
+                type="submit"
+                name="direction"
+                value="less"
+                class="theme-chip-vote"
+                title="Less {{ theme.label }}"
+                aria-label="Less {{ theme.label }}"
+              >▼</button>
+            </span>
           </form>
           {% endfor %}
         </div>

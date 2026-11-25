@@ -57,6 +57,55 @@ class ThemeAnalysisAdminTests(TestCase):
         THEME_ANALYSIS_FUNCTION_NAME="noise-to-signal-dev-theme_analysis",
         ANALYSIS_ARTIFACTS_BUCKET="noise-to-signal-dev-analysis",
     )
+    @patch(
+        "news.admin_theme_analysis.load_latest",
+        return_value={
+            "generated_at": "2026-01-01T00:00:00Z",
+            "article_count": 2,
+            "themes": [
+                {
+                    "slug": "tech",
+                    "label": "Technology",
+                    "count": 2,
+                    "within_mean": 0.9,
+                    "between_mean": 0.1,
+                }
+            ],
+            "centroid_similarity": {"themes": ["tech"], "matrix": [[1.0]]},
+            "neighborhood_purity_k10": 1.0,
+            "umap": {
+                "points": [
+                    {
+                        "id": 1,
+                        "title": "A",
+                        "themes": ["tech"],
+                        "primary_theme": "tech",
+                        "x": 0.1,
+                        "y": 0.2,
+                    }
+                ]
+            },
+        },
+    )
+    @patch(
+        "news.admin_theme_analysis.load_status",
+        return_value={"status": "ready", "started_at": "t0", "finished_at": "t1", "error": ""},
+    )
+    def test_get_report_embeds_object_json_script(self, _status, _latest) -> None:
+        """json_script must receive a dict so Plotly sees an object, not a string."""
+        self.client.force_login(self.staff)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="theme-analysis-data"')
+        # Object form (starts with {), not a quoted/double-encoded JSON string.
+        self.assertContains(response, '>{"')
+        self.assertContains(response, '"centroid_similarity"')
+        self.assertNotContains(response, '>\\"')
+
+    @override_settings(
+        THEME_ANALYSIS_FUNCTION_NAME="noise-to-signal-dev-theme_analysis",
+        ANALYSIS_ARTIFACTS_BUCKET="noise-to-signal-dev-analysis",
+    )
     @patch("news.admin_theme_analysis.load_latest", return_value=None)
     @patch(
         "news.admin_theme_analysis.load_status",

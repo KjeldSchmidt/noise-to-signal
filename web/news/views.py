@@ -58,8 +58,10 @@ from news.services.chat_rate_limit import check_and_increment
 from news.services.chat_retrieve import retrieve
 from news.services.geocode import reverse_geocode_place, search_places
 from news.services.theme_affinity import (
+    AffinityDirection,
+    AffinityLean,
     affinities_for_user,
-    bump_theme_affinity,
+    apply_theme_affinity_vote,
     delete_theme_affinity,
 )
 
@@ -515,11 +517,12 @@ def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
 @login_required
 @require_POST
 def theme_affinity(request: HttpRequest, article_id: int) -> HttpResponse:
-    """Increment more/less count for a theme on a brief article (no AgentCore)."""
+    """Apply more/less lean for a theme on a brief article (no AgentCore)."""
     user = cast(AbstractBaseUser, request.user)
     article = get_object_or_404(Article.objects.prefetch_related("themes"), pk=article_id)
     slug = (request.POST.get("theme") or "").strip()
     direction = (request.POST.get("direction") or "").strip()
+    previous = (request.POST.get("previous") or "neutral").strip() or "neutral"
     wants_json = request.headers.get(
         "X-Requested-With"
     ) == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or "")
@@ -528,16 +531,24 @@ def theme_affinity(request: HttpRequest, article_id: int) -> HttpResponse:
             return JsonResponse({"ok": False, "error": "Unknown direction."}, status=400)
         messages.error(request, "Unknown theme action.")
         return redirect("brief")
+    if previous not in ("more", "less", "neutral"):
+        if wants_json:
+            return JsonResponse({"ok": False, "error": "Unknown previous lean."}, status=400)
+        messages.error(request, "Unknown theme action.")
+        return redirect("brief")
     article_slugs = {t.slug for t in article.themes.all()}
     if slug not in article_slugs:
         if wants_json:
             return JsonResponse({"ok": False, "error": "Theme not on this article."}, status=400)
         messages.error(request, "Theme not on this article.")
         return redirect("brief")
-    affinity = bump_theme_affinity(
+    lean_direction: AffinityDirection = "more" if direction == "more" else "less"
+    lean_previous: AffinityLean = previous  # narrowed by membership check above
+    affinity = apply_theme_affinity_vote(
         user,
         theme_slug=slug,
-        direction="more" if direction == "more" else "less",
+        direction=lean_direction,
+        previous=lean_previous,
     )
     if affinity is None:
         if wants_json:
@@ -552,6 +563,7 @@ def theme_affinity(request: HttpRequest, article_id: int) -> HttpResponse:
                 "ok": True,
                 "theme": slug,
                 "direction": direction,
+                "previous": previous,
                 "message": message,
                 "more_count": affinity.more_count,
                 "less_count": affinity.less_count,

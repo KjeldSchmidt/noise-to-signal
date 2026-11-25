@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 from django.conf import settings
 from django.contrib import admin, messages
 from django.http import HttpRequest, HttpResponse
@@ -56,6 +54,5 @@ def theme_analysis_view(request: HttpRequest) -> HttpResponse:
         "configured": configured,
         "status": status,
         "latest": latest,
-        "latest_json": json.dumps(latest) if latest else "null",
     }
     return render(request, "admin/news/theme_analysis.html", context)

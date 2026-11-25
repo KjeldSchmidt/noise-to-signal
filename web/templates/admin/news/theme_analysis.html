@@ -86,13 +86,15 @@
     <div id="theme-umap" style="width:100%;height:560px;"></div>
   </div>
 
-  {{ latest_json|json_script:"theme-analysis-data" }}
+  {{ latest|json_script:"theme-analysis-data" }}
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script>
     (function () {
       const el = document.getElementById("theme-analysis-data");
       if (!el || typeof Plotly === "undefined") return;
+      // json_script already emits a JSON object; do not pre-dumps in the view.
       const data = JSON.parse(el.textContent);
+      if (typeof data !== "object" || data === null) return;
 
       const heat = data.centroid_similarity || {};
       const labels = heat.themes || [];

@@ -388,13 +388,54 @@ h1, h2, h3 {
 
 .theme-chip-form {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  margin: 0;
 }
 
 .theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
   font-size: 0.82rem;
-  padding: 0.28rem 0.55rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.9);
+  color: var(--ink);
+}
+
+.theme-chip-label {
+  padding-right: 0.2rem;
+  font-weight: 500;
+}
+
+.theme-chip-vote {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.theme-chip-vote:hover:not(:disabled) {
+  color: var(--accent);
+  background: rgba(15, 107, 92, 0.08);
+}
+
+.theme-chip-vote.is-selected,
+.theme-chip-vote:disabled.is-selected {
+  color: var(--accent);
+  background: rgba(15, 107, 92, 0.14);
+  cursor: default;
+}
+
+.theme-chip-vote:disabled:not(.is-selected) {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .prefs-modal {
