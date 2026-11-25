@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 from typing import Any
 
 import numpy as np
@@ -11,6 +13,15 @@ UMAP_N_NEIGHBORS = 15
 UMAP_MIN_DIST = 0.1
 NEIGHBORHOOD_K = 10
 MIN_THEME_COUNT = 2
+
+
+def _ensure_numba_cache_dir() -> None:
+    """Point Numba at a writable cache (Lambda site-packages are read-only)."""
+    if os.environ.get("NUMBA_CACHE_DIR"):
+        return
+    cache_dir = os.path.join(tempfile.gettempdir(), "numba_cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    os.environ["NUMBA_CACHE_DIR"] = cache_dir
 
 
 def _l2_normalize(matrix: np.ndarray) -> np.ndarray:
@@ -152,6 +163,7 @@ def _umap_points(
     if n < 3:
         return []
     n_neighbors = min(UMAP_N_NEIGHBORS, n - 1)
+    _ensure_numba_cache_dir()
     try:
         import umap  # noqa: PLC0415 — heavy optional import at compute time
     except ImportError:
