@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 BriefStatus = Literal["pending", "ready", "failed"]
+BriefCandidateKind = Literal["article", "thread"]
 BriefWorkerAction = Literal[
     "build",
     "record_preference",
@@ -37,9 +38,12 @@ class BriefBuilderRequest(BaseModel):
 
 
 class BriefCandidateDTO(BaseModel):
+    kind: BriefCandidateKind = "article"
     article_id: int
+    """Article id, or lead article id when kind=thread."""
+    story_thread_id: int | None = None
     title: str
-    url: str
+    url: str = ""
     summary: str = ""
     source: str = ""
     published_at: str = ""
@@ -49,6 +53,13 @@ class BriefCandidateDTO(BaseModel):
     country_code: str = ""
     themes: list[str] = Field(default_factory=list)
     score: float = 0.0
+    article_count: int = 1
+
+    @property
+    def candidate_id(self) -> str:
+        if self.kind == "thread" and self.story_thread_id is not None:
+            return f"thread:{self.story_thread_id}"
+        return f"article:{self.article_id}"
 
 
 class BriefLocationDTO(BaseModel):
@@ -81,7 +92,9 @@ class PreferenceMemoryDTO(BaseModel):
 
 
 class BriefItemUpsert(BaseModel):
-    article_id: int
+    kind: BriefCandidateKind = "article"
+    article_id: int | None = None
+    story_thread_id: int | None = None
     rank: int
     score: float = 0.0
     reason: str = ""
@@ -92,6 +105,20 @@ class BriefItemUpsert(BaseModel):
         if value < 1:
             raise ValueError("rank must be >= 1")
         return value
+
+    @model_validator(mode="after")
+    def _xor_target(self) -> Self:
+        has_article = self.article_id is not None
+        has_thread = self.story_thread_id is not None
+        if self.kind == "article":
+            if not has_article or has_thread:
+                raise ValueError("kind=article requires article_id and no story_thread_id")
+        elif self.kind == "thread":
+            if not has_thread:
+                raise ValueError("kind=thread requires story_thread_id")
+        else:
+            raise ValueError(f"unknown kind: {self.kind}")
+        return self
 
 
 class BriefCompleteRequest(BaseModel):
@@ -113,3 +140,47 @@ class BriefCompleteResponse(BaseModel):
     brief_id: int
     status: BriefStatus
     item_count: int = 0
+
+
+class StorySummarizerRequest(BaseModel):
+    """Lambda payload to (re)generate a non-personal story-thread summary."""
+
+    story_thread_id: int
+
+    @field_validator("story_thread_id")
+    @classmethod
+    def _positive_thread(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("story_thread_id must be positive")
+        return value
+
+
+class StoryThreadMemberDTO(BaseModel):
+    title: str
+    summary: str = ""
+    source: str = ""
+    published_at: str = ""
+
+
+class StoryThreadSummaryContextResponse(BaseModel):
+    story_thread_id: int
+    label: str = ""
+    articles: list[StoryThreadMemberDTO] = Field(default_factory=list)
+
+
+class StoryThreadSummaryUpdateRequest(BaseModel):
+    story_thread_id: int
+    summary: str
+
+    @field_validator("story_thread_id")
+    @classmethod
+    def _positive_thread(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("story_thread_id must be positive")
+        return value
+
+
+class StoryThreadSummaryUpdateResponse(BaseModel):
+    story_thread_id: int
+    summarized_at: str
+    summary_chars: int = 0

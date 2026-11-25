@@ -8,19 +8,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import md5
+from typing import Literal
 
 from django.contrib.auth.models import AbstractBaseUser
 
-from news.models import Article, Feed, FeedMute, RelevanceFeedback
+from news.models import Article, Feed, FeedMute, RelevanceFeedback, StoryThread
 from news.services.feeds import catalog_feeds, enabled_feed_ids
+
+RankedKind = Literal["article", "thread"]
 
 
 @dataclass
 class RankedItem:
     article: Article
+    """Article itself, or lead article when kind=thread (feedback target)."""
     score: float
     reason: str
     show_to_user: bool
+    kind: RankedKind = "article"
+    thread: StoryThread | None = None
+    article_count: int = 1
 
 
 _REASON_TEMPLATES = (

@@ -72,6 +72,12 @@ variable "theme_analysis_function_name" {
   description = "Lambda function name for theme_analysis (empty disables invoke wiring)."
 }
 
+variable "story_summarizer_function_name" {
+  type        = string
+  default     = ""
+  description = "Lambda function name for story_summarizer (empty disables invoke wiring)."
+}
+
 variable "public_hostname" {
   type        = string
   description = "Custom hostname for this env (e.g. beta.noise-to-signal.fyi)"

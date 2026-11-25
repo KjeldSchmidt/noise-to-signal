@@ -27,6 +27,10 @@ from n2s_api import (
     GeocodePlace,
     GeocodeSearchRequest,
     GeocodeSearchResponse,
+    StoryThreadMemberDTO,
+    StoryThreadSummaryContextResponse,
+    StoryThreadSummaryUpdateRequest,
+    StoryThreadSummaryUpdateResponse,
     ThemeDTO,
     ThemeListResponse,
     encode_embedding_f32_b64,
@@ -37,12 +41,22 @@ from n2s_api import (
 from pydantic import ValidationError
 
 from news.internal_auth import require_internal_token
-from news.models import Article, EnrichmentStatus, Feed, GeoLevel, Theme, UserBrief, UserBriefItem
+from news.models import (
+    Article,
+    EnrichmentStatus,
+    Feed,
+    GeoLevel,
+    StoryThread,
+    Theme,
+    UserBrief,
+    UserBriefItem,
+)
 from news.services.article_search import search_articles_by_user_id
 from news.services.brief_context import build_brief_user_context
 from news.services.feeds import feed_should_poll, feeds_for_list_api
 from news.services.geocode import search_places
 from news.services.themes import record_theme_suggestions
+from news.services.thread_summary import maybe_invoke_thread_summary
 from news.services.threading import assign_story_thread
 from news.sqs import enqueue_feed_items
 
@@ -341,7 +355,10 @@ def upsert_article(request: HttpRequest) -> JsonResponse:
             example_title=article.title,
         )
     if dto.embedding is not None:
+        before_thread_id = article.story_thread_id
         article = assign_story_thread(article)
+        if article.story_thread_id and article.story_thread_id != before_thread_id:
+            maybe_invoke_thread_summary(article.story_thread_id)
     return JsonResponse(
         ArticleUpsertResponse(
             created=created,
@@ -387,18 +404,36 @@ def complete_brief(request: HttpRequest) -> JsonResponse:
             BriefCompleteResponse(brief_id=brief.id, status="failed", item_count=0).model_dump()
         )
 
-    article_ids = [item.article_id for item in dto.items]
-    existing = set(Article.objects.filter(id__in=article_ids).values_list("id", flat=True))
-    missing = sorted(set(article_ids) - existing)
-    if missing:
-        return JsonResponse({"error": f"unknown article_id(s): {missing}"}, status=400)
+    article_ids = [item.article_id for item in dto.items if item.article_id is not None]
+    thread_ids = [item.story_thread_id for item in dto.items if item.story_thread_id is not None]
+    if article_ids:
+        existing_articles = set(
+            Article.objects.filter(id__in=article_ids).values_list("id", flat=True)
+        )
+        missing_articles = sorted(set(article_ids) - existing_articles)
+        if missing_articles:
+            return JsonResponse(
+                {"error": f"unknown article_id(s): {missing_articles}"},
+                status=400,
+            )
+    if thread_ids:
+        existing_threads = set(
+            StoryThread.objects.filter(id__in=thread_ids).values_list("id", flat=True)
+        )
+        missing_threads = sorted(set(thread_ids) - existing_threads)
+        if missing_threads:
+            return JsonResponse(
+                {"error": f"unknown story_thread_id(s): {missing_threads}"},
+                status=400,
+            )
 
     UserBriefItem.objects.filter(brief=brief).delete()
     UserBriefItem.objects.bulk_create(
         [
             UserBriefItem(
                 brief=brief,
-                article_id=item.article_id,
+                article_id=item.article_id if item.kind == "article" else None,
+                story_thread_id=item.story_thread_id if item.kind == "thread" else None,
                 rank=item.rank,
                 score=item.score,
                 reason=(item.reason or "")[:2000],
@@ -415,6 +450,74 @@ def complete_brief(request: HttpRequest) -> JsonResponse:
             brief_id=brief.id,
             status="ready",
             item_count=len(dto.items),
+        ).model_dump()
+    )
+
+
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_GET  # ty: ignore[invalid-argument-type]
+@require_internal_token
+def story_thread_summary_context(request: HttpRequest, thread_id: int) -> JsonResponse:
+    """Member titles/summaries for the story_summarizer worker."""
+    try:
+        thread = StoryThread.objects.get(pk=thread_id)
+    except StoryThread.DoesNotExist:
+        return JsonResponse({"error": "story thread not found"}, status=404)
+
+    articles = list(
+        Article.objects.filter(story_thread=thread)
+        .select_related("feed")
+        .order_by("-published_at")[:20]
+    )
+    payload = StoryThreadSummaryContextResponse(
+        story_thread_id=thread.id,
+        label=thread.label or "",
+        articles=[
+            StoryThreadMemberDTO(
+                title=article.title,
+                summary=(article.summary or "")[:800],
+                source=article.feed.title if article.feed_id else "",
+                published_at=article.published_at.isoformat(),
+            )
+            for article in articles
+        ],
+    )
+    return JsonResponse(payload.model_dump())
+
+
+@csrf_exempt  # ty: ignore[invalid-argument-type]
+@require_POST  # ty: ignore[invalid-argument-type]
+@require_internal_token
+def update_story_thread_summary(request: HttpRequest) -> JsonResponse:
+    """Persist a non-personal AI digest on a StoryThread."""
+    try:
+        dto = StoryThreadSummaryUpdateRequest.model_validate_json(
+            request.body.decode("utf-8") or "{}"
+        )
+    except ValidationError as exc:
+        return JsonResponse(
+            {"error": "invalid payload", "detail": _validation_detail(exc)},
+            status=400,
+        )
+
+    summary = (dto.summary or "").strip()
+    if not summary:
+        return JsonResponse({"error": "summary is required"}, status=400)
+
+    try:
+        thread = StoryThread.objects.get(pk=dto.story_thread_id)
+    except StoryThread.DoesNotExist:
+        return JsonResponse({"error": "story thread not found"}, status=404)
+
+    now = django_timezone.now()
+    thread.summary = summary[:8000]
+    thread.summarized_at = now
+    thread.save(update_fields=["summary", "summarized_at", "updated_at"])
+    return JsonResponse(
+        StoryThreadSummaryUpdateResponse(
+            story_thread_id=thread.id,
+            summarized_at=now.isoformat(),
+            summary_chars=len(thread.summary),
         ).model_dump()
     )
 

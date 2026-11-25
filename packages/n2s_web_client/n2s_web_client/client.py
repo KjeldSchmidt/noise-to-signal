@@ -29,6 +29,9 @@ from n2s_api import (
     GeocodePlace,
     GeocodeSearchRequest,
     GeocodeSearchResponse,
+    StoryThreadSummaryContextResponse,
+    StoryThreadSummaryUpdateRequest,
+    StoryThreadSummaryUpdateResponse,
     ThemeDTO,
     ThemeListResponse,
 )
@@ -329,3 +332,47 @@ def complete_brief(
     except urllib.error.HTTPError as exc:
         err = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"complete_brief failed ({exc.code}): {err}") from exc
+
+
+def get_story_thread_summary_context(
+    story_thread_id: int,
+    *,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> StoryThreadSummaryContextResponse:
+    """GET /api/internal/story-threads/<id>/summary-context/."""
+    base, auth = _base_and_token(base_url, token)
+    request = urllib.request.Request(
+        f"{base}/api/internal/story-threads/{story_thread_id}/summary-context/",
+        headers=_auth_headers(auth),
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return StoryThreadSummaryContextResponse.model_validate_json(response.read())
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"get_story_thread_summary_context failed ({exc.code}): {err}") from exc
+
+
+def update_story_thread_summary(
+    req: StoryThreadSummaryUpdateRequest,
+    *,
+    base_url: str | None = None,
+    token: str | None = None,
+) -> StoryThreadSummaryUpdateResponse:
+    """POST /api/internal/story-threads/summary/."""
+    base, auth = _base_and_token(base_url, token)
+    body = req.model_dump_json().encode("utf-8")
+    request = urllib.request.Request(
+        f"{base}/api/internal/story-threads/summary/",
+        data=body,
+        headers=_auth_headers(auth),
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return StoryThreadSummaryUpdateResponse.model_validate_json(response.read())
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"update_story_thread_summary failed ({exc.code}): {err}") from exc

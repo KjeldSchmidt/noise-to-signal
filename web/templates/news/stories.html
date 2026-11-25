@@ -88,7 +88,9 @@
         <div class="story-chips">
           <span class="story-count">{{ entry.article_count }} article{{ entry.article_count|pluralize }}</span>
         </div>
-        {% if lead.summary %}
+        {% if thread.summary %}
+        <p class="summary">{{ thread.summary|truncatewords:40 }}</p>
+        {% elif lead.summary %}
         <p class="summary">{{ lead.summary|striptags|truncatewords:28 }}</p>
         {% endif %}
         <p class="muted story-time">{{ thread.last_published_at|date:"M j, Y · H:i" }}</p>

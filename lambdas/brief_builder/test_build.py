@@ -21,23 +21,28 @@ class BriefGraphTests(unittest.TestCase):
     def test_evaluate_filters_unknown_ids(self) -> None:
         candidates = [
             BriefCandidateDTO(
+                kind="article",
                 article_id=10,
                 title="One",
                 url="https://example.com/1",
                 score=0.8,
             ),
             BriefCandidateDTO(
-                article_id=11,
-                title="Two",
+                kind="thread",
+                article_id=20,
+                story_thread_id=5,
+                title="Two thread",
                 url="https://example.com/2",
                 score=0.7,
+                article_count=3,
             ),
         ]
         ctx = BriefUserContextResponse(user_id=1, candidates=candidates)
         selection = BriefSelection(
             items=[
-                BriefPick(article_id=10, rank=1, score=0.9, reason="Good fit."),
-                BriefPick(article_id=999, rank=2, score=0.5, reason="Hallucinated."),
+                BriefPick(candidate_id="article:10", rank=1, score=0.9, reason="Good fit."),
+                BriefPick(candidate_id="thread:999", rank=2, score=0.5, reason="Hallucinated."),
+                BriefPick(candidate_id="thread:5", rank=3, score=0.8, reason="Developing story."),
             ]
         )
         model = MagicMock()
@@ -52,8 +57,11 @@ class BriefGraphTests(unittest.TestCase):
                     "candidates": candidates,
                 }
             )
-        self.assertEqual(len(out["selected"]), 1)
+        self.assertEqual(len(out["selected"]), 2)
+        self.assertEqual(out["selected"][0]["kind"], "article")
         self.assertEqual(out["selected"][0]["article_id"], 10)
+        self.assertEqual(out["selected"][1]["kind"], "thread")
+        self.assertEqual(out["selected"][1]["story_thread_id"], 5)
 
     @patch.object(graph_mod, "complete_brief")
     def test_persist_ready(self, mock_complete: MagicMock) -> None:
@@ -64,7 +72,9 @@ class BriefGraphTests(unittest.TestCase):
                 "brief_id": 5,
                 "selected": [
                     {
+                        "kind": "article",
                         "article_id": 10,
+                        "story_thread_id": None,
                         "rank": 1,
                         "score": 0.8,
                         "reason": "Relevant.",
@@ -76,6 +86,30 @@ class BriefGraphTests(unittest.TestCase):
         req = mock_complete.call_args[0][0]
         self.assertEqual(req.status, "ready")
         self.assertEqual(len(req.items), 1)
+        self.assertEqual(req.items[0].kind, "article")
+
+    @patch.object(graph_mod, "complete_brief")
+    def test_persist_thread(self, mock_complete: MagicMock) -> None:
+        mock_complete.return_value = BriefCompleteResponse(brief_id=5, status="ready", item_count=1)
+        graph_mod.persist(
+            {
+                "user_id": 3,
+                "brief_id": 5,
+                "selected": [
+                    {
+                        "kind": "thread",
+                        "article_id": None,
+                        "story_thread_id": 9,
+                        "rank": 1,
+                        "score": 0.85,
+                        "reason": "Major developing story.",
+                    }
+                ],
+            }
+        )
+        req = mock_complete.call_args[0][0]
+        self.assertEqual(req.items[0].kind, "thread")
+        self.assertEqual(req.items[0].story_thread_id, 9)
 
 
 class BriefDispatchTests(unittest.TestCase):

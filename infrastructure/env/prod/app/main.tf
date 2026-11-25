@@ -35,9 +35,10 @@ data "terraform_remote_state" "shared" {
 }
 
 locals {
-  news_chat_function_name      = "noise-to-signal-prod-news_chat"
-  brief_builder_function_name  = "noise-to-signal-prod-brief_builder"
-  theme_analysis_function_name = "noise-to-signal-prod-theme_analysis"
+  news_chat_function_name        = "noise-to-signal-prod-news_chat"
+  brief_builder_function_name    = "noise-to-signal-prod-brief_builder"
+  theme_analysis_function_name   = "noise-to-signal-prod-theme_analysis"
+  story_summarizer_function_name = "noise-to-signal-prod-story_summarizer"
 }
 
 module "preference_memory" {
@@ -60,9 +61,10 @@ module "web" {
   acm_certificate_arn          = data.terraform_remote_state.shared.outputs.acm_certificate_arn
   timeout                      = 90
   origin_read_timeout          = 90
-  news_chat_function_name      = local.news_chat_function_name
-  brief_builder_function_name  = local.brief_builder_function_name
-  theme_analysis_function_name = local.theme_analysis_function_name
+  news_chat_function_name        = local.news_chat_function_name
+  brief_builder_function_name    = local.brief_builder_function_name
+  theme_analysis_function_name   = local.theme_analysis_function_name
+  story_summarizer_function_name = local.story_summarizer_function_name
 }
 
 module "workers" {
@@ -118,6 +120,13 @@ module "workers" {
       write_analysis_artifacts = true
       memory_size              = 2048
       timeout                  = 300
+    }
+    story_summarizer = {
+      invoke_bedrock                  = true
+      langsmith_agent_id              = "story-summarizer"
+      langsmith_tracing_sampling_rate = 0.1
+      memory_size                     = 512
+      timeout                         = 90
     }
   }
 }

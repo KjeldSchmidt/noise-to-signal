@@ -24,13 +24,22 @@ def _stub_complete_brief(user_id: int, brief_id: int) -> None:
     ranked = interim_ranked_items(user, limit=8)
     UserBriefItem.objects.filter(brief=brief).delete()
     for idx, item in enumerate(ranked, start=1):
-        UserBriefItem.objects.create(
-            brief=brief,
-            article=item.article,
-            rank=idx,
-            score=item.score,
-            reason=item.reason,
-        )
+        if item.kind == "thread" and item.thread is not None:
+            UserBriefItem.objects.create(
+                brief=brief,
+                story_thread=item.thread,
+                rank=idx,
+                score=item.score,
+                reason=item.reason,
+            )
+        else:
+            UserBriefItem.objects.create(
+                brief=brief,
+                article=item.article,
+                rank=idx,
+                score=item.score,
+                reason=item.reason,
+            )
     brief.status = UserBrief.Status.READY
     brief.ready_at = timezone.now()
     brief.error = ""

@@ -214,6 +214,25 @@ resource "aws_iam_role_policy" "lambda_invoke_theme_analysis" {
   policy = data.aws_iam_policy_document.lambda_invoke_theme_analysis[0].json
 }
 
+data "aws_iam_policy_document" "lambda_invoke_story_summarizer" {
+  count = var.story_summarizer_function_name != "" ? 1 : 0
+
+  statement {
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.story_summarizer_function_name}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_invoke_story_summarizer" {
+  count = var.story_summarizer_function_name != "" ? 1 : 0
+
+  name   = "invoke-story-summarizer"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_invoke_story_summarizer[0].json
+}
+
 resource "aws_s3_bucket" "analysis" {
   bucket = "${local.name_prefix}-analysis"
   tags   = local.tags
@@ -305,6 +324,9 @@ resource "aws_lambda_function" "web" {
       } : {},
       var.theme_analysis_function_name != "" ? {
         THEME_ANALYSIS_FUNCTION_NAME = var.theme_analysis_function_name
+      } : {},
+      var.story_summarizer_function_name != "" ? {
+        STORY_SUMMARIZER_FUNCTION_NAME = var.story_summarizer_function_name
       } : {},
       {
         ANALYSIS_ARTIFACTS_BUCKET = aws_s3_bucket.analysis.bucket

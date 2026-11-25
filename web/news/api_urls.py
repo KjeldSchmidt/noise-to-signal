@@ -21,4 +21,14 @@ urlpatterns = [
         name="internal_brief_user_context",
     ),
     path("briefs/complete/", api.complete_brief, name="internal_complete_brief"),
+    path(
+        "story-threads/<int:thread_id>/summary-context/",
+        api.story_thread_summary_context,
+        name="internal_story_thread_summary_context",
+    ),
+    path(
+        "story-threads/summary/",
+        api.update_story_thread_summary,
+        name="internal_update_story_thread_summary",
+    ),
 ]

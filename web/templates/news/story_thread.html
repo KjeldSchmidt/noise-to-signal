@@ -20,6 +20,9 @@
         </p>
         {% endif %}
       </div>
+      {% if thread.summary %}
+      <p class="summary thread-ai-summary">{{ thread.summary }}</p>
+      {% endif %}
     </section>
 
     {% if not articles %}

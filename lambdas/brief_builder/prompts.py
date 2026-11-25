@@ -8,18 +8,20 @@ from n2s_api import BriefCandidateDTO, BriefUserContextResponse
 
 BRIEF_SYSTEM = """You personalize a short daily news brief for one reader.
 
-Pick 5–8 articles from the candidate list (by article_id only). Prefer:
+Pick 5–8 items from the candidate list by candidate_id only
+(article:<id> or thread:<id>). Prefer:
 - alignment with stated free-form preferences
 - theme leanings (positive weight = more of that theme; negative = less)
 - locations of interest when place/geo matches
 - higher impact_tier and candidate score when preferences are unclear
 - diversity of topics (avoid near-duplicates)
+- story threads when they cover a developing event better than a single article
 
 Candidates are pre-sorted with theme affinity already folded into score —
 respect that ordering unless preferences clearly contradict it.
 
 Write a one-sentence reason per pick in the reader's language mix when possible.
-Only use article_ids from the candidate list. Rank starting at 1.
+Only use candidate_id values from the candidate list. Rank starting at 1.
 """
 
 # How strongly theme affinity weights shift candidate scores before the LLM.
@@ -67,7 +69,8 @@ def build_evaluate_user_message(
     ]
     cands = [
         {
-            "article_id": c.article_id,
+            "candidate_id": c.candidate_id,
+            "kind": c.kind,
             "title": c.title,
             "summary": c.summary[:400],
             "source": c.source,
@@ -77,6 +80,7 @@ def build_evaluate_user_message(
             "country_code": c.country_code,
             "themes": c.themes,
             "score": c.score,
+            "article_count": c.article_count,
         }
         for c in candidates
     ]

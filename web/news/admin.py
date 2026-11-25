@@ -82,8 +82,9 @@ class LocationOfInterestAdmin(admin.ModelAdmin):
 
 @admin.register(StoryThread)
 class StoryThreadAdmin(admin.ModelAdmin):
-    list_display = ("id", "label", "last_published_at", "updated_at")
-    search_fields = ("label",)
+    list_display = ("id", "label", "last_published_at", "summarized_at", "updated_at")
+    search_fields = ("label", "summary")
+    readonly_fields = ("summarized_at",)
     change_list_template = "admin/news/storythread_change_list.html"
 
 
@@ -139,7 +140,7 @@ class UserThemeAffinityAdmin(admin.ModelAdmin):
 class UserBriefItemInline(admin.TabularInline):
     model = UserBriefItem
     extra = 0
-    raw_id_fields = ("article",)
+    raw_id_fields = ("article", "story_thread")
     ordering = ("rank",)
 
 
@@ -154,10 +155,10 @@ class UserBriefAdmin(admin.ModelAdmin):
 
 @admin.register(UserBriefItem)
 class UserBriefItemAdmin(admin.ModelAdmin):
-    list_display = ("brief", "rank", "article", "score", "created_at")
+    list_display = ("brief", "rank", "article", "story_thread", "score", "created_at")
     list_filter = ("brief__status",)
-    search_fields = ("reason", "article__title")
-    raw_id_fields = ("brief", "article")
+    search_fields = ("reason", "article__title", "story_thread__label")
+    raw_id_fields = ("brief", "article", "story_thread")
 
 
 @admin.register(ChatRateLimitBucket)

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 
 from django.contrib.auth.models import AbstractBaseUser
-from django.db.models import Prefetch, prefetch_related_objects
+from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.utils import timezone
 
 from news.models import Article, RelevanceFeedback, UserBrief, UserBriefItem
@@ -38,7 +38,11 @@ def latest_brief(user: AbstractBaseUser) -> UserBrief | None:
         .prefetch_related(
             Prefetch(
                 "items",
-                queryset=UserBriefItem.objects.select_related("article", "article__feed")
+                queryset=UserBriefItem.objects.select_related(
+                    "article",
+                    "article__feed",
+                    "story_thread",
+                )
                 .prefetch_related("article__themes")
                 .order_by("rank"),
             )
@@ -61,19 +65,63 @@ def ranked_from_brief(brief: UserBrief) -> list[RankedItem]:
         return []
     items = list(
         UserBriefItem.objects.filter(brief=brief)
-        .select_related("article", "article__feed")
+        .select_related("article", "article__feed", "story_thread")
         .prefetch_related("article__themes")
         .order_by("rank")
     )
-    return [
-        RankedItem(
-            article=item.article,
-            score=round(float(item.score), 2),
-            reason=item.reason or "Selected for your brief.",
-            show_to_user=True,
-        )
-        for item in items
-    ]
+    ranked: list[RankedItem] = []
+    thread_leads: dict[int, Article] = {}
+    thread_counts: dict[int, int] = {}
+    thread_ids = [item.story_thread_id for item in items if item.story_thread_id]
+    if thread_ids:
+        thread_counts = {
+            int(tid): int(n)
+            for tid, n in (
+                Article.objects.filter(story_thread_id__in=thread_ids)
+                .values("story_thread_id")
+                .annotate(n=Count("id"))
+                .values_list("story_thread_id", "n")
+            )
+            if tid is not None
+        }
+        for article in (
+            Article.objects.filter(story_thread_id__in=thread_ids)
+            .select_related("feed")
+            .prefetch_related("themes")
+            .order_by("story_thread_id", "-published_at")
+        ):
+            tid = article.story_thread_id
+            if tid is None or tid in thread_leads:
+                continue
+            thread_leads[tid] = article
+
+    for item in items:
+        if item.story_thread_id and item.story_thread is not None:
+            lead = thread_leads.get(item.story_thread_id)
+            if lead is None:
+                continue
+            ranked.append(
+                RankedItem(
+                    article=lead,
+                    score=round(float(item.score), 2),
+                    reason=item.reason or "Selected for your brief.",
+                    show_to_user=True,
+                    kind="thread",
+                    thread=item.story_thread,
+                    article_count=thread_counts.get(item.story_thread_id, 2),
+                )
+            )
+        elif item.article is not None:
+            ranked.append(
+                RankedItem(
+                    article=item.article,
+                    score=round(float(item.score), 2),
+                    reason=item.reason or "Selected for your brief.",
+                    show_to_user=True,
+                    kind="article",
+                )
+            )
+    return ranked
 
 
 def interim_ranked_items(user: AbstractBaseUser, *, limit: int = INTERIM_LIMIT) -> list[RankedItem]:
@@ -85,23 +133,35 @@ def interim_ranked_items(user: AbstractBaseUser, *, limit: int = INTERIM_LIMIT) 
     entries = build_stories_feed(feed_ids, limit=limit * 2)
     ranked: list[RankedItem] = []
     for entry in entries:
-        article: Article | None = None
-        reason = "Top story while we personalize your brief."
         if entry.kind == "article" and entry.article is not None:
-            article = entry.article
-        elif entry.kind == "thread" and entry.lead_article is not None:
-            article = entry.lead_article
-            reason = "Active story thread while we personalize your brief."
-        if article is None or article.id in judged:
-            continue
-        ranked.append(
-            RankedItem(
-                article=article,
-                score=round(float(entry.score), 2),
-                reason=reason,
-                show_to_user=True,
+            if entry.article.id in judged:
+                continue
+            ranked.append(
+                RankedItem(
+                    article=entry.article,
+                    score=round(float(entry.score), 2),
+                    reason="Top story while we personalize your brief.",
+                    show_to_user=True,
+                    kind="article",
+                )
             )
-        )
+        elif entry.kind == "thread" and entry.lead_article is not None and entry.thread is not None:
+            # Cheap lead-only check for interim; full member check happens in context build.
+            if entry.lead_article.id in judged:
+                continue
+            ranked.append(
+                RankedItem(
+                    article=entry.lead_article,
+                    score=round(float(entry.score), 2),
+                    reason="Active story thread while we personalize your brief.",
+                    show_to_user=True,
+                    kind="thread",
+                    thread=entry.thread,
+                    article_count=entry.article_count,
+                )
+            )
+        else:
+            continue
         if len(ranked) >= limit:
             break
     if ranked:

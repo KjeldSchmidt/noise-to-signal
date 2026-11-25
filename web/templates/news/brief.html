@@ -54,14 +54,24 @@
     </template>
     <ul class="item-list" data-brief-list>
       {% for item in ranked %}
-      <li class="item">
+      <li class="item{% if item.kind == 'thread' %} is-thread{% endif %}">
         <div class="item-meta">
           <span class="score">{{ item.score }}</span>
+          {% if item.kind == "thread" %}
+          <span class="source">{{ item.article_count }} article{{ item.article_count|pluralize }}</span>
+          {% else %}
           <span class="source">{{ item.article.feed.title }}</span>
+          {% endif %}
         </div>
+        {% if item.kind == "thread" and item.thread %}
+        <h2><a href="{% url 'story_thread' item.thread.id %}">{{ item.thread.label|default:item.article.title }}</a></h2>
+        {% else %}
         <h2><a href="{{ item.article.url }}" target="_blank" rel="noopener">{{ item.article.title }}</a></h2>
+        {% endif %}
         <p class="reason">{{ item.reason }}</p>
-        {% if item.article.summary %}
+        {% if item.kind == "thread" and item.thread and item.thread.summary %}
+        <p class="summary">{{ item.thread.summary }}</p>
+        {% elif item.article.summary %}
         <p class="summary">{{ item.article.summary }}</p>
         {% endif %}
         {% with themes=item.article.themes.all %}
@@ -118,13 +128,10 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+{% if brief_phase == "personalizing" and brief_id %}
+<script src="{% static 'js/brief-poll.js' %}" defer></script>
+{% endif %}
 {% if ranked %}
 <script src="{% static 'js/brief-feedback.js' %}" defer></script>
 {% endif %}
-{% if brief_poll and brief_id %}
-<script src="{% static 'js/brief-poll.js' %}" defer></script>
-{% endif %}
-<script src="{% static 'js/vendor/marked.min.js' %}" defer></script>
-<script src="{% static 'js/vendor/purify.min.js' %}" defer></script>
-<script src="{% static 'js/news-chat.js' %}" defer></script>
 {% endblock %}

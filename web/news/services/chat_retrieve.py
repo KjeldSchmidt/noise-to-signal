@@ -50,10 +50,10 @@ def retrieve_brief_context(user: AbstractBaseUser) -> list[ContextChunk]:
     brief = latest_brief(user)
     articles: list[Article] = []
     if brief is not None and brief.status == UserBrief.Status.READY and brief_is_fresh(brief):
-        articles = [item.article for item in ranked_from_brief(brief)]
+        articles = [item.article for item in ranked_from_brief(brief) if item.article is not None]
     if not articles:
         ranked = rank_items(user)
-        articles = [item.article for item in ranked]
+        articles = [item.article for item in ranked if item.article is not None]
     if not articles:
         feed_ids = enabled_feed_ids(user)
         if feed_ids:

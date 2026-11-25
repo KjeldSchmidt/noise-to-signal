@@ -207,6 +207,15 @@ class StoryThread(TimeStampedModel):
     label = models.CharField(max_length=300, blank=True)
     centroid = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
     last_published_at = models.DateTimeField(db_index=True)
+    summary = models.TextField(
+        blank=True,
+        help_text="Non-personal AI digest of the thread; reusable on Stories and Brief.",
+    )
+    summarized_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When summary was last generated (6h throttle on refresh).",
+    )
 
     class Meta:
         ordering = ["-last_published_at"]
@@ -389,7 +398,7 @@ class UserBrief(TimeStampedModel):
 
 
 class UserBriefItem(TimeStampedModel):
-    """Ranked article slot inside a ready UserBrief."""
+    """Ranked article or story-thread slot inside a ready UserBrief."""
 
     brief = models.ForeignKey(
         UserBrief,
@@ -398,6 +407,15 @@ class UserBriefItem(TimeStampedModel):
     )
     article = models.ForeignKey(
         Article,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="brief_items",
+    )
+    story_thread = models.ForeignKey(
+        StoryThread,
+        null=True,
+        blank=True,
         on_delete=models.CASCADE,
         related_name="brief_items",
     )
@@ -408,9 +426,22 @@ class UserBriefItem(TimeStampedModel):
     class Meta:
         ordering = ["rank", "id"]
         constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(article_id__isnull=False, story_thread_id__isnull=True)
+                    | models.Q(article_id__isnull=True, story_thread_id__isnull=False)
+                ),
+                name="userbriefitem_article_xor_thread",
+            ),
             models.UniqueConstraint(
                 fields=["brief", "article"],
+                condition=models.Q(article_id__isnull=False),
                 name="uniq_userbriefitem_brief_article",
+            ),
+            models.UniqueConstraint(
+                fields=["brief", "story_thread"],
+                condition=models.Q(story_thread_id__isnull=False),
+                name="uniq_userbriefitem_brief_thread",
             ),
             models.UniqueConstraint(
                 fields=["brief", "rank"],
@@ -419,6 +450,8 @@ class UserBriefItem(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
+        if self.story_thread_id:
+            return f"brief {self.brief_id} #{self.rank} thread={self.story_thread_id}"
         return f"brief {self.brief_id} #{self.rank} article={self.article_id}"
 
 
