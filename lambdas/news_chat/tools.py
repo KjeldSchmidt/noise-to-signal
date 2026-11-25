@@ -21,6 +21,20 @@ class SearchArticlesArgs(BaseModel):
     query: str = Field(
         description=("Short search phrase (keywords or topic). Do not paste the full user message.")
     )
+    country_code: str | None = Field(
+        default=None,
+        description=(
+            "Optional ISO 3166-1 alpha-2 country filter on article place "
+            "(e.g. 'de' for Germany). Use for geo questions like German news."
+        ),
+    )
+    published_after: str | None = Field(
+        default=None,
+        description=(
+            "Optional ISO-8601 lower bound on published_at "
+            "(e.g. start of today UTC or now-minus-24h). Use for 'today' / recent."
+        ),
+    )
 
 
 class SavePreferenceArgs(BaseModel):
@@ -69,6 +83,8 @@ def _search_content(
     query: str,
     user_id: int,
     exclude_article_ids: list[int],
+    country_code: str | None = None,
+    published_after: str | None = None,
 ) -> tuple[str, list[ContextChunk]]:
     text = (query or "").strip()
     if not text:
@@ -83,6 +99,9 @@ def _search_content(
     else:
         embed_error = ""
 
+    code = (country_code or "").strip().lower()[:2] or None
+    after = (published_after or "").strip() or None
+
     try:
         results = client_search_articles(
             ArticleSearchRequest(
@@ -91,6 +110,8 @@ def _search_content(
                 embedding=embedding,
                 limit=10,
                 exclude_article_ids=exclude_article_ids,
+                country_code=code,
+                published_after=after,
             )
         )
     except Exception as exc:  # noqa: BLE001
@@ -106,17 +127,22 @@ def search_articles(
     query: str,
     state: Annotated[ChatState, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
+    country_code: str | None = None,
+    published_after: str | None = None,
 ) -> Command:
     """
     Search the user's news database by title/summary text and semantic similarity.
-    Use when the page context is insufficient. Pass a short search phrase, not the
-    full chat message.
+    Use when the page context is insufficient, and for geo/recency questions
+    (country_code + published_after). Pass a short search phrase, not the full
+    chat message.
     """
     known = dict(state.get("known_by_id") or {})
     content, results = _search_content(
         query=query,
         user_id=int(state["user_id"]),
         exclude_article_ids=list(known.keys()),
+        country_code=country_code,
+        published_after=published_after,
     )
     found = collect_known_articles(results)
     known.update(found)

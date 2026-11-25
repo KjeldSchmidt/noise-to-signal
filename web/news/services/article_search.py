@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractBaseUser
@@ -23,11 +23,42 @@ User = get_user_model()
 MIN_EMBEDDING_SIMILARITY = 0.60
 
 
-def _scoped_articles(user: AbstractBaseUser) -> QuerySet[Article]:
+def _parse_published_after(value: str | datetime | None) -> datetime | None:
+    """Parse an ISO published_after bound; return None when unset or invalid."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        if timezone.is_naive(value):
+            return timezone.make_aware(value, UTC)
+        return value
+    text = (value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if timezone.is_naive(parsed):
+        return timezone.make_aware(parsed, UTC)
+    return parsed
+
+
+def _scoped_articles(
+    user: AbstractBaseUser,
+    *,
+    country_code: str | None = None,
+    published_after: datetime | None = None,
+) -> QuerySet[Article]:
     feed_ids = enabled_feed_ids(user)
     if not feed_ids:
         return Article.objects.none()
-    return Article.objects.filter(feed_id__in=feed_ids).select_related("feed")
+    qs = Article.objects.filter(feed_id__in=feed_ids).select_related("feed")
+    code = (country_code or "").strip().lower()[:2]
+    if code:
+        qs = qs.filter(country_code__iexact=code)
+    if published_after is not None:
+        qs = qs.filter(published_at__gte=published_after)
+    return qs
 
 
 def _title_hits(
@@ -141,6 +172,8 @@ def search_articles_for_user(
     exclude_article_ids: list[int] | None = None,
     min_similarity: float = MIN_EMBEDDING_SIMILARITY,
     now: datetime | None = None,
+    country_code: str | None = None,
+    published_after: str | datetime | None = None,
 ) -> list[ContextChunk]:
     """
     Merge title/summary matches with embedding nearest neighbors.
@@ -148,10 +181,17 @@ def search_articles_for_user(
     Title hits are preferred for recall; ANN fills remaining slots only when
     cosine similarity >= ``min_similarity``. Final order is relevance × impact
     (decayed tier weight). Chunks still expose raw ``similarity`` when known.
+
+    Optional ``country_code`` / ``published_after`` narrow the feed-scoped set
+    before title and ANN matching.
     """
     capped = max(1, min(limit, MAX_CHUNKS))
     exclude = set(exclude_article_ids or [])
-    qs = _scoped_articles(user)
+    qs = _scoped_articles(
+        user,
+        country_code=country_code,
+        published_after=_parse_published_after(published_after),
+    )
     if not qs.exists():
         return []
 
@@ -206,6 +246,8 @@ def search_articles_by_user_id(
     limit: int = 10,
     exclude_article_ids: list[int] | None = None,
     min_similarity: float = MIN_EMBEDDING_SIMILARITY,
+    country_code: str | None = None,
+    published_after: str | datetime | None = None,
 ) -> list[ContextChunk] | None:
     """Resolve user by id; return None when the user does not exist."""
     user = User.objects.filter(pk=user_id).first()
@@ -218,4 +260,6 @@ def search_articles_by_user_id(
         limit=limit,
         exclude_article_ids=exclude_article_ids,
         min_similarity=min_similarity,
+        country_code=country_code,
+        published_after=published_after,
     )

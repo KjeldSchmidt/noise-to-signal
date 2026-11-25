@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 from django.contrib.auth import get_user_model
@@ -153,6 +153,57 @@ class ArticleSearchServiceTests(TestCase):
         ids = [c.article_id for c in chunks]
         self.assertLess(ids.index(major.pk), ids.index(ephemeral.pk))
 
+    def test_country_code_filter(self) -> None:
+        de = Article.objects.create(
+            feed=self.feed,
+            title="Coalition talks in Berlin",
+            url="https://example.com/berlin",
+            summary="Parties negotiate.",
+            published_at=self.now,
+            country_code="de",
+        )
+        Article.objects.create(
+            feed=self.feed,
+            title="Coalition talks in Paris",
+            url="https://example.com/paris",
+            summary="Different capital.",
+            published_at=self.now,
+            country_code="fr",
+        )
+        chunks = search_articles_for_user(
+            user=self.user,
+            query="Coalition talks",
+            country_code="de",
+        )
+        ids = {c.article_id for c in chunks}
+        self.assertEqual(ids, {de.pk})
+        self.assertEqual(chunks[0].country_code, "de")
+
+    def test_published_after_filter(self) -> None:
+        recent = Article.objects.create(
+            feed=self.feed,
+            title="Floods hit overnight again",
+            url="https://example.com/floods-recent",
+            summary="Fresh alerts.",
+            published_at=self.now,
+        )
+        old = Article.objects.create(
+            feed=self.feed,
+            title="Floods hit last week",
+            url="https://example.com/floods-old",
+            summary="Older coverage.",
+            published_at=self.now - timedelta(days=3),
+        )
+        chunks = search_articles_for_user(
+            user=self.user,
+            query="Floods hit",
+            published_after=(self.now - timedelta(hours=1)).isoformat(),
+        )
+        ids = {c.article_id for c in chunks}
+        self.assertIn(recent.pk, ids)
+        self.assertIn(self.in_scope.pk, ids)
+        self.assertNotIn(old.pk, ids)
+
 
 @override_settings(INTERNAL_API_TOKEN="test-internal-token")
 class ArticleSearchApiTests(TestCase):
@@ -196,6 +247,33 @@ class ArticleSearchApiTests(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         titles = [row["title"] for row in data["results"]]
         self.assertIn("Climate summit closes", titles)
+
+    def test_search_with_country_and_published_after(self) -> None:
+        self.article.country_code = "de"
+        self.article.save(update_fields=["country_code"])
+        Article.objects.create(
+            feed=self.feed,
+            title="Climate summit closes elsewhere",
+            url="https://example.com/summit-fr",
+            summary="Different place.",
+            published_at=self.now,
+            country_code="fr",
+        )
+        response = self._post(
+            {
+                "query": "Climate summit",
+                "user_id": self.user.pk,
+                "country_code": "DE",
+                "published_after": (self.now - timedelta(hours=1)).isoformat(),
+                "limit": 5,
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        results = data["results"]
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["title"], "Climate summit closes")
+        self.assertEqual(results[0]["country_code"], "de")
 
     def test_unknown_user_404(self) -> None:
         response = self._post({"query": "Climate", "user_id": 999_999})

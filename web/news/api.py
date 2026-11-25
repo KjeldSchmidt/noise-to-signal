@@ -288,6 +288,8 @@ def search_articles(request: HttpRequest) -> JsonResponse:
         embedding=dto.embedding,
         limit=dto.limit,
         exclude_article_ids=list(dto.exclude_article_ids),
+        country_code=dto.country_code,
+        published_after=dto.published_after,
     )
     if results is None:
         return JsonResponse({"error": f"unknown user_id: {dto.user_id}"}, status=404)

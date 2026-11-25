@@ -29,10 +29,14 @@ FINAL_ANSWER_PROMPT = (
     "Provide your final answer now. Use the search_articles results and "
     "page DATA as evidence. Respect similarity scores: only list on-topic "
     "articles (prefer similarity ≳ 0.75 or clear title match); omit weak or "
-    "off-topic hits. If listing articles, format each as `1. [Title](url)` "
-    "(no bare URL lines, no ‘visit the sources’ note). For longer prose, weave "
-    "titles into the narrative. Populate citations with article_id/title/url "
-    "from DATA — only real article_id values. If nothing on-topic, say so."
+    "off-topic hits. Prefer higher impact_tier among on-topic hits when the "
+    "user asks for the most important stories. If listing articles, format "
+    "each as `1. [Title](url)` (no bare URL lines, no ‘visit the sources’ "
+    "note). For longer prose, weave titles into the narrative. Populate "
+    "citations with article_id/title/url from DATA — only real article_id "
+    "values. If nothing on-topic, say no matching articles were found in the "
+    "user’s feeds (and time window if filtered) — never claim you lack access "
+    "to a country’s or language’s news."
 )
 
 _tool_node = ToolNode(CHAT_TOOLS)

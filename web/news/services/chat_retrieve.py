@@ -36,6 +36,7 @@ def article_to_chunk(
         story_label=article.story_label or "",
         impact_tier=article.impact_tier or "",
         place_label=article.place_label or "",
+        country_code=article.country_code or "",
         url=article.url or "",
         similarity=similarity,
     )

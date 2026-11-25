@@ -32,6 +32,7 @@ class ContextChunk(BaseModel):
     story_label: str = ""
     impact_tier: str = ""
     place_label: str = ""
+    country_code: str = ""
     url: str = ""
     # Cosine similarity vs search query embedding (None = title/scope hit, not ANN).
     similarity: float | None = None
@@ -40,6 +41,11 @@ class ContextChunk(BaseModel):
     @classmethod
     def _strip_short(cls, value: str) -> str:
         return (value or "").strip()[:300]
+
+    @field_validator("country_code")
+    @classmethod
+    def _country_code(cls, value: str) -> str:
+        return (value or "").strip().lower()[:2]
 
     @field_validator("similarity")
     @classmethod
@@ -158,6 +164,8 @@ class ArticleSearchRequest(BaseModel):
     embedding: list[float] | None = None
     limit: int = Field(default=10, ge=1, le=MAX_CHUNKS)
     exclude_article_ids: list[int] = Field(default_factory=list)
+    country_code: str | None = None
+    published_after: str | None = None
 
     @field_validator("query")
     @classmethod
@@ -166,6 +174,24 @@ class ArticleSearchRequest(BaseModel):
         if not text:
             raise ValueError("query must be non-empty")
         return text[:MAX_SEARCH_QUERY_CHARS]
+
+    @field_validator("country_code")
+    @classmethod
+    def _country_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        code = (value or "").strip().lower()[:2]
+        return code or None
+
+    @field_validator("published_after")
+    @classmethod
+    def _published_after(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = (value or "").strip()
+        if not text:
+            return None
+        return text[:64]
 
     @field_validator("embedding")
     @classmethod
