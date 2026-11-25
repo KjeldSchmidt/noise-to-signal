@@ -1,3 +1,4 @@
+{% load static %}
 <aside
   class="news-chat"
   data-news-chat
@@ -56,3 +57,8 @@
   </div>
   {% endif %}
 </aside>
+{% if user.is_authenticated %}
+<script src="{% static 'js/vendor/marked.min.js' %}" defer></script>
+<script src="{% static 'js/vendor/purify.min.js' %}" defer></script>
+<script src="{% static 'js/news-chat.js' %}" defer></script>
+{% endif %}
