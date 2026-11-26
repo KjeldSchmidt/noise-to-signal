@@ -8,7 +8,7 @@ from typing import Any, Literal
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
-from n2s_api import ChatCitation
+from n2s_api import MAX_TOOL_ROUNDS, ChatCitation
 
 from llm_model import get_answer_model, get_classifier_model
 from prompts import (
@@ -25,8 +25,6 @@ from state import ChatState
 from tools import CHAT_TOOLS, collect_known_articles, filter_citations, search_articles
 
 logger = logging.getLogger(__name__)
-
-MAX_TOOL_ROUNDS = 2
 
 
 def _tool_call_audit(tool_calls: list[Any]) -> list[dict[str, Any]]:

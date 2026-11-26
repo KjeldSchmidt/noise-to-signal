@@ -29,6 +29,18 @@ RSS feeds ──► feed_consumer ──► news_parser (enrich)
 
 **Preference memory** uses **Amazon Bedrock AgentCore Memory** (`USER_PREFERENCE` strategy) in an EU region — not mem0. Theme more/less leanings live in Postgres and fold into brief candidate scores with locations of interest.
 
+## Product / ops knobs
+
+Defaults and env overrides for brief freshness, chat limits, payload caps, and model IDs live in [`packages/n2s_api/n2s_api/tunables.py`](packages/n2s_api/n2s_api/tunables.py). Override with `N2S_*` (product) or `BEDROCK_*` (models); code defaults apply when unset.
+
+| Knob | Where to change |
+|------|-----------------|
+| Brief TTL, interim/candidate/max items, chat rate limits, payload caps, tool rounds | `tunables.py` / `N2S_*` env |
+| Model IDs | `tunables.py` defaults; deploy overrides via `BEDROCK_*` in [`infrastructure/modules/workers/main.tf`](infrastructure/modules/workers/main.tf) |
+| RSS feed poll cadence | `schedule_expression` in `infrastructure/env/{dev,prod}/app/main.tf` (not the same as brief TTL) |
+
+`BRIEF_TTL` is how long a ready brief stays fresh; EventBridge schedules only control how often `feed_consumer` polls RSS.
+
 ## Web app
 
 - Google sign-in (django-allauth; no end-user passwords)

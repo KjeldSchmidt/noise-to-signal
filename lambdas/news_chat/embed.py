@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 
 from langchain_aws import BedrockEmbeddings
+from n2s_api.tunables import EMBEDDING_MODEL_ID
 
-EMBEDDING_MODEL_ID = "cohere.embed-multilingual-v3"
 # Match stored Article.embedding input_type (clustering) for v1 ANN consistency.
 _DEFAULT_INPUT_TYPE = "clustering"
 _MAX_CHARS = 2000

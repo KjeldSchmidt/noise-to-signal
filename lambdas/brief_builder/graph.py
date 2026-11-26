@@ -7,7 +7,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
-from n2s_api import BriefCandidateKind, BriefCompleteRequest, BriefItemUpsert
+from n2s_api import MAX_BRIEF_ITEMS, BriefCandidateKind, BriefCompleteRequest, BriefItemUpsert
 from n2s_preferences import get_preference_client
 from n2s_web_client import complete_brief, get_brief_user_context
 
@@ -17,8 +17,6 @@ from schemas import BriefSelection
 from state import BriefState
 
 logger = logging.getLogger(__name__)
-
-MAX_BRIEF_ITEMS = 8
 
 
 def _as_kind(value: object) -> BriefCandidateKind:

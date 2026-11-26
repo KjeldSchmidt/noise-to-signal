@@ -3,21 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Literal
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.utils import timezone
+from n2s_api import BRIEF_TTL, INTERIM_LIMIT
 
 from news.models import Article, RelevanceFeedback, UserBrief, UserBriefItem
 from news.services.feeds import enabled_feed_ids
 from news.services.ranking import RankedItem
 from news.services.stories_feed import build_stories_feed
-
-BRIEF_TTL = timedelta(hours=6)
-INTERIM_LIMIT = 12
-CANDIDATE_LIMIT = 30
 
 BriefPhase = Literal["caught_up", "ready", "personalizing", "failed", "empty"]
 

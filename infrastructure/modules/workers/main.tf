@@ -262,6 +262,8 @@ resource "aws_lambda_function" "worker" {
         BEDROCK_CHAT_CLASSIFIER_MODEL_ID = "eu.amazon.nova-micro-v1:0"
         BEDROCK_CHAT_ANSWER_MODEL_ID     = "eu.amazon.nova-lite-v1:0"
         BEDROCK_BRIEF_MODEL_ID           = "eu.amazon.nova-lite-v1:0"
+        BEDROCK_STORY_SUMMARY_MODEL_ID   = "eu.amazon.nova-lite-v1:0"
+        BEDROCK_EMBEDDING_MODEL_ID       = "cohere.embed-multilingual-v3"
       } : {},
       try(each.value.use_agentcore_memory, false) && var.agentcore_memory_enabled ? {
         AGENTCORE_MEMORY_ID            = var.agentcore_memory_id

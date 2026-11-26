@@ -5,12 +5,8 @@ from __future__ import annotations
 import os
 
 from langchain.chat_models import init_chat_model
+from n2s_api.tunables import BRIEF_MODEL_ID
 from n2s_observability import model_tracing_kwargs
-
-BRIEF_MODEL_ID = os.environ.get(
-    "BEDROCK_BRIEF_MODEL_ID",
-    "eu.amazon.nova-lite-v1:0",
-)
 
 _brief = None
 

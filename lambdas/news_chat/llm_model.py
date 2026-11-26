@@ -5,16 +5,11 @@ from __future__ import annotations
 import os
 
 from langchain.chat_models import init_chat_model
+from n2s_api.tunables import CHAT_ANSWER_MODEL_ID, CHAT_CLASSIFIER_MODEL_ID
 from n2s_observability import model_tracing_kwargs
 
-CLASSIFIER_MODEL_ID = os.environ.get(
-    "BEDROCK_CHAT_CLASSIFIER_MODEL_ID",
-    "eu.amazon.nova-micro-v1:0",
-)
-ANSWER_MODEL_ID = os.environ.get(
-    "BEDROCK_CHAT_ANSWER_MODEL_ID",
-    "eu.amazon.nova-lite-v1:0",
-)
+CLASSIFIER_MODEL_ID = CHAT_CLASSIFIER_MODEL_ID
+ANSWER_MODEL_ID = CHAT_ANSWER_MODEL_ID
 
 _classifier = None
 _answer = None

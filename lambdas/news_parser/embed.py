@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 
 from langchain_aws import BedrockEmbeddings
+from n2s_api.tunables import EMBEDDING_MODEL_ID
 
-EMBEDDING_MODEL_ID = "cohere.embed-multilingual-v3"
 # Cohere Embed v3: ~512 tokens / ~2048 characters per text.
 _MAX_CHARS = 2000
 

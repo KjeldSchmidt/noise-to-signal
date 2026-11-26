@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractBaseUser
 from django.http import Http404
 from n2s_api import (
+    CANDIDATE_LIMIT,
     BriefCandidateDTO,
     BriefLocationDTO,
     BriefThemeAffinityDTO,
@@ -13,7 +14,6 @@ from n2s_api import (
 )
 
 from news.models import Article, LocationOfInterest, RelevanceFeedback
-from news.services.brief import CANDIDATE_LIMIT
 from news.services.feeds import enabled_feed_ids, preferred_content_languages
 from news.services.stories_feed import build_stories_feed
 from news.services.theme_affinity import affinities_for_user, affinity_weight

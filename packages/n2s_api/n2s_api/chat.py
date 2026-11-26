@@ -6,16 +6,19 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from n2s_api.tunables import (
+    MAX_CHUNK_CHARS,
+    MAX_CHUNKS,
+    MAX_CITATIONS,
+    MAX_HISTORY_TURNS,
+    MAX_MESSAGE_CHARS,
+    MAX_SEARCH_QUERY_CHARS,
+)
+
 ChatScope = Literal["brief", "thread"]
 ChatRole = Literal["user", "assistant"]
 RefusalReason = Literal["ok", "off_topic", "injection"]
 
-MAX_MESSAGE_CHARS = 2000
-MAX_HISTORY_TURNS = 12
-MAX_CHUNKS = 20
-MAX_CHUNK_CHARS = 2500
-MAX_CITATIONS = 10
-MAX_SEARCH_QUERY_CHARS = 500
 EMBEDDING_DIMENSIONS = 1024
 
 

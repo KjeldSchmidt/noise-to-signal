@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from django.conf import settings
 from django.utils import timezone
-from n2s_api import StorySummarizerRequest
+from n2s_api import THREAD_SUMMARY_TTL, StorySummarizerRequest
 
 from news.models import StoryThread
 
 logger = logging.getLogger(__name__)
-
-THREAD_SUMMARY_TTL = timedelta(hours=6)
 _STUB_SUMMARY = (
     "Coverage continues on this developing story across multiple sources. "
     "(Local stub summary — configure STORY_SUMMARIZER_FUNCTION_NAME for live digests.)"

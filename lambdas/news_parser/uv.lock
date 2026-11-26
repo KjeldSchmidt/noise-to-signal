@@ -586,6 +586,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "langchain", extra = ["aws"] },
     { name = "langgraph" },
+    { name = "n2s-api" },
     { name = "n2s-observability" },
     { name = "n2s-web-client" },
     { name = "python-dotenv" },
@@ -602,6 +603,7 @@ dev = [
 requires-dist = [
     { name = "langchain", extras = ["aws"], specifier = ">=1.4.0" },
     { name = "langgraph", specifier = ">=1.2.11" },
+    { name = "n2s-api", directory = "../../packages/n2s_api" },
     { name = "n2s-observability", directory = "../../packages/n2s_observability" },
     { name = "n2s-web-client", directory = "../../packages/n2s_web_client" },
     { name = "python-dotenv", specifier = ">=1.2.4" },

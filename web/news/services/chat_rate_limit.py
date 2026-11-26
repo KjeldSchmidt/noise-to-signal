@@ -9,11 +9,13 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
+from n2s_api import CHAT_DAY_LIMIT, CHAT_MINUTE_LIMIT
 
 from news.models import ChatRateLimitBucket
 
-MINUTE_LIMIT = 10
-DAY_LIMIT = 100
+# Local aliases so tests can patch this module's attributes.
+MINUTE_LIMIT = CHAT_MINUTE_LIMIT
+DAY_LIMIT = CHAT_DAY_LIMIT
 MINUTE_BUCKET = "minute"
 DAY_BUCKET = "day"
 _PRUNE_RETENTION = timedelta(days=2)
