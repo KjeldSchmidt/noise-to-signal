@@ -10,3 +10,5 @@ urlpatterns = [
     path("api/internal/", include("news.api_urls")),
     path("", include("news.urls")),
 ]
+
+handler404 = "config.views.page_not_found"

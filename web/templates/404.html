@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<section class="not-found">
+  <p class="eyebrow">404</p>
+  <h1>Sorry, this page doesn’t exist.</h1>
+  <p class="lede">The link may be broken, or the page may have moved.</p>
+  <div class="cta-row">
+    <a class="btn primary" href="{% if user.is_authenticated %}{% url 'brief' %}{% else %}{% url 'landing' %}{% endif %}">Go home</a>
+    <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
+  </div>
+</section>
+{% endblock %}
