@@ -9,7 +9,7 @@ All **LLM and embedding** invocations must go through LangChain (e.g. `init_chat
 
 ## Why
 
-- LangSmith traces model I/O as child runs (prompts, structured outputs), not only LangGraph node state
+- Langfuse (via `n2s_observability.model_tracing_kwargs` on `init_chat_model`) traces model I/O as child observations
 - Structured output, retries, and provider swaps stay consistent with `brief_builder`, `news_chat`, and `news_parser`
 
 ## Do

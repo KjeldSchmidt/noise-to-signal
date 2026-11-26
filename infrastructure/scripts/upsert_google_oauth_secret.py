@@ -30,7 +30,7 @@ def main() -> int:
         "GOOGLE_OAUTH_SECRET_NAME", f"noise-to-signal/{env_name}/google-oauth"
     )
     region = os.environ.get("AWS_REGION", "eu-central-1")
-    profile = os.environ.get("AWS_PROFILE", "AdministratorAccess-465836752303")
+    profile = (os.environ.get("AWS_PROFILE") or "").strip()
 
     dotenv = load_dotenv(root / "web" / ".env")
     client_id = (
@@ -55,12 +55,10 @@ def main() -> int:
     )
 
     def aws(*args: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            ["aws", *args, "--profile", profile, "--region", region],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        cmd = ["aws", *args, "--region", region]
+        if profile:
+            cmd.extend(["--profile", profile])
+        return subprocess.run(cmd, check=False, capture_output=True, text=True)
 
     exists = aws("secretsmanager", "describe-secret", "--secret-id", secret_name)
     if exists.returncode == 0:

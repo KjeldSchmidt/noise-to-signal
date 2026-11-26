@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from n2s_api import StorySummarizerRequest
+from n2s_observability import flush_tracing
 from pydantic import ValidationError
 
 from run import dispatch
@@ -37,8 +38,11 @@ def handler(
 ) -> dict[str, object]:
     _ = context
     try:
-        req = _parse_event(event)
-    except (ValidationError, ValueError, json.JSONDecodeError) as exc:
-        logger.warning("invalid story_summarizer payload: %s", exc)
-        return {"ok": False, "error": f"invalid payload: {exc}"[:500]}
-    return dispatch(req)
+        try:
+            req = _parse_event(event)
+        except (ValidationError, ValueError, json.JSONDecodeError) as exc:
+            logger.warning("invalid story_summarizer payload: %s", exc)
+            return {"ok": False, "error": f"invalid payload: {exc}"[:500]}
+        return dispatch(req)
+    finally:
+        flush_tracing()

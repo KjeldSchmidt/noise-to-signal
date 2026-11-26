@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from langchain.chat_models import init_chat_model
+from n2s_observability import model_tracing_kwargs
 
 SUMMARY_MODEL_ID = os.environ.get(
     "BEDROCK_STORY_SUMMARY_MODEL_ID",
@@ -32,5 +33,6 @@ def get_summary_model():
             region_name=_bedrock_region(),
             temperature=0.2,
             max_tokens=700,
+            **model_tracing_kwargs(),
         )
     return _summary

@@ -1,0 +1,31 @@
+[project]
+name = "n2s-observability"
+version = "0.1.0"
+description = "Langfuse tracing helpers for noise-to-signal LangChain/LangGraph workers"
+requires-python = ">=3.12"
+dependencies = [
+    "langfuse>=3.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["n2s_observability"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.4",
+    "ty>=0.0.100",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"

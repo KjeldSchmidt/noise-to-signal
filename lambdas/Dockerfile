@@ -12,6 +12,7 @@ ENV UV_LINK_MODE=copy \
 
 WORKDIR /build
 COPY packages/n2s_api /build/packages/n2s_api
+COPY packages/n2s_observability /build/packages/n2s_observability
 COPY packages/n2s_web_client /build/packages/n2s_web_client
 COPY packages/n2s_preferences /build/packages/n2s_preferences
 COPY lambdas/${LAMBDA_NAME}/pyproject.toml lambdas/${LAMBDA_NAME}/uv.lock /build/lambdas/${LAMBDA_NAME}/

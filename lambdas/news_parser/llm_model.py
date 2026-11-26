@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from langchain.chat_models import init_chat_model
+from n2s_observability import model_tracing_kwargs
 
 # On-demand Nova requires an inference profile ID, not the bare foundation-model ID.
 EXTRACT_MODEL_ID = os.environ.get("BEDROCK_EXTRACT_MODEL_ID", "eu.amazon.nova-micro-v1:0")
@@ -30,5 +31,6 @@ def get_extract_model():
             region_name=_bedrock_region(),
             temperature=0.0,
             max_tokens=400,
+            **model_tracing_kwargs(),
         )
     return _model

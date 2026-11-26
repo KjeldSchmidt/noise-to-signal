@@ -35,10 +35,10 @@ Build workers with the generic [`../lambdas/Dockerfile`](../lambdas/Dockerfile) 
 - Module: [`modules/workers`](modules/workers), wired from each `env/<env>/app`.
 - **`feed_consumer`** — EventBridge schedule; `list_feeds` → parse RSS → chunked `POST /api/internal/feed-items/`.
 - **`news_parser`** — SQS (`<project>-<env>-feed-items`); LangGraph enrich (`normalize` → `embed` ∥ `extract_place` → `upsert`) → `POST /api/internal/articles/` (thread assignment on the web).
-- **`news_chat`** — sync-invoked by web (`NEWS_CHAT_FUNCTION_NAME`); Nova Micro scope classifier + Nova Lite grounded answers (LangSmith agent `news-chat`). Brief scope also reads AgentCore preferences.
+- **`news_chat`** — sync-invoked by web (`NEWS_CHAT_FUNCTION_NAME`); Nova Micro scope classifier + Nova Lite grounded answers (Langfuse-traced). Brief scope also reads AgentCore preferences.
 - **`brief_builder`** — async Event-invoked by web (`BRIEF_BUILDER_FUNCTION_NAME`); LangGraph personalization → `UserBrief` via internal API; AgentCore preference read/write/erase.
 - **`story_summarizer`** — async Event-invoked by web after a new article joins a story thread (`STORY_SUMMARIZER_FUNCTION_NAME`); non-personal AI digest on `StoryThread` (6h TTL).
-- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / model IDs when `invoke_bedrock`; + `AGENTCORE_MEMORY_ID` when `use_agentcore_memory`; + `LANGSMITH_*` when `langsmith_agent_id` is set); web also gets `FEED_ITEMS_QUEUE_URL`, `NEWS_CHAT_FUNCTION_NAME`, `BRIEF_BUILDER_FUNCTION_NAME`, `STORY_SUMMARIZER_FUNCTION_NAME`.
+- Env: `WEB_API_BASE_URL`, `INTERNAL_API_TOKEN` (+ `BEDROCK_REGION` / model IDs when `invoke_bedrock`; + `AGENTCORE_MEMORY_ID` when `use_agentcore_memory`; + `LANGFUSE_*` when `langfuse_tracing` is set); web also gets `FEED_ITEMS_QUEUE_URL`, `NEWS_CHAT_FUNCTION_NAME`, `BRIEF_BUILDER_FUNCTION_NAME`, `STORY_SUMMARIZER_FUNCTION_NAME`.
 - Deployable workers = dirs under `lambdas/` with `pyproject.toml`.
 - Per-env AgentCore Memory (`modules/agentcore_memory`) with `USER_PREFERENCE` strategy (production preference path; the old mem0 runner PoC is retired). STM events expire at 90 days; LTM records until erase-on-request via `python manage.py erase_preference_memory --email …` (enqueues worker) or Settings per-record delete.
 
@@ -85,27 +85,31 @@ CREATE DATABASE noise_to_signal_prod;
 
 Terraform generates `INTERNAL_API_TOKEN` into the per-env app secret (`noise-to-signal/<env>/app`) and injects it into the web Lambda and worker Lambdas. Workers call `https://<public-host>/api/internal/...` with `Authorization: Bearer <token>`.
 
-## LangSmith (worker tracing)
+## Langfuse (worker tracing)
 
-Workers with `langsmith_agent_id` (e.g. `news_parser` → `news-parser`) get agent-based LangSmith tracing. The API key lives in Secrets Manager `noise-to-signal/<env>/langsmith` (JSON `LANGSMITH_API_KEY`), upserted from root `.env`:
+Workers with `langfuse_tracing = true` send LangChain/LangGraph traces to Langfuse Cloud. Keys live in Secrets Manager `noise-to-signal/<env>/langfuse` (JSON `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, optional `LANGFUSE_BASE_URL`), upserted from root `.env`:
 
 ```bash
+# repo root .env:
+# LANGFUSE_PUBLIC_KEY=pk-lf-...
+# LANGFUSE_SECRET_KEY=sk-lf-...
+# LANGFUSE_BASE_URL=https://cloud.langfuse.com   # EU; use https://us.cloud.langfuse.com for US
+
 cd infrastructure
-APP_ENV=dev just upsert-langsmith
-# APP_ENV=prod just upsert-langsmith
+APP_ENV=dev just upsert-langfuse
+# APP_ENV=prod just upsert-langfuse
 ```
 
-Terraform injects `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_ENDPOINT`, `LANGSMITH_AGENT_ID`, and `LANGSMITH_AGENT_ENVIRONMENT` (`development` / `production`). Optional per-worker `langsmith_tracing_sampling_rate` sets `LANGSMITH_TRACING_SAMPLING_RATE` (e.g. `0.02` / `0.2` for `news_parser` / `news_chat`). Do not set `LANGSMITH_PROJECT` on those Lambdas. Create each agent once in the LangSmith UI before deploy.
+Terraform injects `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, `LANGFUSE_TRACING_ENVIRONMENT` (`development` / `production`), `LANGFUSE_TAGS` (worker name), and `LANGCHAIN_CALLBACKS_BACKGROUND=false`. Optional per-worker `langfuse_sample_rate` sets `LANGFUSE_SAMPLE_RATE` (e.g. `0.01` / `0.2` / `1.0`).
 
 ## Prerequisites
 
-- WSL + AWS SSO: `AWS_PROFILE=AdministratorAccess-465836752303`
+- WSL + AWS CLI credentials (use `[default]`, or set `AWS_PROFILE` for a named profile)
 - [`just`](https://github.com/casey/just), Docker, `psql`, Google OAuth client
 - Shared RDS via tck-labs-base
 
 ```bash
 cd infrastructure
-export AWS_PROFILE=AdministratorAccess-465836752303
 just
 ```
 
@@ -137,9 +141,8 @@ Dev/prod are the same reusable workflow ([`deploy-env.yml`](../.github/workflows
 
 1. `noise_to_signal_prod` DB exists (`just create-databases`).
 2. Secrets Manager secret `noise-to-signal/prod/google-oauth` exists (`APP_ENV=prod just upsert-google-oauth`).
-3. Secrets Manager secret `noise-to-signal/prod/langsmith` exists (`APP_ENV=prod just upsert-langsmith`) before workers apply with `langsmith_agent_id`.
+3. Secrets Manager secret `noise-to-signal/prod/langfuse` exists (`APP_ENV=prod just upsert-langfuse`) before workers apply with `langfuse_tracing`.
 4. Google OAuth client allows origin + redirect for `https://noise-to-signal.fyi` (callback `/accounts/google/login/callback/`).
-5. LangSmith agent `news-parser` exists in the workspace.
 
 ## State / existing AWS resources
 

@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from n2s_api import ChatWorkerRequest, ChatWorkerResponse
+from n2s_observability import flush_tracing
 from pydantic import ValidationError
 
 from chat import run_chat
@@ -32,30 +33,33 @@ def handler(event: dict[str, Any] | str | bytes, context: Any = None) -> dict[st
     Returns ChatWorkerResponse as a plain dict for the web boto3 client.
     """
     try:
-        req = _parse_event(event)
-    except ValidationError as exc:
-        logger.warning("Invalid chat request: %s", exc)
-        err = ChatWorkerResponse(
-            refused=True,
-            reason="off_topic",
-            reply="",
-            message="Invalid chat request.",
-        )
-        return err.model_dump()
+        try:
+            req = _parse_event(event)
+        except ValidationError as exc:
+            logger.warning("Invalid chat request: %s", exc)
+            err = ChatWorkerResponse(
+                refused=True,
+                reason="off_topic",
+                reply="",
+                message="Invalid chat request.",
+            )
+            return err.model_dump()
 
-    try:
-        result = run_chat(req)
-    except Exception:
-        logger.exception("news_chat pipeline failed")
-        err = ChatWorkerResponse(
-            refused=True,
-            reason="off_topic",
-            reply="",
-            message="Chat is temporarily unavailable. Please try again.",
-        )
-        return err.model_dump()
+        try:
+            result = run_chat(req)
+        except Exception:
+            logger.exception("news_chat pipeline failed")
+            err = ChatWorkerResponse(
+                refused=True,
+                reason="off_topic",
+                reply="",
+                message="Chat is temporarily unavailable. Please try again.",
+            )
+            return err.model_dump()
 
-    return result.model_dump()
+        return result.model_dump()
+    finally:
+        flush_tracing()
 
 
 def handler_json(event: dict[str, Any] | str | bytes, context: Any = None) -> str:

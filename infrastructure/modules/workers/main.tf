@@ -19,29 +19,29 @@ locals {
   }
   app_secret = jsondecode(data.aws_secretsmanager_secret_version.app.secret_string)
 
-  langsmith_secret_name = var.langsmith_secret_name != "" ? var.langsmith_secret_name : "${var.project}/${var.environment}/langsmith"
-  langsmith_workers = {
+  langfuse_secret_name = var.langfuse_secret_name != "" ? var.langfuse_secret_name : "${var.project}/${var.environment}/langfuse"
+  langfuse_workers = {
     for name, cfg in var.workers : name => cfg
-    if try(cfg.langsmith_agent_id, null) != null && cfg.langsmith_agent_id != ""
+    if try(cfg.langfuse_tracing, false)
   }
-  langsmith_enabled = length(local.langsmith_workers) > 0
+  langfuse_enabled = length(local.langfuse_workers) > 0
 
-  # Map stack env → LangSmith agent environment
-  langsmith_agent_environment = var.environment == "prod" ? "production" : "development"
+  # Map stack env → Langfuse tracing environment
+  langfuse_tracing_environment = var.environment == "prod" ? "production" : "development"
 }
 
-data "aws_secretsmanager_secret" "langsmith" {
-  count = local.langsmith_enabled ? 1 : 0
-  name  = local.langsmith_secret_name
+data "aws_secretsmanager_secret" "langfuse" {
+  count = local.langfuse_enabled ? 1 : 0
+  name  = local.langfuse_secret_name
 }
 
-data "aws_secretsmanager_secret_version" "langsmith" {
-  count     = local.langsmith_enabled ? 1 : 0
-  secret_id = data.aws_secretsmanager_secret.langsmith[0].id
+data "aws_secretsmanager_secret_version" "langfuse" {
+  count     = local.langfuse_enabled ? 1 : 0
+  secret_id = data.aws_secretsmanager_secret.langfuse[0].id
 }
 
 locals {
-  langsmith_secret = local.langsmith_enabled ? jsondecode(data.aws_secretsmanager_secret_version.langsmith[0].secret_string) : {}
+  langfuse_secret = local.langfuse_enabled ? jsondecode(data.aws_secretsmanager_secret_version.langfuse[0].secret_string) : {}
 }
 
 data "aws_iam_policy_document" "assume" {
@@ -267,16 +267,17 @@ resource "aws_lambda_function" "worker" {
         AGENTCORE_MEMORY_ID            = var.agentcore_memory_id
         AGENTCORE_PREFERENCE_NAMESPACE = var.agentcore_preference_namespace
       } : {},
-      try(each.value.langsmith_agent_id, null) != null && each.value.langsmith_agent_id != "" ? merge(
+      try(each.value.langfuse_tracing, false) ? merge(
         {
-          LANGSMITH_TRACING           = "true"
-          LANGSMITH_ENDPOINT          = var.langsmith_endpoint
-          LANGSMITH_API_KEY           = local.langsmith_secret.LANGSMITH_API_KEY
-          LANGSMITH_AGENT_ID          = each.value.langsmith_agent_id
-          LANGSMITH_AGENT_ENVIRONMENT = local.langsmith_agent_environment
+          LANGFUSE_PUBLIC_KEY            = local.langfuse_secret.LANGFUSE_PUBLIC_KEY
+          LANGFUSE_SECRET_KEY            = local.langfuse_secret.LANGFUSE_SECRET_KEY
+          LANGFUSE_BASE_URL              = try(local.langfuse_secret.LANGFUSE_BASE_URL, null) != null && local.langfuse_secret.LANGFUSE_BASE_URL != "" ? local.langfuse_secret.LANGFUSE_BASE_URL : var.langfuse_base_url
+          LANGFUSE_TRACING_ENVIRONMENT   = local.langfuse_tracing_environment
+          LANGFUSE_TAGS                  = each.key
+          LANGCHAIN_CALLBACKS_BACKGROUND = "false"
         },
-        try(each.value.langsmith_tracing_sampling_rate, null) != null ? {
-          LANGSMITH_TRACING_SAMPLING_RATE = tostring(each.value.langsmith_tracing_sampling_rate)
+        try(each.value.langfuse_sample_rate, null) != null ? {
+          LANGFUSE_SAMPLE_RATE = tostring(each.value.langfuse_sample_rate)
         } : {},
       ) : {},
       try(each.value.write_analysis_artifacts, false) && var.analysis_artifacts_enabled ? {

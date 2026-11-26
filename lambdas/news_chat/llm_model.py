@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from langchain.chat_models import init_chat_model
+from n2s_observability import model_tracing_kwargs
 
 CLASSIFIER_MODEL_ID = os.environ.get(
     "BEDROCK_CHAT_CLASSIFIER_MODEL_ID",
@@ -37,6 +38,7 @@ def get_classifier_model():
             region_name=_bedrock_region(),
             temperature=0.0,
             max_tokens=200,
+            **model_tracing_kwargs(),
         )
     return _classifier
 
@@ -50,5 +52,6 @@ def get_answer_model():
             region_name=_bedrock_region(),
             temperature=0.2,
             max_tokens=800,
+            **model_tracing_kwargs(),
         )
     return _answer

@@ -34,14 +34,14 @@ variable "feed_items_queue_arn" {
 
 variable "workers" {
   type = map(object({
-    schedule_expression             = optional(string)
-    subscribe_feed_items            = optional(bool, false)
-    invoke_bedrock                  = optional(bool, false)
-    use_agentcore_memory            = optional(bool, false)
-    langsmith_agent_id              = optional(string)
-    langsmith_tracing_sampling_rate = optional(number)
-    memory_size                     = optional(number, 512)
-    timeout                         = optional(number, 60)
+    schedule_expression  = optional(string)
+    subscribe_feed_items = optional(bool, false)
+    invoke_bedrock       = optional(bool, false)
+    use_agentcore_memory = optional(bool, false)
+    langfuse_tracing     = optional(bool, false)
+    langfuse_sample_rate = optional(number)
+    memory_size          = optional(number, 512)
+    timeout              = optional(number, 60)
     # SQS ESM only; AWS minimum is 2. Caps parallel worker invokes for relaxed drain.
     sqs_maximum_concurrency = optional(number)
     # Write theme-analysis artifacts when analysis_artifacts_enabled is true.
@@ -92,14 +92,14 @@ variable "bedrock_region" {
   description = "Optional Bedrock region override (defaults to the Lambda AWS region)."
 }
 
-variable "langsmith_secret_name" {
+variable "langfuse_secret_name" {
   type        = string
   default     = ""
-  description = "Secrets Manager name for LangSmith API key JSON. Empty → {project}/{environment}/langsmith"
+  description = "Secrets Manager name for Langfuse keys JSON. Empty → {project}/{environment}/langfuse"
 }
 
-variable "langsmith_endpoint" {
+variable "langfuse_base_url" {
   type        = string
-  default     = "https://eu.api.smith.langchain.com"
-  description = "LangSmith API endpoint (EU by default)."
+  default     = "https://cloud.langfuse.com"
+  description = "Fallback Langfuse base URL when the secret omits LANGFUSE_BASE_URL (EU cloud default)."
 }

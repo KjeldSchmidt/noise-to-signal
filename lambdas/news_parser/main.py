@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from n2s_api import FeedItem
+from n2s_observability import flush_tracing
 
 from graph import enrich_graph
 
@@ -42,24 +43,27 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     batch_failures: list[dict[str, str]] = []
 
-    for record in records:
-        message_id = str(record.get("messageId") or "")
-        try:
-            item = FeedItem.model_validate_json(record.get("body") or "{}")
-            if not item.link:
-                raise ValueError("missing link")
-            results.append(process_feed_item(item))
-        except Exception:
-            logger.exception("Failed to process SQS message %s", message_id)
-            # Without messageId Lambda cannot retry just this record; fail the
-            # whole invocation so the batch is not silently acknowledged.
-            if not message_id:
-                raise
-            batch_failures.append({"itemIdentifier": message_id})
+    try:
+        for record in records:
+            message_id = str(record.get("messageId") or "")
+            try:
+                item = FeedItem.model_validate_json(record.get("body") or "{}")
+                if not item.link:
+                    raise ValueError("missing link")
+                results.append(process_feed_item(item))
+            except Exception:
+                logger.exception("Failed to process SQS message %s", message_id)
+                # Without messageId Lambda cannot retry just this record; fail the
+                # whole invocation so the batch is not silently acknowledged.
+                if not message_id:
+                    raise
+                batch_failures.append({"itemIdentifier": message_id})
 
-    return {
-        "ok": len(batch_failures) == 0,
-        "processed": len(results),
-        "results": results,
-        "batchItemFailures": batch_failures,
-    }
+        return {
+            "ok": len(batch_failures) == 0,
+            "processed": len(results),
+            "results": results,
+            "batchItemFailures": batch_failures,
+        }
+    finally:
+        flush_tracing()

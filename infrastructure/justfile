@@ -89,14 +89,15 @@ outputs env="dev":
 create-databases:
     #!/usr/bin/env bash
     set -euo pipefail
-    AWS_PROFILE="${AWS_PROFILE:-AdministratorAccess-465836752303}"
     SECRET_ID="${SECRET_ID:-tck-labs/shared/rds}"
     DATABASES=("noise_to_signal_dev" "noise_to_signal_prod")
+    aws_cli=(aws --region eu-central-1)
+    if [[ -n "${AWS_PROFILE:-}" ]]; then
+      aws_cli+=( --profile "$AWS_PROFILE" )
+    fi
 
     echo "Fetching credentials from Secrets Manager (${SECRET_ID})..."
-    SECRET_JSON="$(aws secretsmanager get-secret-value \
-      --profile "$AWS_PROFILE" \
-      --region eu-central-1 \
+    SECRET_JSON="$("${aws_cli[@]}" secretsmanager get-secret-value \
       --secret-id "$SECRET_ID" \
       --query SecretString \
       --output text)"
@@ -135,9 +136,9 @@ create-databases:
 upsert-google-oauth:
     python3 scripts/upsert_google_oauth_secret.py
 
-# Push LANGSMITH_API_KEY from root .env → Secrets Manager noise-to-signal/<APP_ENV>/langsmith
-upsert-langsmith:
-    python3 scripts/upsert_langsmith_secret.py
+# Push LANGFUSE_* from root .env → Secrets Manager noise-to-signal/<APP_ENV>/langfuse
+upsert-langfuse:
+    python3 scripts/upsert_langfuse_secret.py
 
 manage *args:
     #!/usr/bin/env bash

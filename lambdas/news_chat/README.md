@@ -13,7 +13,7 @@ START → classify → refuse → END
 2. **classify** — Nova Micro structured scope check (`allowed` + reason).
 3. On deny: **refuse** with canned copy.
 4. On allow: **agent** ↔ **tools** (`ToolNode` / `search_articles`, max 2 rounds) then **finalize** (structured reply + citations).
-5. LangSmith agent id: `news-chat`.
+5. Langfuse-traced when `langfuse_tracing` is enabled (tag `news_chat`).
 
 Web owns AuthZ + rate limits + baseline scope retrieval; this worker runs the graph.
 

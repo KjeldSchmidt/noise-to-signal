@@ -30,27 +30,24 @@ User-agnostic lasting importance (not personal taste — distinct from `Relevanc
 
 Stored on `Article.impact_tier` (+ short `impact_rationale` for admin). Later: story page / brief ranking consumers; thread rollup = max of member tiers.
 
-## LangSmith
+## Langfuse
 
-When `langsmith_agent_id` is set on the worker in Terraform, Lambda gets agent-based tracing. The LangChain extract call appears as an LLM child run under `extract_place` (prompt + structured result), not only the node final state.
+When `langfuse_tracing = true` on the worker in Terraform, Lambda sends LangChain/LangGraph traces to Langfuse. The extract call appears as an LLM child observation under `extract_place`.
 
 | Variable | Source |
 |----------|--------|
-| `LANGSMITH_API_KEY` | Secrets Manager `noise-to-signal/<env>/langsmith` (via `just upsert-langsmith`) |
-| `LANGSMITH_TRACING` | `true` |
-| `LANGSMITH_ENDPOINT` | EU endpoint by default |
-| `LANGSMITH_AGENT_ID` | Worker config (`news-parser`) |
-| `LANGSMITH_AGENT_ENVIRONMENT` | `development` (dev) / `production` (prod) |
-| `LANGSMITH_TRACING_SAMPLING_RATE` | Optional; from `langsmith_tracing_sampling_rate` (e.g. `0.02`) |
-
-Do **not** set `LANGSMITH_PROJECT` on this process (conflicts with agent addressing). Create the LangSmith agent `news-parser` once in the UI before expecting traces.
+| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` | Secrets Manager `noise-to-signal/<env>/langfuse` (via `just upsert-langfuse`) |
+| `LANGFUSE_BASE_URL` | From secret, else EU cloud default |
+| `LANGFUSE_TRACING_ENVIRONMENT` | `development` (dev) / `production` (prod) |
+| `LANGFUSE_SAMPLE_RATE` | Optional; from `langfuse_sample_rate` (e.g. `0.01`) |
+| `LANGFUSE_TAGS` | Worker name (`news_parser`) |
 
 ## Prerequisites
 
 - Bedrock model access for `cohere.embed-multilingual-v3` and the extract inference profile (default `eu.amazon.nova-micro-v1:0`).
 - IAM invoke/converse on those models (Terraform: `invoke_bedrock = true`).
 - Postgres with `pgvector`; migrated theme seed (`0005_article_place_themes`).
-- LangSmith secret upserted before app apply if tracing is enabled: `APP_ENV=dev just upsert-langsmith`.
+- Langfuse secret upserted before app apply if tracing is enabled: `APP_ENV=dev just upsert-langfuse`.
 
 ## Env
 
@@ -60,7 +57,7 @@ Do **not** set `LANGSMITH_PROJECT` on this process (conflicts with agent address
 | `INTERNAL_API_TOKEN` | Bearer for `/api/internal/*` |
 | `BEDROCK_REGION` | Optional Bedrock region override |
 | `BEDROCK_EXTRACT_MODEL_ID` | Optional; default `eu.amazon.nova-micro-v1:0` (inference profile; bare `amazon.nova-micro-v1:0` fails on-demand) |
-| `LANGSMITH_*` | See LangSmith section (when enabled) |
+| `LANGFUSE_*` | See Langfuse section (when enabled) |
 
 ## Place matching vs `LocationOfInterest`
 

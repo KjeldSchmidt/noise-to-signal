@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from n2s_api import BriefBuilderRequest
+from n2s_observability import flush_tracing
 from pydantic import ValidationError
 
 from build import dispatch
@@ -33,12 +34,15 @@ def _parse_event(event: dict[str, Any] | list[Any] | str | bytes) -> BriefBuilde
 
 def handler(event: dict[str, Any] | str | bytes, context: object = None) -> dict[str, object]:
     try:
-        req = _parse_event(event)
-    except (ValidationError, ValueError, json.JSONDecodeError) as exc:
-        logger.error("invalid brief_builder event: %s", exc)
-        return {"ok": False, "error": "invalid payload"}
-    try:
-        return dispatch(req)
-    except Exception as exc:
-        logger.exception("brief_builder failed")
-        return {"ok": False, "error": str(exc)[:500]}
+        try:
+            req = _parse_event(event)
+        except (ValidationError, ValueError, json.JSONDecodeError) as exc:
+            logger.error("invalid brief_builder event: %s", exc)
+            return {"ok": False, "error": "invalid payload"}
+        try:
+            return dispatch(req)
+        except Exception as exc:
+            logger.exception("brief_builder failed")
+            return {"ok": False, "error": str(exc)[:500]}
+    finally:
+        flush_tracing()
