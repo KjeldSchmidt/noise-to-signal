@@ -46,8 +46,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(UserContentLanguage)
 class UserContentLanguageAdmin(admin.ModelAdmin):
-    list_display = ("user", "language", "created_at")
-    list_filter = ("language",)
+    list_display = ("user", "language", "is_primary", "created_at")
+    list_filter = ("language", "is_primary")
     search_fields = ("user__username", "user__email", "language__code", "language__name")
     autocomplete_fields = ("language",)
 

@@ -1,19 +1,21 @@
 {% extends "base.html" %}
-{% load socialaccount %}
-{% block title %}Home{% endblock %}
+{% load i18n socialaccount %}
+{% block title %}{% trans "Home" %}{% endblock %}
 {% block content %}
 <section class="hero">
-  <p class="eyebrow">Personal news, filtered</p>
-  <h1>Subscribe generously.<br>Read selectively.</h1>
+  <p class="eyebrow">{% trans "Personal news, filtered" %}</p>
+  <h1>{% trans "Subscribe generously." %}<br>{% trans "Read selectively." %}</h1>
   <p class="lede">
+    {% blocktrans trimmed %}
     Noise to Signal pulls from the feeds you choose, ranks what is likely worth your time,
     and learns from theme leanings and preferences you share in chat.
+    {% endblocktrans %}
   </p>
   <div class="cta-row">
-    <a class="btn primary" id="google-login" href="{% provider_login_url 'google' %}">Continue with Google</a>
-    <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
+    <a class="btn primary" id="google-login" href="{% provider_login_url 'google' %}">{% trans "Continue with Google" %}</a>
+    <a class="btn ghost" href="{% url 'stories' %}">{% trans "Browse stories" %}</a>
   </div>
-  <p class="muted" style="margin-top:1rem">No passwords — sign-in is handled by Google.</p>
+  <p class="muted" style="margin-top:1rem">{% trans "No passwords — sign-in is handled by Google." %}</p>
 </section>
 <script>
   (function () {
@@ -58,13 +60,19 @@
         }
         try {
           var path = popup.location.pathname;
-          if (path.indexOf("/oauth/popup-done") === 0) {
+          if (path && path.indexOf("/accounts/popup-done") === 0) {
             clearInterval(timer);
+            try {
+              var next = popup.location.search;
+              var params = new URLSearchParams(next);
+              goAfterLogin(params.get("next"));
+            } catch (err2) {
+              goAfterLogin();
+            }
             popup.close();
-            goAfterLogin();
           }
-        } catch (err) {
-          // Cross-origin while on accounts.google.com — keep polling.
+        } catch (err3) {
+          // Cross-origin during Google hop — keep polling.
         }
       }, 400);
     });

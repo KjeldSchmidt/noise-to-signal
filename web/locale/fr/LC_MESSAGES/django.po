@@ -1,0 +1,356 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: noise-to-signal\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Brief"
+msgstr "Brief"
+
+msgid "Personal Brief"
+msgstr "Brief personnel"
+
+msgid "Stories"
+msgstr "Histoires"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Log out"
+msgstr "Se déconnecter"
+
+msgid "Legal"
+msgstr "Mentions légales"
+
+msgid "Privacy"
+msgstr "Confidentialité"
+
+msgid "Home"
+msgstr "Accueil"
+
+msgid "Personal news, filtered"
+msgstr "L’actualité personnelle, filtrée"
+
+msgid "Subscribe generously."
+msgstr "Abonnez-vous largement."
+
+msgid "Read selectively."
+msgstr "Lisez sélectivement."
+
+msgid ""
+"Noise to Signal pulls from the feeds you choose, ranks what is likely worth "
+"your time, and learns from theme leanings and preferences you share in chat."
+msgstr ""
+"Noise to Signal lit les flux que vous choisissez, classe ce qui mérite votre"
+" temps, et apprend de vos préférences thématiques et de ce que vous partagez"
+" dans le chat."
+
+msgid "Continue with Google"
+msgstr "Continuer avec Google"
+
+msgid "Browse stories"
+msgstr "Parcourir les histoires"
+
+msgid "No passwords — sign-in is handled by Google."
+msgstr "Pas de mot de passe — la connexion passe par Google."
+
+msgid ""
+"Languages, locations, and which feeds to include. Catalog feeds are on by "
+"default for languages you enable."
+msgstr ""
+"Langues, lieux et flux à inclure. Les flux du catalogue sont actifs par "
+"défaut pour les langues que vous activez."
+
+msgid "Content languages"
+msgstr "Langues de contenu"
+
+msgid ""
+"Only stories from feeds in these languages appear in your brief and Stories."
+msgstr ""
+"Seules les histoires des flux dans ces langues apparaissent dans votre brief"
+" et Stories."
+
+msgid "Languages to include"
+msgstr "Langues à inclure"
+
+msgid "Primary language"
+msgstr "Langue principale"
+
+msgid ""
+"Used for the interface and for story titles and summaries when available."
+msgstr ""
+"Utilisée pour l’interface et pour les titres et résumés d’histoires "
+"lorsqu’ils sont disponibles."
+
+msgid "Save languages"
+msgstr "Enregistrer les langues"
+
+msgid "Content languages updated."
+msgstr "Langues de contenu mises à jour."
+
+msgid "Stored preferences"
+msgstr "Préférences enregistrées"
+
+msgid ""
+"Free-form memories and theme leanings that shape your brief. You can review "
+"or delete them anytime. Preferences saved in brief chat can take a few "
+"minutes to show up here."
+msgstr ""
+"Souvenirs libres et préférences thématiques qui façonnent votre brief. Vous "
+"pouvez les consulter ou les supprimer à tout moment. Les préférences du chat"
+" peuvent mettre quelques minutes à apparaître."
+
+msgid "Show stored preferences"
+msgstr "Afficher les préférences"
+
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Loading…"
+msgstr "Chargement…"
+
+msgid "Locations of interest"
+msgstr "Lieux d’intérêt"
+
+msgid ""
+"Locations you are interested in. We will prioritize stories from these "
+"locations."
+msgstr ""
+"Lieux qui vous intéressent. Nous prioriserons les histoires de ces lieux."
+
+msgid "remove"
+msgstr "retirer"
+
+msgid "No locations yet."
+msgstr "Aucun lieu pour l’instant."
+
+msgid "Add a location"
+msgstr "Ajouter un lieu"
+
+msgid ""
+"Search for a place or use your current position. Coarse city/region is "
+"enough."
+msgstr "Cherchez un lieu ou utilisez votre position. Une ville/région suffit."
+
+msgid "Search"
+msgstr "Rechercher"
+
+msgid "e.g. Berlin, Germany"
+msgstr "ex. Berlin, Allemagne"
+
+msgid "Use current location"
+msgstr "Utiliser ma position"
+
+msgid "Add location"
+msgstr "Ajouter le lieu"
+
+msgid "Muted — suggested to re-enable"
+msgstr "En sourdine — à réactiver"
+
+msgid "Unmute"
+msgstr "Réactiver"
+
+msgid "Catalog feeds"
+msgstr "Flux du catalogue"
+
+msgid ""
+"Mute sources you never want in Personal Brief or Stories. Feeds outside your"
+" languages stay listed so you can discover them."
+msgstr ""
+"Coupez les sources que vous ne voulez jamais dans le brief ou Stories. Les "
+"flux hors langues restent listés pour découverte."
+
+msgid "Enable this language under Content languages to include this source."
+msgstr ""
+"Activez cette langue sous Langues de contenu pour inclure cette source."
+
+msgid "Mute"
+msgstr "Couper"
+
+msgid "Add a custom RSS feed"
+msgstr "Ajouter un flux RSS perso"
+
+msgid ""
+"If the URL already exists, you will be subscribed to the shared feed (or the"
+" catalog entry will be unmuted)."
+msgstr ""
+"Si l’URL existe déjà, vous serez abonné au flux partagé (ou l’entrée "
+"catalogue sera réactivée)."
+
+msgid "Add feed"
+msgstr "Ajouter le flux"
+
+msgid "Your custom feeds"
+msgstr "Vos flux personnalisés"
+
+msgid "Unsubscribe"
+msgstr "Se désabonner"
+
+msgid "Feed name"
+msgstr "Nom du flux"
+
+msgid "RSS URL"
+msgstr "URL RSS"
+
+msgid "Site URL (optional)"
+msgstr "URL du site (optionnel)"
+
+msgid "A name is required for new feeds."
+msgstr "Un nom est requis pour les nouveaux flux."
+
+msgid "Open settings"
+msgstr "Ouvrir les paramètres"
+
+msgid ""
+"No stories yet. Check Settings if feeds are muted, or wait for the next "
+"ingest."
+msgstr ""
+"Pas encore d’histoires. Vérifiez les Paramètres si des flux sont coupés, ou "
+"attendez le prochain ingest."
+
+msgid "No stories yet. Check back after the next ingest."
+msgstr "Pas encore d’histoires. Revenez après le prochain ingest."
+
+msgid ""
+"Important articles and story threads from your enabled feeds, ranked by "
+"impact."
+msgstr "Articles et fils importants de vos flux activés, classés par impact."
+
+msgid ""
+"Important articles and story threads from your enabled feeds (%(counter)s), "
+"ranked by impact."
+msgstr ""
+"Articles et fils importants de vos flux activés (%(counter)s), classés par "
+"impact."
+
+msgid ""
+"Important articles and story threads from the shared catalog, ranked by "
+"impact. Sign in to mute sources and personalize your brief."
+msgstr ""
+"Articles et fils importants du catalogue partagé, classés par impact. "
+"Connectez-vous pour couper des sources et personnaliser votre brief."
+
+msgid ""
+"Important articles and story threads from the shared catalog (%(counter)s "
+"feeds), ranked by impact. Sign in to mute sources and personalize your "
+"brief."
+msgstr ""
+"Articles et fils importants du catalogue partagé (%(counter)s flux), classés"
+" par impact. Connectez-vous pour couper des sources et personnaliser votre "
+"brief."
+
+msgid "New since your last visit"
+msgstr "Nouveau depuis votre dernière visite"
+
+msgid "Earlier"
+msgstr "Plus tôt"
+
+msgid "Daily brief"
+msgstr "Brief du jour"
+
+msgid "Today’s brief"
+msgstr "Brief du jour"
+
+msgid "You’re all caught up — this brief stays fresh for about six hours."
+msgstr "Vous êtes à jour — ce brief reste frais environ six heures."
+
+msgid ""
+"You’re all caught up — this brief stays fresh for about six hours across "
+"%(counter)s feeds."
+msgstr ""
+"Vous êtes à jour — ce brief reste frais environ six heures sur %(counter)s "
+"flux."
+
+msgid "Personalizing your brief… Showing top stories meanwhile."
+msgstr ""
+"Personnalisation de votre brief… Affichage des top histoires en attendant."
+
+msgid ""
+"Personalizing your brief from %(counter)s feeds… Showing top stories "
+"meanwhile."
+msgstr ""
+"Personnalisation de votre brief à partir de %(counter)s flux… Affichage des "
+"top histoires en attendant."
+
+msgid "Personalization hit a snag; showing the best available stories."
+msgstr ""
+"La personnalisation a échoué ; affichage des meilleures histoires "
+"disponibles."
+
+msgid "Your personalized reading list."
+msgstr "Votre liste de lecture personnalisée."
+
+msgid "Your personalized reading list (%(counter)s feeds)."
+msgstr "Votre liste de lecture personnalisée (%(counter)s flux)."
+
+msgid "Personalizing…"
+msgstr "Personnalisation…"
+
+msgid "Pulling preferences and ranking what is worth your time."
+msgstr ""
+"Récupération des préférences et classement de ce qui mérite votre temps."
+
+msgid "You’re all caught up. Check back later for a fresh brief."
+msgstr "Vous êtes à jour. Revenez plus tard pour un brief frais."
+
+msgid ""
+"All catalog feeds are muted. Re-enable some in Settings to fill your brief."
+msgstr ""
+"Tous les flux catalogue sont coupés. Réactivez-en dans Paramètres pour "
+"remplir votre brief."
+
+msgid ""
+"Nothing left to review — either you’ve judged today’s items or scores fell "
+"below the bar."
+msgstr ""
+"Plus rien à revoir — vous avez jugé les éléments du jour ou les scores sont "
+"trop bas."
+
+msgid "Story thread"
+msgstr "Fil d’actualité"
+
+msgid "Back to Stories"
+msgstr "Retour aux Stories"
+
+msgid "Untitled thread"
+msgstr "Fil sans titre"
+
+msgid "No articles in this thread yet."
+msgstr "Pas encore d’articles dans ce fil."
+
+msgid "Ask about this news"
+msgstr "Poser une question sur cette actualité"
+
+msgid "Ask about this %(chat_scope_label)s"
+msgstr "Poser une question sur %(chat_scope_label)s"
+
+msgid "Follow-ups grounded in the articles on this page."
+msgstr "Suites ancrées dans les articles de cette page."
+
+msgid ""
+"Ask what’s going on, how stories connect, or what the coverage emphasizes."
+msgstr ""
+"Demandez ce qui se passe, comment les histoires se relient, ou ce que la "
+"couverture souligne."
+
+msgid "Your question"
+msgstr "Votre question"
+
+msgid "Ask a question…"
+msgstr "Posez une question…"
+
+msgid "Send message"
+msgstr "Envoyer le message"
+
+msgid "Send"
+msgstr "Envoyer"
+
+msgid "Sign in to ask follow-up questions about this story."
+msgstr "Connectez-vous pour poser des questions de suivi sur cette histoire."
+
+msgid "Sign in with Google"
+msgstr "Se connecter avec Google"

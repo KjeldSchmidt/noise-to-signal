@@ -1,17 +1,30 @@
 {% extends "base.html" %}
-{% load static news_extras %}
-{% block title %}Stories{% endblock %}
+{% load i18n static news_extras %}
+{% block title %}{% trans "Stories" %}{% endblock %}
 {% block content %}
 <section class="page-head stories-head">
-  <h1>Stories</h1>
+  <h1>{% trans "Stories" %}</h1>
   <p class="muted">
     {% if personalized %}
-    Important articles and story threads from your enabled feeds
-    {% if feed_count %}({{ feed_count }}){% endif %}, ranked by impact.
+    {% if feed_count %}
+    {% blocktrans trimmed count counter=feed_count %}
+    Important articles and story threads from your enabled feeds ({{ counter }}), ranked by impact.
+    {% plural %}
+    Important articles and story threads from your enabled feeds ({{ counter }}), ranked by impact.
+    {% endblocktrans %}
     {% else %}
-    Important articles and story threads from the shared catalog
-    {% if feed_count %}({{ feed_count }} feeds){% endif %}, ranked by impact.
-    Sign in to mute sources and personalize your brief.
+    {% trans "Important articles and story threads from your enabled feeds, ranked by impact." %}
+    {% endif %}
+    {% else %}
+    {% if feed_count %}
+    {% blocktrans trimmed count counter=feed_count %}
+    Important articles and story threads from the shared catalog ({{ counter }} feeds), ranked by impact. Sign in to mute sources and personalize your brief.
+    {% plural %}
+    Important articles and story threads from the shared catalog ({{ counter }} feeds), ranked by impact. Sign in to mute sources and personalize your brief.
+    {% endblocktrans %}
+    {% else %}
+    {% trans "Important articles and story threads from the shared catalog, ranked by impact. Sign in to mute sources and personalize your brief." %}
+    {% endif %}
     {% endif %}
   </p>
 </section>
@@ -20,13 +33,13 @@
 <div class="empty">
   <p>
     {% if personalized %}
-    No stories yet. Check Settings if feeds are muted, or wait for the next ingest.
+    {% trans "No stories yet. Check Settings if feeds are muted, or wait for the next ingest." %}
     {% else %}
-    No stories yet. Check back after the next ingest.
+    {% trans "No stories yet. Check back after the next ingest." %}
     {% endif %}
   </p>
   {% if personalized %}
-  <a class="btn ghost" href="{% url 'settings' %}">Open settings</a>
+  <a class="btn ghost" href="{% url 'settings' %}">{% trans "Open settings" %}</a>
   {% endif %}
 </div>
 {% else %}
@@ -34,16 +47,16 @@
   {% for entry in entries %}
   {% if show_new_heading and forloop.first and entry.is_new %}
   <div class="stories-separator" role="separator">
-    <span>New since your last visit</span>
+    <span>{% trans "New since your last visit" %}</span>
   </div>
   {% endif %}
   {% if separator_before_index is not None and forloop.counter0 == separator_before_index %}
   <div class="stories-separator" role="separator">
-    <span>Earlier</span>
+    <span>{% trans "Earlier" %}</span>
   </div>
   {% elif show_earlier_heading and not entry.is_new and forloop.first %}
   <div class="stories-separator" role="separator">
-    <span>Earlier</span>
+    <span>{% trans "Earlier" %}</span>
   </div>
   {% endif %}
   {% if entry.kind == "thread" %}

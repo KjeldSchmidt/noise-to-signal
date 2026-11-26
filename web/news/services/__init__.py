@@ -9,7 +9,9 @@ from .feeds import (
     enabled_feed_ids,
     preferred_content_language_order,
     preferred_content_languages,
+    primary_content_language,
     refresh_content_language_labels,
+    set_user_content_languages,
 )
 from .impact import (
     article_impact_score,
@@ -60,6 +62,8 @@ __all__ = [
     "places_match",
     "preferred_content_language_order",
     "preferred_content_languages",
+    "primary_content_language",
+    "set_user_content_languages",
     "rank_items",
     "recommend_feeds",
     "reconcile_story_threads",

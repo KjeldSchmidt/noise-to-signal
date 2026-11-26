@@ -266,6 +266,23 @@ h1, h2, h3 {
 
 .narrow { width: min(420px, 100%); }
 .narrow-form { max-width: 480px; }
+.language-prefs-form fieldset {
+  border: 0;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+.language-prefs-form legend {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.language-prefs-form ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.language-prefs-form li {
+  margin: 0.35rem 0;
+}
 
 .stack { display: grid; gap: 0.75rem; }
 .stack p { margin: 0; display: grid; gap: 0.35rem; }

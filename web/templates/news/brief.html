@@ -1,35 +1,43 @@
 {% extends "base.html" %}
-{% load static %}
-{% block title %}Daily brief{% endblock %}
+{% load i18n static %}
+{% block title %}{% trans "Daily brief" %}{% endblock %}
 {% block content %}
 <div class="with-chat-layout">
   <div class="chat-layout-main">
     <section class="page-head">
-      <h1>Today’s brief</h1>
+      <h1>{% trans "Today’s brief" %}</h1>
       <p class="muted">
         {% if brief_phase == "caught_up" %}
-          You’re all caught up — this brief stays fresh for about six hours
-          {% if feed_count %}across {{ feed_count }} feed{{ feed_count|pluralize }}{% endif %}.
+          {% blocktrans trimmed count counter=feed_count %}
+          You’re all caught up — this brief stays fresh for about six hours.
+          {% plural %}
+          You’re all caught up — this brief stays fresh for about six hours across {{ counter }} feeds.
+          {% endblocktrans %}
         {% elif brief_phase == "personalizing" %}
-          Personalizing your brief
-          {% if feed_count %}from {{ feed_count }} feed{{ feed_count|pluralize }}{% endif %}…
-          Showing top stories meanwhile.
+          {% blocktrans trimmed count counter=feed_count %}
+          Personalizing your brief… Showing top stories meanwhile.
+          {% plural %}
+          Personalizing your brief from {{ counter }} feeds… Showing top stories meanwhile.
+          {% endblocktrans %}
         {% elif brief_phase == "failed" %}
-          Personalization hit a snag; showing the best available stories.
+          {% trans "Personalization hit a snag; showing the best available stories." %}
         {% else %}
-          Your personalized reading list
-          {% if feed_count %}({{ feed_count }} feed{{ feed_count|pluralize }}){% endif %}.
+          {% blocktrans trimmed count counter=feed_count %}
+          Your personalized reading list.
+          {% plural %}
+          Your personalized reading list ({{ counter }} feeds).
+          {% endblocktrans %}
         {% endif %}
       </p>
     </section>
 
     {% if brief_phase == "personalizing" %}
     <div class="brief-status callout" data-brief-status data-brief-id="{{ brief_id }}" data-brief-status-url="{% url 'brief_status' brief_id %}">
-      <p><span class="brief-spinner" aria-hidden="true"></span> <strong>Personalizing…</strong> Pulling preferences and ranking what is worth your time.</p>
+      <p><span class="brief-spinner" aria-hidden="true"></span> <strong>{% trans "Personalizing…" %}</strong> {% trans "Pulling preferences and ranking what is worth your time." %}</p>
     </div>
     {% elif brief_phase == "caught_up" %}
     <aside class="callout muted-callout">
-      <p>You’re all caught up. Check back later for a fresh brief.</p>
+      <p>{% trans "You’re all caught up. Check back later for a fresh brief." %}</p>
     </aside>
     {% endif %}
 
@@ -37,13 +45,13 @@
 
     {% if not feed_count %}
     <div class="empty">
-      <p>All catalog feeds are muted. Re-enable some in Settings to fill your brief.</p>
-      <a class="btn primary" href="{% url 'settings' %}">Open settings</a>
+      <p>{% trans "All catalog feeds are muted. Re-enable some in Settings to fill your brief." %}</p>
+      <a class="btn primary" href="{% url 'settings' %}">{% trans "Open settings" %}</a>
     </div>
     {% elif not ranked %}
     <div class="empty">
-      <p>Nothing left to review — either you’ve judged today’s items or scores fell below the bar.</p>
-      <a class="btn ghost" href="{% url 'stories' %}">Browse stories</a>
+      <p>{% trans "Nothing left to review — either you’ve judged today’s items or scores fell below the bar." %}</p>
+      <a class="btn ghost" href="{% url 'stories' %}">{% trans "Browse stories" %}</a>
     </div>
     {% else %}
     <template id="brief-empty-template">

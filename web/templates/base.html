@@ -1,10 +1,10 @@
-{% load static %}
+{% load i18n static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Brief{% endblock %} · Noise to Signal</title>
+  <title>{% block title %}{% trans "Brief" %}{% endblock %} · Noise to Signal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
@@ -16,16 +16,16 @@
     <a class="brand" href="{% if user.is_authenticated %}{% url 'brief' %}{% else %}{% url 'landing' %}{% endif %}">Noise to Signal</a>
     <nav class="nav">
       {% if user.is_authenticated %}
-      <a href="{% url 'brief' %}" {% if request.resolver_match.url_name == 'brief' %}class="active"{% endif %}>Personal Brief</a>
+      <a href="{% url 'brief' %}" {% if request.resolver_match.url_name == 'brief' %}class="active"{% endif %}>{% trans "Personal Brief" %}</a>
       {% else %}
-      <a href="{% url 'landing' %}">Personal Brief</a>
+      <a href="{% url 'landing' %}">{% trans "Personal Brief" %}</a>
       {% endif %}
-      <a href="{% url 'stories' %}" {% if request.resolver_match.url_name == 'stories' or request.resolver_match.url_name == 'story_thread' %}class="active"{% endif %}>Stories</a>
+      <a href="{% url 'stories' %}" {% if request.resolver_match.url_name == 'stories' or request.resolver_match.url_name == 'story_thread' %}class="active"{% endif %}>{% trans "Stories" %}</a>
       {% if user.is_authenticated %}
-      <a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>Settings</a>
+      <a href="{% url 'settings' %}" {% if request.resolver_match.url_name == 'settings' %}class="active"{% endif %}>{% trans "Settings" %}</a>
       <form class="inline" method="post" action="{% url 'account_logout' %}">
         {% csrf_token %}
-        <button type="submit" class="linkish">Log out</button>
+        <button type="submit" class="linkish">{% trans "Log out" %}</button>
       </form>
       {% endif %}
     </nav>
@@ -46,8 +46,8 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span class="site-footer-brand">Noise to Signal</span>
-      <nav class="site-footer-nav" aria-label="Legal">
-        <a href="{% url 'privacy' %}" {% if request.resolver_match.url_name == 'privacy' %}aria-current="page"{% endif %}>Privacy</a>
+      <nav class="site-footer-nav" aria-label="{% trans 'Legal' %}">
+        <a href="{% url 'privacy' %}" {% if request.resolver_match.url_name == 'privacy' %}aria-current="page"{% endif %}>{% trans "Privacy" %}</a>
       </nav>
     </div>
   </footer>

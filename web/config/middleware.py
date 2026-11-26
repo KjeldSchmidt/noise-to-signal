@@ -4,8 +4,34 @@ from __future__ import annotations
 
 import os
 
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.urls import Resolver404, resolve
+from django.utils import translation
+
+_PRODUCT_UI_LOCALES = frozenset({"en", "fr", "de"})
+
+
+class ActivatePrimaryLanguageMiddleware:
+    """Override active locale from the user's primary content language."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        code = "en"
+        user = getattr(request, "user", None)
+        if user is not None and getattr(user, "is_authenticated", False):
+            from news.services.feeds import primary_content_language
+
+            code = primary_content_language(user)
+        if code not in _PRODUCT_UI_LOCALES:
+            code = "en"
+        translation.activate(code)
+        request.LANGUAGE_CODE = code
+        response = self.get_response(request)
+        response.headers.setdefault("Content-Language", code)
+        translation.deactivate()
+        return response
 
 
 class ViewerHostMiddleware:

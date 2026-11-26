@@ -137,13 +137,25 @@ class UserContentLanguage(TimeStampedModel):
         on_delete=models.PROTECT,
         related_name="user_preferences",
     )
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="Primary language for UI chrome and story title/summary selection.",
+    )
 
     class Meta:
         unique_together = ("user", "language")
         ordering = ["language"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(is_primary=True),
+                name="uniq_user_primary_content_language",
+            )
+        ]
 
     def __str__(self) -> str:
-        return f"{self.user} → {self.language.code}"
+        suffix = " (primary)" if self.is_primary else ""
+        return f"{self.user} → {self.language.code}{suffix}"
 
 
 class FeedMute(TimeStampedModel):

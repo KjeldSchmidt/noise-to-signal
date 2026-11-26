@@ -63,12 +63,61 @@ def preferred_content_languages(user: AbstractBaseUser | None) -> set[str]:
     return langs or set(DEFAULT_CONTENT_LANGUAGES)
 
 
-def preferred_content_language_order(user: AbstractBaseUser | None) -> list[str]:
-    """Stable preference order for display resolution (product order, then extras)."""
+def primary_content_language(user: AbstractBaseUser | None) -> str:
+    """Primary language code for UI + thread copy; guests/unset → en."""
+    if user is None or not getattr(user, "is_authenticated", False):
+        return "en"
+    primary = (
+        UserContentLanguage.objects.filter(user=user, is_primary=True)
+        .values_list("language_id", flat=True)
+        .first()
+    )
+    if primary:
+        return str(primary)
     preferred = preferred_content_languages(user)
-    ordered = [code for code in PRODUCT_THREAD_LANGUAGES if code in preferred]
-    ordered.extend(sorted(code for code in preferred if code not in PRODUCT_THREAD_LANGUAGES))
+    if "en" in preferred:
+        return "en"
+    return next(iter(sorted(preferred)), "en")
+
+
+def preferred_content_language_order(user: AbstractBaseUser | None) -> list[str]:
+    """Display resolution order: primary → product-ordered accept set → extras."""
+    preferred = preferred_content_languages(user)
+    primary = primary_content_language(user)
+    ordered: list[str] = []
+    if primary in preferred:
+        ordered.append(primary)
+    ordered.extend(
+        code for code in PRODUCT_THREAD_LANGUAGES if code in preferred and code not in ordered
+    )
+    ordered.extend(sorted(code for code in preferred if code not in ordered))
     return ordered or list(DEFAULT_CONTENT_LANGUAGES)
+
+
+def set_user_content_languages(
+    user: AbstractBaseUser,
+    *,
+    languages: list[str],
+    primary: str,
+) -> None:
+    """Replace accept set and mark exactly one primary (must be in languages)."""
+    selected = [str(code).strip().lower() for code in languages if code]
+    if not selected:
+        selected = ["en"]
+    primary_code = str(primary or "").strip().lower()
+    if primary_code not in selected:
+        primary_code = "en" if "en" in selected else selected[0]
+
+    # Clear primary first so the partial unique constraint stays satisfied.
+    UserContentLanguage.objects.filter(user=user, is_primary=True).update(is_primary=False)
+    UserContentLanguage.objects.filter(user=user).exclude(language_id__in=selected).delete()
+    for code in selected:
+        UserContentLanguage.objects.update_or_create(
+            user=user,
+            language_id=code,
+            defaults={"is_primary": False},
+        )
+    UserContentLanguage.objects.filter(user=user, language_id=primary_code).update(is_primary=True)
 
 
 def catalog_languages() -> list[str]:

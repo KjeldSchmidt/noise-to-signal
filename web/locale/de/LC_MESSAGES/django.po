@@ -1,0 +1,355 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: noise-to-signal\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Brief"
+msgstr "Briefing"
+
+msgid "Personal Brief"
+msgstr "Persönliches Briefing"
+
+msgid "Stories"
+msgstr "Stories"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Log out"
+msgstr "Abmelden"
+
+msgid "Legal"
+msgstr "Rechtliches"
+
+msgid "Privacy"
+msgstr "Datenschutz"
+
+msgid "Home"
+msgstr "Start"
+
+msgid "Personal news, filtered"
+msgstr "Persönliche Nachrichten, gefiltert"
+
+msgid "Subscribe generously."
+msgstr "Großzügig abonnieren."
+
+msgid "Read selectively."
+msgstr "Selektiv lesen."
+
+msgid ""
+"Noise to Signal pulls from the feeds you choose, ranks what is likely worth "
+"your time, and learns from theme leanings and preferences you share in chat."
+msgstr ""
+"Noise to Signal zieht aus den Feeds Ihrer Wahl, rankt was Ihre Zeit wert "
+"ist, und lernt aus Themenneigungen und Chat-Präferenzen."
+
+msgid "Continue with Google"
+msgstr "Mit Google fortfahren"
+
+msgid "Browse stories"
+msgstr "Stories durchsuchen"
+
+msgid "No passwords — sign-in is handled by Google."
+msgstr "Kein Passwort — die Anmeldung läuft über Google."
+
+msgid ""
+"Languages, locations, and which feeds to include. Catalog feeds are on by "
+"default for languages you enable."
+msgstr ""
+"Sprachen, Orte und einzubeziehende Feeds. Katalog-Feeds sind für aktivierte "
+"Sprachen standardmäßig an."
+
+msgid "Content languages"
+msgstr "Inhaltssprachen"
+
+msgid ""
+"Only stories from feeds in these languages appear in your brief and Stories."
+msgstr ""
+"Nur Stories aus Feeds in diesen Sprachen erscheinen in Briefing und Stories."
+
+msgid "Languages to include"
+msgstr "Einzuschließende Sprachen"
+
+msgid "Primary language"
+msgstr "Primärsprache"
+
+msgid ""
+"Used for the interface and for story titles and summaries when available."
+msgstr ""
+"Wird für die Oberfläche und für Story-Titel/-Zusammenfassungen genutzt, "
+"sofern vorhanden."
+
+msgid "Save languages"
+msgstr "Sprachen speichern"
+
+msgid "Content languages updated."
+msgstr "Inhaltssprachen aktualisiert."
+
+msgid "Stored preferences"
+msgstr "Gespeicherte Präferenzen"
+
+msgid ""
+"Free-form memories and theme leanings that shape your brief. You can review "
+"or delete them anytime. Preferences saved in brief chat can take a few "
+"minutes to show up here."
+msgstr ""
+"Freitext-Erinnerungen und Themenneigungen für Ihr Briefing. Sie können sie "
+"jederzeit einsehen oder löschen. Im Chat gespeicherte Präferenzen können "
+"einige Minuten brauchen."
+
+msgid "Show stored preferences"
+msgstr "Gespeicherte Präferenzen anzeigen"
+
+msgid "Close"
+msgstr "Schließen"
+
+msgid "Loading…"
+msgstr "Laden…"
+
+msgid "Locations of interest"
+msgstr "Interessante Orte"
+
+msgid ""
+"Locations you are interested in. We will prioritize stories from these "
+"locations."
+msgstr "Orte, die Sie interessieren. Stories von dort werden priorisiert."
+
+msgid "remove"
+msgstr "entfernen"
+
+msgid "No locations yet."
+msgstr "Noch keine Orte."
+
+msgid "Add a location"
+msgstr "Ort hinzufügen"
+
+msgid ""
+"Search for a place or use your current position. Coarse city/region is "
+"enough."
+msgstr "Ort suchen oder aktuelle Position nutzen. Stadt/Region reicht."
+
+msgid "Search"
+msgstr "Suchen"
+
+msgid "e.g. Berlin, Germany"
+msgstr "z. B. Berlin, Deutschland"
+
+msgid "Use current location"
+msgstr "Aktuellen Standort nutzen"
+
+msgid "Add location"
+msgstr "Ort hinzufügen"
+
+msgid "Muted — suggested to re-enable"
+msgstr "Stummgeschaltet — wieder aktivieren"
+
+msgid "Unmute"
+msgstr "Stummschaltung aufheben"
+
+msgid "Catalog feeds"
+msgstr "Katalog-Feeds"
+
+msgid ""
+"Mute sources you never want in Personal Brief or Stories. Feeds outside your"
+" languages stay listed so you can discover them."
+msgstr ""
+"Quellen stummschalten, die Sie nie im Briefing oder in Stories wollen. Feeds"
+" außerhalb Ihrer Sprachen bleiben sichtbar."
+
+msgid "Enable this language under Content languages to include this source."
+msgstr ""
+"Aktivieren Sie diese Sprache unter Inhaltssprachen, um diese Quelle "
+"einzubeziehen."
+
+msgid "Mute"
+msgstr "Stummschalten"
+
+msgid "Add a custom RSS feed"
+msgstr "Eigenen RSS-Feed hinzufügen"
+
+msgid ""
+"If the URL already exists, you will be subscribed to the shared feed (or the"
+" catalog entry will be unmuted)."
+msgstr ""
+"Existiert die URL schon, werden Sie dem gemeinsamen Feed abonniert (oder der"
+" Katalogeintrag entsperrt)."
+
+msgid "Add feed"
+msgstr "Feed hinzufügen"
+
+msgid "Your custom feeds"
+msgstr "Ihre eigenen Feeds"
+
+msgid "Unsubscribe"
+msgstr "Abbestellen"
+
+msgid "Feed name"
+msgstr "Feed-Name"
+
+msgid "RSS URL"
+msgstr "RSS-URL"
+
+msgid "Site URL (optional)"
+msgstr "Site-URL (optional)"
+
+msgid "A name is required for new feeds."
+msgstr "Für neue Feeds ist ein Name erforderlich."
+
+msgid "Open settings"
+msgstr "Einstellungen öffnen"
+
+msgid ""
+"No stories yet. Check Settings if feeds are muted, or wait for the next "
+"ingest."
+msgstr ""
+"Noch keine Stories. Prüfen Sie die Einstellungen bei stummgeschalteten "
+"Feeds, oder warten Sie auf den nächsten Ingest."
+
+msgid "No stories yet. Check back after the next ingest."
+msgstr ""
+"Noch keine Stories. Schauen Sie nach dem nächsten Ingest wieder vorbei."
+
+msgid ""
+"Important articles and story threads from your enabled feeds, ranked by "
+"impact."
+msgstr ""
+"Wichtige Artikel und Story-Threads aus Ihren aktiven Feeds, nach Impact "
+"sortiert."
+
+msgid ""
+"Important articles and story threads from your enabled feeds (%(counter)s), "
+"ranked by impact."
+msgstr ""
+"Wichtige Artikel und Story-Threads aus Ihren aktiven Feeds (%(counter)s), "
+"nach Impact sortiert."
+
+msgid ""
+"Important articles and story threads from the shared catalog, ranked by "
+"impact. Sign in to mute sources and personalize your brief."
+msgstr ""
+"Wichtige Artikel und Story-Threads aus dem gemeinsamen Katalog, nach Impact "
+"sortiert. Melden Sie sich an, um Quellen stummzuschalten und Ihr Briefing zu"
+" personalisieren."
+
+msgid ""
+"Important articles and story threads from the shared catalog (%(counter)s "
+"feeds), ranked by impact. Sign in to mute sources and personalize your "
+"brief."
+msgstr ""
+"Wichtige Artikel und Story-Threads aus dem gemeinsamen Katalog (%(counter)s "
+"Feeds), nach Impact sortiert. Melden Sie sich an, um Quellen stummzuschalten"
+" und Ihr Briefing zu personalisieren."
+
+msgid "New since your last visit"
+msgstr "Neu seit Ihrem letzten Besuch"
+
+msgid "Earlier"
+msgstr "Früher"
+
+msgid "Daily brief"
+msgstr "Tägliches Briefing"
+
+msgid "Today’s brief"
+msgstr "Heutiges Briefing"
+
+msgid "You’re all caught up — this brief stays fresh for about six hours."
+msgstr ""
+"Sie sind auf dem Stand — dieses Briefing bleibt etwa sechs Stunden frisch."
+
+msgid ""
+"You’re all caught up — this brief stays fresh for about six hours across "
+"%(counter)s feeds."
+msgstr ""
+"Sie sind auf dem Stand — dieses Briefing bleibt etwa sechs Stunden frisch "
+"über %(counter)s Feeds."
+
+msgid "Personalizing your brief… Showing top stories meanwhile."
+msgstr "Briefing wird personalisiert… Zeige derweil Top-Stories."
+
+msgid ""
+"Personalizing your brief from %(counter)s feeds… Showing top stories "
+"meanwhile."
+msgstr ""
+"Briefing aus %(counter)s Feeds wird personalisiert… Zeige derweil Top-"
+"Stories."
+
+msgid "Personalization hit a snag; showing the best available stories."
+msgstr "Personalisierung stockte; zeige die besten verfügbaren Stories."
+
+msgid "Your personalized reading list."
+msgstr "Ihre personalisierte Leseliste."
+
+msgid "Your personalized reading list (%(counter)s feeds)."
+msgstr "Ihre personalisierte Leseliste (%(counter)s Feeds)."
+
+msgid "Personalizing…"
+msgstr "Personalisierung…"
+
+msgid "Pulling preferences and ranking what is worth your time."
+msgstr "Präferenzen laden und ranken, was Ihre Zeit wert ist."
+
+msgid "You’re all caught up. Check back later for a fresh brief."
+msgstr ""
+"Sie sind auf dem Stand. Später wiederkommen für ein frisches Briefing."
+
+msgid ""
+"All catalog feeds are muted. Re-enable some in Settings to fill your brief."
+msgstr ""
+"Alle Katalog-Feeds sind stumm. Reaktivieren Sie welche in den Einstellungen."
+
+msgid ""
+"Nothing left to review — either you’ve judged today’s items or scores fell "
+"below the bar."
+msgstr ""
+"Nichts mehr zu prüfen — Sie haben die heutigen Einträge bewertet oder die "
+"Scores liegen unter der Schwelle."
+
+msgid "Story thread"
+msgstr "Story-Thread"
+
+msgid "Back to Stories"
+msgstr "Zurück zu Stories"
+
+msgid "Untitled thread"
+msgstr "Unbenannter Thread"
+
+msgid "No articles in this thread yet."
+msgstr "Noch keine Artikel in diesem Thread."
+
+msgid "Ask about this news"
+msgstr "Zu diesen Nachrichten fragen"
+
+msgid "Ask about this %(chat_scope_label)s"
+msgstr "Zu %(chat_scope_label)s fragen"
+
+msgid "Follow-ups grounded in the articles on this page."
+msgstr "Follow-ups auf Basis der Artikel auf dieser Seite."
+
+msgid ""
+"Ask what’s going on, how stories connect, or what the coverage emphasizes."
+msgstr ""
+"Fragen Sie, was passiert, wie Stories zusammenhängen, oder was die "
+"Berichterstattung betont."
+
+msgid "Your question"
+msgstr "Ihre Frage"
+
+msgid "Ask a question…"
+msgstr "Frage stellen…"
+
+msgid "Send message"
+msgstr "Nachricht senden"
+
+msgid "Send"
+msgstr "Senden"
+
+msgid "Sign in to ask follow-up questions about this story."
+msgstr "Melden Sie sich an, um Folgefragen zu dieser Story zu stellen."
+
+msgid "Sign in with Google"
+msgstr "Mit Google anmelden"

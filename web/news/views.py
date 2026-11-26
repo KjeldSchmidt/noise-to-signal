@@ -9,6 +9,7 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 from n2s_api import (
     MAX_HISTORY_TURNS,
@@ -44,7 +45,9 @@ from news.services import (
     enabled_feed_ids,
     preferred_content_language_order,
     preferred_content_languages,
+    primary_content_language,
     recommend_feeds,
+    set_user_content_languages,
     thread_timeline_articles,
     thread_visible_in_scope,
 )
@@ -234,8 +237,14 @@ def _ensure_content_languages(user) -> set[str]:
     """Return preferred languages, creating the English default if missing."""
     preferred = preferred_content_languages(user)
     if not UserContentLanguage.objects.filter(user=user).exists():
-        UserContentLanguage.objects.get_or_create(user=user, language_id="en")
+        set_user_content_languages(user, languages=["en"], primary="en")
         preferred = set(DEFAULT_CONTENT_LANGUAGES)
+    elif not UserContentLanguage.objects.filter(user=user, is_primary=True).exists():
+        set_user_content_languages(
+            user,
+            languages=sorted(preferred),
+            primary=primary_content_language(user),
+        )
     return preferred
 
 
@@ -303,25 +312,24 @@ def settings_page(request: HttpRequest) -> HttpResponse:
         )
     feed_form = CustomFeedForm()
     location_form = LocationOfInterestForm()
+    user = cast(AbstractBaseUser, request.user)
     languages_form = ContentLanguagesForm(
         available=available_langs,
-        initial={"languages": sorted(preferred)},
+        initial={
+            "languages": sorted(preferred),
+            "primary": primary_content_language(user),
+        },
     )
 
     if request.method == "POST" and "save_languages" in request.POST:
         languages_form = ContentLanguagesForm(request.POST, available=available_langs)
         if languages_form.is_valid():
-            selected = [
-                str(code).strip().lower() for code in languages_form.cleaned_data["languages"]
-            ]
-            if not selected:
-                selected = ["en"]
-            UserContentLanguage.objects.filter(user=request.user).exclude(
-                language__in=selected
-            ).delete()
-            for code in selected:
-                UserContentLanguage.objects.get_or_create(user=request.user, language_id=code)
-            messages.success(request, "Content languages updated.")
+            set_user_content_languages(
+                user,
+                languages=list(languages_form.cleaned_data["languages"]),
+                primary=str(languages_form.cleaned_data["primary"]),
+            )
+            messages.success(request, _("Content languages updated."))
             return redirect("settings")
 
     if request.method == "POST" and "add_custom" in request.POST:

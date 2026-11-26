@@ -1,14 +1,15 @@
 {% extends "base.html" %}
-{% load static %}
-{% block title %}{{ thread.display_label|default:thread.label|default:"Story thread" }}{% endblock %}
+{% load i18n static %}
+{% block title %}{% firstof thread.display_label thread.label %}{% if not thread.display_label and not thread.label %}{% trans "Story thread" %}{% endif %}{% endblock %}
 {% block content %}
+{% trans "Untitled thread" as untitled_thread %}
 <div class="with-chat-layout">
   <div class="chat-layout-main">
-    <a class="thread-back" href="{% url 'stories' %}">← Back to Stories</a>
+    <a class="thread-back" href="{% url 'stories' %}">← {% trans "Back to Stories" %}</a>
 
     <section class="page-head thread-head">
-      <p class="tag story-thread-tag">Story thread</p>
-      <h1>{{ thread.display_label|default:thread.label|default:"Untitled thread" }}</h1>
+      <p class="tag story-thread-tag">{% trans "Story thread" %}</p>
+      <h1>{{ thread.display_label|default:thread.label|default:untitled_thread }}</h1>
       <div class="thread-meta">
         <span class="story-count">{{ article_count }} article{{ article_count|pluralize }}</span>
         {% if first_published and last_published %}
@@ -29,7 +30,7 @@
 
     {% if not articles %}
     <div class="empty">
-      <p>No articles in this thread yet.</p>
+      <p>{% trans "No articles in this thread yet." %}</p>
     </div>
     {% else %}
     <ol class="thread-timeline" id="thread-timeline">

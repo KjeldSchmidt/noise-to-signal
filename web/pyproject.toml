@@ -25,6 +25,7 @@ n2s-api = { path = "../packages/n2s_api", editable = false }
 dev = [
     "django-stubs>=6.1.2",
     "django-stubs-ext>=6.1.2",
+    "polib>=1.2.0",
     "ruff>=0.17.4",
     "ty>=0.0.100",
 ]
@@ -35,6 +36,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/build_locale_catalogs.py" = ["E501"]
 
 [tool.ty]
 # Grandfather Django decorator/stub friction; new diagnostics still fail CI.

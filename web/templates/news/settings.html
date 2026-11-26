@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% load static %}
-{% block title %}Settings{% endblock %}
+{% load i18n static %}
+{% block title %}{% trans "Settings" %}{% endblock %}
 {% block content %}
 <section class="page-head">
-  <h1>Settings</h1>
-  <p class="muted">Languages, locations, and which feeds to include. Catalog feeds are on by default for languages you enable.</p>
+  <h1>{% trans "Settings" %}</h1>
+  <p class="muted">{% trans "Languages, locations, and which feeds to include. Catalog feeds are on by default for languages you enable." %}</p>
 </section>
 
 <section class="block" id="stored-preferences">
-  <h2>Stored preferences</h2>
-  <p class="muted">Free-form memories and theme leanings that shape your brief. You can review or delete them anytime. Preferences saved in brief chat can take a few minutes to show up here.</p>
+  <h2>{% trans "Stored preferences" %}</h2>
+  <p class="muted">{% trans "Free-form memories and theme leanings that shape your brief. You can review or delete them anytime. Preferences saved in brief chat can take a few minutes to show up here." %}</p>
   <button
     type="button"
     class="btn ghost"
@@ -18,32 +18,40 @@
     data-delete-memory-url="{% url 'delete_stored_memory' %}"
     data-delete-theme-url="{% url 'delete_theme_leaning' %}"
     data-csrf="{{ csrf_token }}"
-  >Show stored preferences</button>
+  >{% trans "Show stored preferences" %}</button>
 </section>
 
 <dialog class="prefs-modal" data-prefs-modal>
   <form method="dialog" class="prefs-modal-head">
-    <h2>Stored preferences</h2>
-    <button type="submit" class="btn ghost small" value="close" aria-label="Close">Close</button>
+    <h2>{% trans "Stored preferences" %}</h2>
+    <button type="submit" class="btn ghost small" value="close" aria-label="{% trans 'Close' %}">{% trans "Close" %}</button>
   </form>
   <div class="prefs-modal-body" data-prefs-body>
-    <p class="muted">Loading…</p>
+    <p class="muted">{% trans "Loading…" %}</p>
   </div>
 </dialog>
 
 <section class="block" id="languages">
-  <h2>Content languages</h2>
-  <p class="muted">Only stories from feeds in these languages appear in your brief and Stories.</p>
-  <form method="post" class="stack narrow-form">
+  <h2>{% trans "Content languages" %}</h2>
+  <p class="muted">{% trans "Only stories from feeds in these languages appear in your brief and Stories." %}</p>
+  <form method="post" class="stack narrow-form language-prefs-form">
     {% csrf_token %}
-    {{ languages_form.languages }}
-    <button type="submit" name="save_languages" class="btn primary">Save languages</button>
+    <fieldset class="language-accept">
+      <legend>{{ languages_form.languages.label }}</legend>
+      {{ languages_form.languages }}
+    </fieldset>
+    <fieldset class="language-primary">
+      <legend>{{ languages_form.primary.label }}</legend>
+      <p class="muted">{{ languages_form.primary.help_text }}</p>
+      {{ languages_form.primary }}
+    </fieldset>
+    <button type="submit" name="save_languages" class="btn primary">{% trans "Save languages" %}</button>
   </form>
 </section>
 
 <section class="block" id="locations">
-  <h2>Locations of interest</h2>
-  <p class="muted">Locations you are interested in. We will prioritize stories from these locations.</p>
+  <h2>{% trans "Locations of interest" %}</h2>
+  <p class="muted">{% trans "Locations you are interested in. We will prioritize stories from these locations." %}</p>
 
   {% if locations %}
   <ul class="location-list">
@@ -52,17 +60,17 @@
       <span class="location-label">{{ loc.label }}</span>{% spaceless %}
       <form method="post" action="{% url 'delete_location' loc.id %}" class="location-remove">
         {% csrf_token %}
-        <button type="submit" class="linkish muted" title="Remove {{ loc.label }}">remove</button>
+        <button type="submit" class="linkish muted" title="{% blocktrans %}Remove {{ loc.label }}{% endblocktrans %}">{% trans "remove" %}</button>
       </form>{% endspaceless %}
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="muted">No locations yet.</p>
+  <p class="muted">{% trans "No locations yet." %}</p>
   {% endif %}
 
-  <h3 class="settings-subhead">Add a location</h3>
-  <p class="muted">Search for a place or use your current position. Coarse city/region is enough.</p>
+  <h3 class="settings-subhead">{% trans "Add a location" %}</h3>
+  <p class="muted">{% trans "Search for a place or use your current position. Coarse city/region is enough." %}</p>
 
   <form method="post" class="location-picker" id="location-picker-form"
         data-reverse-url="{% url 'geocode_reverse' %}"
@@ -71,14 +79,14 @@
     <div class="location-entry-row">
       <div class="stack location-search">
         <p>
-          <label for="location-search">Search</label>
-          <input type="search" id="location-search" name="location_search" placeholder="e.g. Berlin, Germany" autocomplete="off">
+          <label for="location-search">{% trans "Search" %}</label>
+          <input type="search" id="location-search" name="location_search" placeholder="{% trans 'e.g. Berlin, Germany' %}" autocomplete="off">
         </p>
         <ul class="location-suggestions" id="location-suggestions" hidden></ul>
       </div>
       <div class="location-current">
         <span class="location-current-label" aria-hidden="true">&nbsp;</span>
-        <button type="button" class="btn ghost" id="use-my-location">Use current location</button>
+        <button type="button" class="btn ghost" id="use-my-location">{% trans "Use current location" %}</button>
       </div>
     </div>
     <p class="muted geo-status" id="geo-status" aria-live="polite" hidden></p>
@@ -89,13 +97,13 @@
     {{ location_form.admin1 }}
     {{ location_form.locality }}
     {{ location_form.geo_level }}
-    <button type="submit" name="add_location" class="btn primary" id="add-location-btn" disabled>Add location</button>
+    <button type="submit" name="add_location" class="btn primary" id="add-location-btn" disabled>{% trans "Add location" %}</button>
   </form>
 </section>
 
 {% if recommended %}
 <section class="block">
-  <h2>Muted — suggested to re-enable</h2>
+  <h2>{% trans "Muted — suggested to re-enable" %}</h2>
   <ul class="feed-grid">
     {% for feed in recommended %}
     <li class="feed-card">
@@ -105,7 +113,7 @@
       <form method="post" action="{% url 'unmute_feed' feed.id %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{% url 'settings' %}">
-        <button class="btn small primary" type="submit">Unmute</button>
+        <button class="btn small primary" type="submit">{% trans "Unmute" %}</button>
       </form>
     </li>
     {% endfor %}
@@ -114,8 +122,8 @@
 {% endif %}
 
 <section class="block" id="feeds">
-  <h2>Catalog feeds</h2>
-  <p class="muted">Mute sources you never want in Personal Brief or Stories. Feeds outside your languages stay listed so you can discover them.</p>
+  <h2>{% trans "Catalog feeds" %}</h2>
+  <p class="muted">{% trans "Mute sources you never want in Personal Brief or Stories. Feeds outside your languages stay listed so you can discover them." %}</p>
   <ul class="feed-grid">
     {% for feed in catalog %}
     <li class="feed-card{% if feed.language.code not in preferred_languages %} feed-card--dim{% endif %}">
@@ -123,19 +131,19 @@
       <p class="tag">{{ feed.category }} · {{ feed.language.code|upper }}</p>
       <p>{{ feed.description }}</p>
       {% if feed.language.code not in preferred_languages %}
-      <p class="muted">Enable this language under Content languages to include this source.</p>
+      <p class="muted">{% trans "Enable this language under Content languages to include this source." %}</p>
       {% endif %}
       {% if feed.id in muted_ids %}
       <form method="post" action="{% url 'unmute_feed' feed.id %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{% url 'settings' %}">
-        <button class="btn small primary" type="submit">Unmute</button>
+        <button class="btn small primary" type="submit">{% trans "Unmute" %}</button>
       </form>
       {% else %}
       <form method="post" action="{% url 'mute_feed' feed.id %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{% url 'settings' %}">
-        <button class="btn small ghost" type="submit">Mute</button>
+        <button class="btn small ghost" type="submit">{% trans "Mute" %}</button>
       </form>
       {% endif %}
     </li>
@@ -144,18 +152,18 @@
 </section>
 
 <section class="block">
-  <h2>Add a custom RSS feed</h2>
-  <p class="muted">If the URL already exists, you will be subscribed to the shared feed (or the catalog entry will be unmuted).</p>
+  <h2>{% trans "Add a custom RSS feed" %}</h2>
+  <p class="muted">{% trans "If the URL already exists, you will be subscribed to the shared feed (or the catalog entry will be unmuted)." %}</p>
   <form method="post" class="stack narrow-form">
     {% csrf_token %}
     {{ feed_form.as_p }}
-    <button type="submit" name="add_custom" class="btn primary">Add feed</button>
+    <button type="submit" name="add_custom" class="btn primary">{% trans "Add feed" %}</button>
   </form>
 </section>
 
 {% if custom_feeds %}
 <section class="block">
-  <h2>Your custom feeds</h2>
+  <h2>{% trans "Your custom feeds" %}</h2>
   <ul class="feed-grid">
     {% for feed in custom_feeds %}
     <li class="feed-card">
@@ -165,7 +173,7 @@
       <form method="post" action="{% url 'unsubscribe_feed' feed.id %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{% url 'settings' %}">
-        <button class="btn small ghost" type="submit">Unsubscribe</button>
+        <button class="btn small ghost" type="submit">{% trans "Unsubscribe" %}</button>
       </form>
     </li>
     {% endfor %}
