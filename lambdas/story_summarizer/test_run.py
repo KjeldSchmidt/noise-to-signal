@@ -7,7 +7,9 @@ from unittest.mock import MagicMock, patch
 
 from n2s_api import (
     StorySummarizerRequest,
+    StoryThreadLocalizationDTO,
     StoryThreadMemberDTO,
+    StoryThreadMultilangDigest,
     StoryThreadSummaryContextResponse,
     StoryThreadSummaryUpdateResponse,
 )
@@ -35,21 +37,53 @@ class StorySummarizerTests(unittest.TestCase):
                     summary="A strong quake struck overnight.",
                     source="Wire",
                     published_at="2026-01-01T00:00:00+00:00",
+                    language="en",
                 )
             ],
         )
-        mock_model.return_value.invoke.return_value = MagicMock(
-            content="A strong quake struck the city overnight. Rescue crews are responding."
+        digest = StoryThreadMultilangDigest(
+            localizations=[
+                StoryThreadLocalizationDTO(
+                    language="en",
+                    label="City Quake",
+                    summary=(
+                        "A strong quake struck the city overnight. Rescue crews are responding."
+                    ),
+                ),
+                StoryThreadLocalizationDTO(
+                    language="fr",
+                    label="Séisme urbain",
+                    summary=(
+                        "Un fort séisme a frappé la ville cette nuit. Les secours interviennent."
+                    ),
+                ),
+                StoryThreadLocalizationDTO(
+                    language="de",
+                    label="Stadtbeben",
+                    summary=(
+                        "Ein starkes Beben traf die Stadt über Nacht. "
+                        "Rettungskräfte sind im Einsatz."
+                    ),
+                ),
+            ]
         )
+        structured = MagicMock()
+        structured.invoke.return_value = digest
+        mock_model.return_value.with_structured_output.return_value = structured
         mock_update.return_value = StoryThreadSummaryUpdateResponse(
             story_thread_id=7,
             summarized_at="2026-01-01T01:00:00+00:00",
             summary_chars=70,
+            localization_count=3,
         )
         out = run_mod.run_summary(7)
         self.assertTrue(out["ok"])
         self.assertEqual(out["story_thread_id"], 7)
+        self.assertEqual(out["localization_count"], 3)
         mock_update.assert_called_once()
+        req = mock_update.call_args[0][0]
+        self.assertEqual(len(req.localizations), 3)
+        self.assertEqual(req.localizations[0].language, "en")
 
     def test_handler_parses_payload(self) -> None:
         with patch.object(main_mod, "dispatch", return_value={"ok": True}) as mock_dispatch:

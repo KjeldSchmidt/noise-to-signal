@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ thread.label|default:"Story thread" }}{% endblock %}
+{% block title %}{{ thread.display_label|default:thread.label|default:"Story thread" }}{% endblock %}
 {% block content %}
 <div class="with-chat-layout">
   <div class="chat-layout-main">
@@ -8,7 +8,7 @@
 
     <section class="page-head thread-head">
       <p class="tag story-thread-tag">Story thread</p>
-      <h1>{{ thread.label|default:"Untitled thread" }}</h1>
+      <h1>{{ thread.display_label|default:thread.label|default:"Untitled thread" }}</h1>
       <div class="thread-meta">
         <span class="story-count">{{ article_count }} article{{ article_count|pluralize }}</span>
         {% if first_published and last_published %}
@@ -20,7 +20,9 @@
         </p>
         {% endif %}
       </div>
-      {% if thread.summary %}
+      {% if thread.display_summary %}
+      <p class="summary thread-ai-summary">{{ thread.display_summary }}</p>
+      {% elif thread.summary %}
       <p class="summary thread-ai-summary">{{ thread.summary }}</p>
       {% endif %}
     </section>

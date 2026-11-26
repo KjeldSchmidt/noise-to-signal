@@ -162,11 +162,16 @@ class StorySummarizerRequest(BaseModel):
         return value
 
 
+PRODUCT_THREAD_LANGUAGES: tuple[str, ...] = ("en", "fr", "de")
+ThreadLocalizationLanguage = Literal["en", "fr", "de"]
+
+
 class StoryThreadMemberDTO(BaseModel):
     title: str
     summary: str = ""
     source: str = ""
     published_at: str = ""
+    language: str = ""
 
 
 class StoryThreadSummaryContextResponse(BaseModel):
@@ -175,9 +180,50 @@ class StoryThreadSummaryContextResponse(BaseModel):
     articles: list[StoryThreadMemberDTO] = Field(default_factory=list)
 
 
+class StoryThreadLocalizationDTO(BaseModel):
+    language: ThreadLocalizationLanguage
+    label: str = ""
+    summary: str = ""
+
+    @field_validator("label")
+    @classmethod
+    def _trim_label(cls, value: str) -> str:
+        return (value or "").strip()[:300]
+
+    @field_validator("summary")
+    @classmethod
+    def _trim_summary(cls, value: str) -> str:
+        return (value or "").strip()[:8000]
+
+
+class StoryThreadMultilangDigest(BaseModel):
+    """Structured LLM output: one localization per product language."""
+
+    localizations: list[StoryThreadLocalizationDTO] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _require_product_languages(self) -> Self:
+        by_lang = {row.language: row for row in self.localizations}
+        missing = [code for code in PRODUCT_THREAD_LANGUAGES if code not in by_lang]
+        if missing:
+            raise ValueError(f"missing localizations for: {', '.join(missing)}")
+        # Keep stable product order; drop unexpected extras.
+        ordered: list[StoryThreadLocalizationDTO] = []
+        for code in PRODUCT_THREAD_LANGUAGES:
+            row = by_lang.get(code)
+            if row is None:
+                raise ValueError(f"missing localizations for: {code}")
+            ordered.append(row)
+        self.localizations = ordered
+        return self
+
+
 class StoryThreadSummaryUpdateRequest(BaseModel):
     story_thread_id: int
-    summary: str
+    localizations: list[StoryThreadLocalizationDTO] = Field(default_factory=list)
+    """Preferred: per-language label+summary rows (en/fr/de)."""
+    summary: str = ""
+    """Deprecated single English summary; used only when localizations is empty."""
 
     @field_validator("story_thread_id")
     @classmethod
@@ -186,8 +232,20 @@ class StoryThreadSummaryUpdateRequest(BaseModel):
             raise ValueError("story_thread_id must be positive")
         return value
 
+    @model_validator(mode="after")
+    def _require_copy(self) -> Self:
+        if self.localizations:
+            by_lang = {row.language: row for row in self.localizations}
+            if "en" not in by_lang and not (self.summary or "").strip():
+                raise ValueError("en localization or summary is required")
+            return self
+        if not (self.summary or "").strip():
+            raise ValueError("localizations or summary is required")
+        return self
+
 
 class StoryThreadSummaryUpdateResponse(BaseModel):
     story_thread_id: int
     summarized_at: str
     summary_chars: int = 0
+    localization_count: int = 0

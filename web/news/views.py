@@ -35,13 +35,14 @@ from news.models import (
     UserContentLanguage,
 )
 from news.services import (
-    CONTENT_LANGUAGE_LABELS,
     DEFAULT_CONTENT_LANGUAGES,
     build_stories_feed_page,
     catalog_feed_ids,
     catalog_feeds,
     catalog_languages,
+    content_language_labels,
     enabled_feed_ids,
+    preferred_content_language_order,
     preferred_content_languages,
     recommend_feeds,
     thread_timeline_articles,
@@ -64,6 +65,7 @@ from news.services.theme_affinity import (
     apply_theme_affinity_vote,
     delete_theme_affinity,
 )
+from news.services.thread_copy import apply_thread_display_copy
 
 
 def landing(request: HttpRequest) -> HttpResponse:
@@ -102,6 +104,14 @@ def brief(request: HttpRequest) -> HttpResponse:
             )
         )
     feed_count = len(enabled_feed_ids(user))
+    preferred_order = preferred_content_language_order(user)
+    for item in state.ranked:
+        if item.kind == "thread" and item.thread is not None:
+            apply_thread_display_copy(
+                item.thread,
+                preferred_order,
+                fallback_title=item.article.title if item.article is not None else "",
+            )
     return render(
         request,
         "news/brief.html",
@@ -159,6 +169,13 @@ def stories(request: HttpRequest) -> HttpResponse:
     since = _parse_stories_since(since_raw)
     feed_page = build_stories_feed_page(feed_ids, page=page, since=since)
     entries = feed_page.entries
+    preferred_order = preferred_content_language_order(
+        request.user if request.user.is_authenticated else None
+    )
+    for entry in entries:
+        if entry.kind == "thread" and entry.thread is not None:
+            lead_title = entry.lead_article.title if entry.lead_article is not None else ""
+            apply_thread_display_copy(entry.thread, preferred_order, fallback_title=lead_title)
     has_new = any(entry.is_new for entry in entries)
     has_earlier = any(not entry.is_new for entry in entries)
     return render(
@@ -189,6 +206,11 @@ def story_thread(request: HttpRequest, thread_id: int) -> HttpResponse:
     if thread is None:
         raise Http404("Story thread not found.")
     articles = thread_timeline_articles(thread)
+    preferred_order = preferred_content_language_order(
+        request.user if request.user.is_authenticated else None
+    )
+    lead_title = articles[0].title if articles else ""
+    apply_thread_display_copy(thread, preferred_order, fallback_title=lead_title)
     # Timeline is newest-first; date span still runs oldest → newest.
     first_published = articles[-1].published_at if articles else None
     last_published = articles[0].published_at if articles else None
@@ -212,7 +234,7 @@ def _ensure_content_languages(user) -> set[str]:
     """Return preferred languages, creating the English default if missing."""
     preferred = preferred_content_languages(user)
     if not UserContentLanguage.objects.filter(user=user).exists():
-        UserContentLanguage.objects.get_or_create(user=user, language="en")
+        UserContentLanguage.objects.get_or_create(user=user, language_id="en")
         preferred = set(DEFAULT_CONTENT_LANGUAGES)
     return preferred
 
@@ -229,7 +251,7 @@ def _resolve_custom_feed(user, cleaned: dict) -> tuple[Feed, str]:
             description=cleaned.get("description") or "",
             category=cleaned.get("category") or "Custom",
             kind=Feed.SourceKind.CUSTOM,
-            language="und",
+            language_id="und",
             owner=user,
             is_active=True,
         )
@@ -298,7 +320,7 @@ def settings_page(request: HttpRequest) -> HttpResponse:
                 language__in=selected
             ).delete()
             for code in selected:
-                UserContentLanguage.objects.get_or_create(user=request.user, language=code)
+                UserContentLanguage.objects.get_or_create(user=request.user, language_id=code)
             messages.success(request, "Content languages updated.")
             return redirect("settings")
 
@@ -338,7 +360,7 @@ def settings_page(request: HttpRequest) -> HttpResponse:
             "recommended": recommended,
             "muted_ids": muted_ids,
             "preferred_languages": preferred,
-            "language_labels": CONTENT_LANGUAGE_LABELS,
+            "language_labels": content_language_labels(),
             "languages_form": languages_form,
             "feed_form": feed_form,
             "location_form": location_form,

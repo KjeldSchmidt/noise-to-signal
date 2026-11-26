@@ -100,7 +100,7 @@
     {% for feed in recommended %}
     <li class="feed-card">
       <h3>{{ feed.title }}</h3>
-      <p class="tag">{{ feed.category }} · {{ feed.language|upper }}</p>
+      <p class="tag">{{ feed.category }} · {{ feed.language.code|upper }}</p>
       <p>{{ feed.description }}</p>
       <form method="post" action="{% url 'unmute_feed' feed.id %}">
         {% csrf_token %}
@@ -118,11 +118,11 @@
   <p class="muted">Mute sources you never want in Personal Brief or Stories. Feeds outside your languages stay listed so you can discover them.</p>
   <ul class="feed-grid">
     {% for feed in catalog %}
-    <li class="feed-card{% if feed.language not in preferred_languages %} feed-card--dim{% endif %}">
+    <li class="feed-card{% if feed.language.code not in preferred_languages %} feed-card--dim{% endif %}">
       <h3>{{ feed.title }}</h3>
-      <p class="tag">{{ feed.category }} · {{ feed.language|upper }}</p>
+      <p class="tag">{{ feed.category }} · {{ feed.language.code|upper }}</p>
       <p>{{ feed.description }}</p>
-      {% if feed.language not in preferred_languages %}
+      {% if feed.language.code not in preferred_languages %}
       <p class="muted">Enable this language under Content languages to include this source.</p>
       {% endif %}
       {% if feed.id in muted_ids %}
@@ -160,7 +160,7 @@
     {% for feed in custom_feeds %}
     <li class="feed-card">
       <h3>{{ feed.title }}</h3>
-      <p class="tag">{{ feed.category|default:"Custom" }} · {{ feed.language|upper }}</p>
+      <p class="tag">{{ feed.category|default:"Custom" }} · {{ feed.language.code|upper }}</p>
       <p class="muted break">{{ feed.url }}</p>
       <form method="post" action="{% url 'unsubscribe_feed' feed.id %}">
         {% csrf_token %}

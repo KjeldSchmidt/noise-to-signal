@@ -64,12 +64,14 @@
           {% endif %}
         </div>
         {% if item.kind == "thread" and item.thread %}
-        <h2><a href="{% url 'story_thread' item.thread.id %}">{{ item.thread.label|default:item.article.title }}</a></h2>
+        <h2><a href="{% url 'story_thread' item.thread.id %}">{{ item.thread.display_label|default:item.thread.label|default:item.article.title }}</a></h2>
         {% else %}
         <h2><a href="{{ item.article.url }}" target="_blank" rel="noopener">{{ item.article.title }}</a></h2>
         {% endif %}
         <p class="reason">{{ item.reason }}</p>
-        {% if item.kind == "thread" and item.thread and item.thread.summary %}
+        {% if item.kind == "thread" and item.thread and item.thread.display_summary %}
+        <p class="summary">{{ item.thread.display_summary }}</p>
+        {% elif item.kind == "thread" and item.thread and item.thread.summary %}
         <p class="summary">{{ item.thread.summary }}</p>
         {% elif item.article.summary %}
         <p class="summary">{{ item.article.summary }}</p>

@@ -63,7 +63,7 @@ def ranked_from_brief(brief: UserBrief) -> list[RankedItem]:
     items = list(
         UserBriefItem.objects.filter(brief=brief)
         .select_related("article", "article__feed", "story_thread")
-        .prefetch_related("article__themes")
+        .prefetch_related("article__themes", "story_thread__localizations")
         .order_by("rank")
     )
     ranked: list[RankedItem] = []

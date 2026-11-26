@@ -84,11 +84,13 @@
       </a>
       <div class="story-body">
         <p class="tag">{{ entry.source_feeds|length }} source{{ entry.source_feeds|length|pluralize }}</p>
-        <h2><a href="{% url 'story_thread' thread.id %}">{{ thread.label|default:lead.title }}</a></h2>
+        <h2><a href="{% url 'story_thread' thread.id %}">{{ thread.display_label|default:thread.label|default:lead.title }}</a></h2>
         <div class="story-chips">
           <span class="story-count">{{ entry.article_count }} article{{ entry.article_count|pluralize }}</span>
         </div>
-        {% if thread.summary %}
+        {% if thread.display_summary %}
+        <p class="summary">{{ thread.display_summary|truncatewords:40 }}</p>
+        {% elif thread.summary %}
         <p class="summary">{{ thread.summary|truncatewords:40 }}</p>
         {% elif lead.summary %}
         <p class="summary">{{ lead.summary|striptags|truncatewords:28 }}</p>

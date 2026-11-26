@@ -6,9 +6,11 @@ from news.models import (
     ChatRateLimitBucket,
     Feed,
     FeedMute,
+    Language,
     LocationOfInterest,
     RelevanceFeedback,
     StoryThread,
+    StoryThreadLocalization,
     Subscription,
     Theme,
     ThemeSuggestion,
@@ -21,11 +23,19 @@ from news.models import (
 patch_admin_site()
 
 
+@admin.register(Language)
+class LanguageAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "sort_order", "updated_at")
+    search_fields = ("code", "name")
+    ordering = ("sort_order", "code")
+
+
 @admin.register(Feed)
 class FeedAdmin(admin.ModelAdmin):
     list_display = ("title", "category", "kind", "language", "is_active", "owner")
     list_filter = ("kind", "category", "language", "is_active")
     search_fields = ("title", "url", "description")
+    autocomplete_fields = ("language",)
 
 
 @admin.register(Subscription)
@@ -38,7 +48,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
 class UserContentLanguageAdmin(admin.ModelAdmin):
     list_display = ("user", "language", "created_at")
     list_filter = ("language",)
-    search_fields = ("user__username", "user__email", "language")
+    search_fields = ("user__username", "user__email", "language__code", "language__name")
+    autocomplete_fields = ("language",)
 
 
 @admin.register(FeedMute)
@@ -80,12 +91,27 @@ class LocationOfInterestAdmin(admin.ModelAdmin):
     search_fields = ("label", "admin1", "locality")
 
 
+class StoryThreadLocalizationInline(admin.TabularInline):
+    model = StoryThreadLocalization
+    extra = 0
+    autocomplete_fields = ("language",)
+
+
 @admin.register(StoryThread)
 class StoryThreadAdmin(admin.ModelAdmin):
     list_display = ("id", "label", "last_published_at", "summarized_at", "updated_at")
     search_fields = ("label", "summary")
     readonly_fields = ("summarized_at",)
     change_list_template = "admin/news/storythread_change_list.html"
+    inlines = [StoryThreadLocalizationInline]
+
+
+@admin.register(StoryThreadLocalization)
+class StoryThreadLocalizationAdmin(admin.ModelAdmin):
+    list_display = ("id", "story_thread", "language", "label", "updated_at")
+    list_filter = ("language",)
+    search_fields = ("label", "summary", "story_thread__label")
+    autocomplete_fields = ("story_thread", "language")
 
 
 @admin.register(Article)

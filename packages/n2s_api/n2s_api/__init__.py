@@ -1,6 +1,7 @@
 """Shared API contracts for noise-to-signal."""
 
 from n2s_api.brief import (
+    PRODUCT_THREAD_LANGUAGES,
     BriefBuilderRequest,
     BriefCandidateDTO,
     BriefCandidateKind,
@@ -12,7 +13,9 @@ from n2s_api.brief import (
     BriefUserContextResponse,
     PreferenceMemoryDTO,
     StorySummarizerRequest,
+    StoryThreadLocalizationDTO,
     StoryThreadMemberDTO,
+    StoryThreadMultilangDigest,
     StoryThreadSummaryContextResponse,
     StoryThreadSummaryUpdateRequest,
     StoryThreadSummaryUpdateResponse,
@@ -102,8 +105,11 @@ __all__ = [
     "ChatWorkerRequest",
     "ChatWorkerResponse",
     "PreferenceMemoryDTO",
+    "PRODUCT_THREAD_LANGUAGES",
     "StorySummarizerRequest",
+    "StoryThreadLocalizationDTO",
     "StoryThreadMemberDTO",
+    "StoryThreadMultilangDigest",
     "StoryThreadSummaryContextResponse",
     "StoryThreadSummaryUpdateRequest",
     "StoryThreadSummaryUpdateResponse",

@@ -30,7 +30,7 @@ def get_summary_model():
             model_provider="bedrock_converse",
             region_name=_bedrock_region(),
             temperature=0.2,
-            max_tokens=700,
+            max_tokens=1800,
             **model_tracing_kwargs(),
         )
     return _summary

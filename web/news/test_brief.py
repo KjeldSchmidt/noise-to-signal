@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import timedelta
 from typing import Any, cast
 from unittest.mock import patch
@@ -47,7 +48,7 @@ class BriefApiTests(TestCase):
             site_url="https://example.com/",
             category="World",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         self.article = Article.objects.create(
             feed=self.feed,
@@ -148,6 +149,7 @@ class BriefApiTests(TestCase):
         self.assertEqual(ctx.json()["story_thread_id"], thread.id)
         self.assertEqual(len(ctx.json()["articles"]), 1)
 
+        # Compat: single English summary still accepted.
         update = self.client.post(
             "/api/internal/story-threads/summary/",
             data=(
@@ -161,6 +163,46 @@ class BriefApiTests(TestCase):
         thread.refresh_from_db()
         self.assertIn("Negotiators", thread.summary)
         self.assertIsNotNone(thread.summarized_at)
+        from news.models import StoryThreadLocalization
+
+        self.assertEqual(
+            StoryThreadLocalization.objects.filter(story_thread=thread, language_id="en").count(),
+            1,
+        )
+
+        multilang_payload = {
+            "story_thread_id": thread.id,
+            "localizations": [
+                {
+                    "language": "en",
+                    "label": "Peace Talks",
+                    "summary": "Talks resumed.",
+                },
+                {
+                    "language": "fr",
+                    "label": "Pourparlers",
+                    "summary": "Les pourparlers ont repris.",
+                },
+                {
+                    "language": "de",
+                    "label": "Friedensgespräche",
+                    "summary": "Gespräche wurden fortgesetzt.",
+                },
+            ],
+        }
+        multilang = self.client.post(
+            "/api/internal/story-threads/summary/",
+            data=json.dumps(multilang_payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer test-internal-token",
+        )
+        self.assertEqual(multilang.status_code, 200)
+        self.assertEqual(multilang.json()["localization_count"], 3)
+        thread.refresh_from_db()
+        self.assertEqual(thread.label, "Peace Talks")
+        from news.services.thread_copy import localization_count
+
+        self.assertEqual(localization_count(thread), 3)
 
 
 @override_settings(INTERNAL_API_TOKEN="test-internal-token")
@@ -173,7 +215,7 @@ class BriefThreadCandidateTests(TestCase):
             site_url="https://example.com/",
             category="World",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         self.thread = StoryThread.objects.create(
             label="City Quake",
@@ -236,19 +278,44 @@ class ThreadSummaryFreshnessTests(TestCase):
             last_published_at=timezone.now(),
         )
 
+    def _write_product_localizations(self, *, summarized_at=None) -> None:
+        from news.services.thread_copy import upsert_thread_localizations
+
+        upsert_thread_localizations(
+            self.thread,
+            [
+                {"language": "en", "label": "Freshness", "summary": "Still fresh."},
+                {"language": "fr", "label": "Fraîcheur", "summary": "Toujours frais."},
+                {"language": "de", "label": "Aktuell", "summary": "Noch frisch."},
+            ],
+        )
+        if summarized_at is not None:
+            self.thread.summarized_at = summarized_at
+            self.thread.save(update_fields=["summarized_at", "updated_at"])
+
     def test_should_refresh_when_missing(self) -> None:
         self.assertTrue(should_refresh_thread_summary(self.thread))
 
     def test_fresh_summary_skips_refresh(self) -> None:
-        self.thread.summary = "Still fresh."
-        self.thread.summarized_at = timezone.now()
-        self.thread.save(update_fields=["summary", "summarized_at", "updated_at"])
+        self._write_product_localizations()
+        self.thread.refresh_from_db()
         self.assertFalse(should_refresh_thread_summary(self.thread))
 
+    def test_incomplete_localizations_refresh(self) -> None:
+        from news.services.thread_copy import upsert_thread_localizations
+
+        upsert_thread_localizations(
+            self.thread,
+            [{"language": "en", "label": "Only EN", "summary": "English only."}],
+        )
+        self.thread.refresh_from_db()
+        self.assertTrue(should_refresh_thread_summary(self.thread))
+
     def test_stale_summary_refreshes(self) -> None:
-        self.thread.summary = "Old digest."
-        self.thread.summarized_at = timezone.now() - THREAD_SUMMARY_TTL - timedelta(minutes=1)
-        self.thread.save(update_fields=["summary", "summarized_at", "updated_at"])
+        self._write_product_localizations(
+            summarized_at=timezone.now() - THREAD_SUMMARY_TTL - timedelta(minutes=1)
+        )
+        self.thread.refresh_from_db()
         self.assertTrue(should_refresh_thread_summary(self.thread))
 
     @override_settings(DEBUG=True, STORY_SUMMARIZER_FUNCTION_NAME="")
@@ -258,12 +325,13 @@ class ThreadSummaryFreshnessTests(TestCase):
         self.thread.refresh_from_db()
         self.assertTrue(self.thread.summary)
         self.assertIsNotNone(self.thread.summarized_at)
+        from news.services.thread_copy import localization_count
+
+        self.assertEqual(localization_count(self.thread), 3)
 
     @override_settings(DEBUG=True, STORY_SUMMARIZER_FUNCTION_NAME="")
     def test_maybe_invoke_skips_when_fresh(self) -> None:
-        self.thread.summary = "Fresh."
-        self.thread.summarized_at = timezone.now()
-        self.thread.save(update_fields=["summary", "summarized_at", "updated_at"])
+        self._write_product_localizations()
         self.assertFalse(maybe_invoke_thread_summary(self.thread.id))
 
 
@@ -276,7 +344,7 @@ class BriefFreshnessTests(TestCase):
             site_url="https://example.com/",
             category="World",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
 
     def test_fresh_ready_is_caught_up_without_kick(self) -> None:
@@ -319,7 +387,7 @@ class BriefPageTests(TestCase):
             site_url="https://example.com/",
             category="World",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         Article.objects.create(
             feed=self.feed,

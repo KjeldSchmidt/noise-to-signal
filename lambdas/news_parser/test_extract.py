@@ -244,7 +244,10 @@ class ExtractTests(unittest.TestCase):
         human = structured.invoke.call_args.args[0][1].content
         self.assertIn("Feed language hint: de", human)
         self.assertIn("any language", extract_mod._SYSTEM_PROMPT)
-        self.assertIn("story_label MUST be English", extract_mod._SYSTEM_PROMPT)
+        self.assertIn(
+            "story_label may be in the article's source language",
+            extract_mod._SYSTEM_PROMPT,
+        )
 
 
 if __name__ == "__main__":

@@ -173,11 +173,12 @@ You classify news articles for a personal news filter.
 Rules for language:
 - Titles and summaries may be in any language (English, French, German, etc.).
 - Always understand the article in its original language, then emit structured \
-fields in English.
+fields in English (except story_label — see below).
 - Place queries MUST be English and Nominatim-friendly \
 (e.g. "Cologne, Germany", "Spain", "United Kingdom") even when the source text \
 uses another language (e.g. "Köln" → "Cologne, Germany").
-- story_label MUST be English (3–6 words), never leave it in the source language.
+- story_label may be in the article's source language (3–6 words); English is fine \
+too. Do not force a translation when a natural short label already exists in-source.
 
 Rules for geography:
 - Tag the primary EVENT location only when it is an explicit real-world Earth place \
@@ -202,7 +203,8 @@ duplicates of allowlisted slugs there.
 - Prefer precise beats (e.g. sports + conflict, not only geopolitics).
 
 Rules for story_label:
-- A short generic English event name (about 3–6 words), not the full headline.
+- A short generic event name (about 3–6 words), not the full headline.
+- Prefer the source language when that yields a natural label; English is acceptable.
 - Empty string when there is no clear ongoing story to cluster on.
 
 Rules for impact (user-agnostic lasting importance — not personal taste):

@@ -3,7 +3,7 @@ from typing import Any, cast
 from django import forms
 
 from news.models import Feed, LocationOfInterest
-from news.services.feeds import CONTENT_LANGUAGE_LABELS, catalog_languages
+from news.services.feeds import catalog_languages, content_language_labels
 
 
 class CustomFeedForm(forms.Form):
@@ -44,9 +44,8 @@ class ContentLanguagesForm(forms.Form):
         if not codes:
             codes = ["en"]
         languages_field = cast(forms.MultipleChoiceField, self.fields["languages"])
-        languages_field.choices = [
-            (code, CONTENT_LANGUAGE_LABELS.get(code, code.upper())) for code in codes
-        ]
+        labels = content_language_labels()
+        languages_field.choices = [(code, labels.get(code, code.upper())) for code in codes]
 
 
 class LocationOfInterestForm(forms.ModelForm):

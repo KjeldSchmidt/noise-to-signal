@@ -14,9 +14,14 @@ from n2s_api import (
 )
 
 from news.models import Article, LocationOfInterest, RelevanceFeedback
-from news.services.feeds import enabled_feed_ids, preferred_content_languages
+from news.services.feeds import (
+    enabled_feed_ids,
+    preferred_content_language_order,
+    preferred_content_languages,
+)
 from news.services.stories_feed import build_stories_feed
 from news.services.theme_affinity import affinities_for_user, affinity_weight
+from news.services.thread_copy import resolve_thread_copy
 
 User = get_user_model()
 
@@ -71,6 +76,7 @@ def build_brief_user_context(user_id: int) -> BriefUserContextResponse:
         entry.thread.id for entry in entries if entry.kind == "thread" and entry.thread is not None
     ]
     members_by_thread = _member_ids_by_thread(thread_ids)
+    preferred_order = preferred_content_language_order(user)
 
     candidates: list[BriefCandidateDTO] = []
     for entry in entries:
@@ -108,25 +114,31 @@ def build_brief_user_context(user_id: int) -> BriefUserContextResponse:
             member_ids = members_by_thread.get(thread.id, [])
             if any(mid in judged for mid in member_ids):
                 continue
-            summary = (thread.summary or lead.summary or "")[:800]
+            copy = resolve_thread_copy(
+                thread,
+                preferred_order,
+                fallback_title=lead.title or "",
+            )
+            summary = (copy.summary or lead.summary or "")[:800]
             source_titles = [f.title for f in entry.source_feeds[:4]]
             source = (
                 f"{len(entry.source_feeds)} sources"
                 if len(entry.source_feeds) > 1
                 else (source_titles[0] if source_titles else "")
             )
+            title = (copy.label or lead.title)[:300]
             candidates.append(
                 BriefCandidateDTO(
                     kind="thread",
                     article_id=lead.id,
                     story_thread_id=thread.id,
-                    title=(thread.label or lead.title)[:300],
+                    title=title,
                     url=lead.url,
                     summary=summary,
                     source=source,
                     published_at=thread.last_published_at.isoformat(),
                     impact_tier=lead.impact_tier or "",
-                    story_label=thread.label or lead.story_label or "",
+                    story_label=title or lead.story_label or "",
                     place_label=lead.place_label or "",
                     country_code=lead.country_code or "",
                     geo_level=lead.geo_level or "",

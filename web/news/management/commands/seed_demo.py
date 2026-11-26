@@ -160,7 +160,7 @@ class Command(BaseCommand):
                     "category": data["category"],
                     "description": data["description"],
                     "kind": data["kind"],
-                    "language": data["language"],
+                    "language_id": data["language"],
                     "is_active": True,
                     "owner": None,
                 },

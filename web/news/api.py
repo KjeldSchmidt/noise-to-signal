@@ -27,6 +27,7 @@ from n2s_api import (
     GeocodePlace,
     GeocodeSearchRequest,
     GeocodeSearchResponse,
+    StoryThreadLocalizationDTO,
     StoryThreadMemberDTO,
     StoryThreadSummaryContextResponse,
     StoryThreadSummaryUpdateRequest,
@@ -56,6 +57,7 @@ from news.services.brief_context import build_brief_user_context
 from news.services.feeds import feed_should_poll, feeds_for_list_api
 from news.services.geocode import search_places
 from news.services.themes import record_theme_suggestions
+from news.services.thread_copy import upsert_thread_localizations
 from news.services.thread_summary import maybe_invoke_thread_summary
 from news.services.threading import assign_story_thread
 from news.sqs import enqueue_feed_items
@@ -82,7 +84,7 @@ def list_feeds(request: HttpRequest) -> JsonResponse:
                 kind=feed.kind,
                 owner_id=feed.owner_id,
                 is_active=feed.is_active,
-                language=feed.language or "en",
+                language=feed.language.code if feed.language else "en",
                 should_poll=feed_should_poll(
                     kind=feed.kind,
                     is_active=feed.is_active,
@@ -480,6 +482,9 @@ def story_thread_summary_context(request: HttpRequest, thread_id: int) -> JsonRe
                 summary=(article.summary or "")[:800],
                 source=article.feed.title if article.feed_id else "",
                 published_at=article.published_at.isoformat(),
+                language=(
+                    article.feed.language.code if article.feed_id and article.feed.language else ""
+                ),
             )
             for article in articles
         ],
@@ -491,7 +496,7 @@ def story_thread_summary_context(request: HttpRequest, thread_id: int) -> JsonRe
 @require_POST  # ty: ignore[invalid-argument-type]
 @require_internal_token
 def update_story_thread_summary(request: HttpRequest) -> JsonResponse:
-    """Persist a non-personal AI digest on a StoryThread."""
+    """Persist multilingual AI digests on a StoryThread."""
     try:
         dto = StoryThreadSummaryUpdateRequest.model_validate_json(
             request.body.decode("utf-8") or "{}"
@@ -502,24 +507,27 @@ def update_story_thread_summary(request: HttpRequest) -> JsonResponse:
             status=400,
         )
 
-    summary = (dto.summary or "").strip()
-    if not summary:
-        return JsonResponse({"error": "summary is required"}, status=400)
-
     try:
         thread = StoryThread.objects.get(pk=dto.story_thread_id)
     except StoryThread.DoesNotExist:
         return JsonResponse({"error": "story thread not found"}, status=404)
 
-    now = django_timezone.now()
-    thread.summary = summary[:8000]
-    thread.summarized_at = now
-    thread.save(update_fields=["summary", "summarized_at", "updated_at"])
+    localizations = list(dto.localizations)
+    if not localizations:
+        summary = (dto.summary or "").strip()
+        if not summary:
+            return JsonResponse({"error": "localizations or summary is required"}, status=400)
+        localizations = [
+            StoryThreadLocalizationDTO(language="en", label=thread.label or "", summary=summary)
+        ]
+
+    thread, written = upsert_thread_localizations(thread, localizations)
     return JsonResponse(
         StoryThreadSummaryUpdateResponse(
             story_thread_id=thread.id,
-            summarized_at=now.isoformat(),
-            summary_chars=len(thread.summary),
+            summarized_at=(thread.summarized_at or django_timezone.now()).isoformat(),
+            summary_chars=len(thread.summary or ""),
+            localization_count=written,
         ).model_dump()
     )
 

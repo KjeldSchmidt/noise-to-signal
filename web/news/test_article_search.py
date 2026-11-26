@@ -34,13 +34,13 @@ class ArticleSearchServiceTests(TestCase):
             title="BBC",
             url="https://example.com/search-feed.xml",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         self.other_feed = Feed.objects.create(
             title="Other",
             url="https://example.com/other-feed.xml",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         self.now = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
         self.in_scope = Article.objects.create(
@@ -213,7 +213,7 @@ class ArticleSearchApiTests(TestCase):
             title="BBC",
             url="https://example.com/search-api-feed.xml",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         self.now = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
         self.article = Article.objects.create(

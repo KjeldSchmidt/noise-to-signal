@@ -75,7 +75,7 @@ Helper: `news.services.places.places_match` (theme ranking / prefs are out of sc
 
 ## Story threads (web-side after upsert)
 
-Threads are **optional**. Lonely articles stay unthreaded. A thread is created only when a near-dup or soft peer pair connects two+ articles (or when joining an open centroid). Extract may supply a short generic `story_label` (e.g. `Spanish Rail Crash`) used as the thread title on create.
+Threads are **optional**. Lonely articles stay unthreaded. A thread is created only when a near-dup or soft peer pair connects two+ articles (or when joining an open centroid). Extract may supply a short generic `story_label` (source language or English, e.g. `Spanish Rail Crash`) used as the bootstrap thread title on create; multilingual display titles come from `story_summarizer`.
 
 | Lane | Threshold | Window | Meaning |
 |------|-----------|--------|---------|

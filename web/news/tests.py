@@ -58,7 +58,7 @@ class InternalFeedsApiTests(TestCase):
             kind=self.feed.kind,
             owner_id=self.feed.owner_id,
             is_active=self.feed.is_active,
-            language=self.feed.language,
+            language=self.feed.language.code,
             should_poll=True,
             http_etag="",
             http_last_modified="",

@@ -33,6 +33,20 @@ class ImpactTier(models.TextChoices):
     MAJOR = "major", "Major"
 
 
+class Language(TimeStampedModel):
+    """ISO 639-1 content-language catalog (en/fr/de product set + und)."""
+
+    code = models.CharField(max_length=8, primary_key=True)
+    name = models.CharField(max_length=80)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "code"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Feed(TimeStampedModel):
     class SourceKind(models.TextChoices):
         CURATED = "curated", "Curated catalog"
@@ -58,10 +72,13 @@ class Feed(TimeStampedModel):
         related_name="custom_feeds",
         help_text="Optional first-adder metadata for custom feeds.",
     )
-    language = models.CharField(
-        max_length=8,
+    language = models.ForeignKey(
+        Language,
+        to_field="code",
+        db_column="language",
+        on_delete=models.PROTECT,
+        related_name="feeds",
         default="en",
-        db_index=True,
         help_text="ISO 639-1 content language (e.g. en, fr, de). Use und when unknown.",
     )
     is_active = models.BooleanField(default=True)
@@ -113,14 +130,20 @@ class UserContentLanguage(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="content_languages",
     )
-    language = models.CharField(max_length=8, db_index=True)
+    language = models.ForeignKey(
+        Language,
+        to_field="code",
+        db_column="language",
+        on_delete=models.PROTECT,
+        related_name="user_preferences",
+    )
 
     class Meta:
         unique_together = ("user", "language")
         ordering = ["language"]
 
     def __str__(self) -> str:
-        return f"{self.user} → {self.language}"
+        return f"{self.user} → {self.language.code}"
 
 
 class FeedMute(TimeStampedModel):
@@ -204,17 +227,21 @@ class LocationOfInterest(TimeStampedModel):
 class StoryThread(TimeStampedModel):
     """Online cluster of articles covering the same evolving event."""
 
-    label = models.CharField(max_length=300, blank=True)
+    label = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text="English mirror of the en localization (bootstrap + summarizer).",
+    )
     centroid = VectorField(dimensions=EMBEDDING_DIMENSIONS, null=True, blank=True)
     last_published_at = models.DateTimeField(db_index=True)
     summary = models.TextField(
         blank=True,
-        help_text="Non-personal AI digest of the thread; reusable on Stories and Brief.",
+        help_text="English mirror of the en localization AI digest.",
     )
     summarized_at = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="When summary was last generated (6h throttle on refresh).",
+        help_text="When localizations were last generated (6h throttle on refresh).",
     )
 
     class Meta:
@@ -222,6 +249,37 @@ class StoryThread(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.label or f"Thread {self.pk}"
+
+
+class StoryThreadLocalization(TimeStampedModel):
+    """Per-language display title and AI digest for a story thread."""
+
+    story_thread = models.ForeignKey(
+        StoryThread,
+        on_delete=models.CASCADE,
+        related_name="localizations",
+    )
+    language = models.ForeignKey(
+        Language,
+        to_field="code",
+        db_column="language",
+        on_delete=models.PROTECT,
+        related_name="thread_localizations",
+    )
+    label = models.CharField(max_length=300, blank=True)
+    summary = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["story_thread", "language"],
+                name="uniq_storythreadlocalization_thread_lang",
+            )
+        ]
+        ordering = ["language_id", "id"]
+
+    def __str__(self) -> str:
+        return f"thread {self.story_thread_id} [{self.language.code}]"
 
 
 class Article(TimeStampedModel):

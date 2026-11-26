@@ -15,24 +15,24 @@ UserModel = cast(Any, get_user_model())
 class EnabledFeedIdsTests(TestCase):
     def setUp(self) -> None:
         self.user = UserModel.objects.create_user(username="reader", password="x")
-        UserContentLanguage.objects.create(user=self.user, language="en")
+        UserContentLanguage.objects.create(user=self.user, language_id="en")
         self.en = Feed.objects.create(
             title="BBC",
             url="https://example.com/en.xml",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
         self.de = Feed.objects.create(
             title="Tagesschau",
             url="https://example.com/de.xml",
             kind=Feed.SourceKind.CURATED,
-            language="de",
+            language_id="de",
         )
         self.custom = Feed.objects.create(
             title="Niche",
             url="https://example.com/custom.xml",
             kind=Feed.SourceKind.CUSTOM,
-            language="und",
+            language_id="und",
             owner=self.user,
         )
 
@@ -43,7 +43,7 @@ class EnabledFeedIdsTests(TestCase):
         self.assertNotIn(self.custom.id, ids)
 
     def test_enabling_de_includes_german_catalog(self) -> None:
-        UserContentLanguage.objects.create(user=self.user, language="de")
+        UserContentLanguage.objects.create(user=self.user, language_id="de")
         ids = enabled_feed_ids(self.user)
         self.assertIn(self.en.id, ids)
         self.assertIn(self.de.id, ids)
@@ -61,11 +61,11 @@ class EnabledFeedIdsTests(TestCase):
             title="FR custom",
             url="https://example.com/fr-custom.xml",
             kind=Feed.SourceKind.CUSTOM,
-            language="fr",
+            language_id="fr",
         )
         Subscription.objects.create(user=self.user, feed=fr_custom)
         self.assertNotIn(fr_custom.id, enabled_feed_ids(self.user))
-        UserContentLanguage.objects.create(user=self.user, language="fr")
+        UserContentLanguage.objects.create(user=self.user, language_id="fr")
         self.assertIn(fr_custom.id, enabled_feed_ids(self.user))
 
 
@@ -77,7 +77,7 @@ class ResolveCustomFeedTests(TestCase):
             title="BBC",
             url="https://example.com/bbc.xml",
             kind=Feed.SourceKind.CURATED,
-            language="en",
+            language_id="en",
         )
 
     def test_new_url_creates_feed_and_subscription(self) -> None:
@@ -92,7 +92,7 @@ class ResolveCustomFeedTests(TestCase):
             },
         )
         self.assertEqual(feed.kind, Feed.SourceKind.CUSTOM)
-        self.assertEqual(feed.language, "und")
+        self.assertEqual(feed.language.code, "und")
         self.assertTrue(Subscription.objects.filter(user=self.user_a, feed=feed).exists())
         self.assertIn("Added", msg)
 
@@ -162,7 +162,7 @@ class ListFeedsShouldPollApiTests(TestCase):
             title="Orphan custom",
             url="https://example.com/orphan.xml",
             kind=Feed.SourceKind.CUSTOM,
-            language="und",
+            language_id="und",
             is_active=True,
         )
         response = self.client.get(

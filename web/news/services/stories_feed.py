@@ -207,10 +207,12 @@ def _build_ranked_entries(
 
     threads = {
         t.id: t
-        for t in StoryThread.objects.filter(id__in=thread_leads.keys()).annotate(
+        for t in StoryThread.objects.filter(id__in=thread_leads.keys())
+        .annotate(
             member_count=Count("articles"),
             first_published_at=Min("articles__published_at"),
         )
+        .prefetch_related("localizations")
     }
 
     members_by_thread: dict[int, list[Article]] = {tid: [] for tid in thread_leads}
@@ -295,6 +297,7 @@ def thread_visible_in_scope(thread_id: int, feed_ids: list[int]) -> StoryThread 
             articles__feed_id__in=feed_ids,
         )
         .annotate(member_count=Count("articles"))
+        .prefetch_related("localizations")
         .distinct()
         .first()
     )
