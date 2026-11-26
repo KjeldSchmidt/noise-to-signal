@@ -248,7 +248,8 @@ def _record_preference(user_id: int, text: str) -> str:
         client.record_preference(user_id, content[:2000])
     except Exception as exc:  # noqa: BLE001
         return f"Could not save preference: {exc}"
-    return f"Saved preference: {content[:400]}"
+    # CreateEvent queues STM; USER_PREFERENCE LTM extraction is async (minutes).
+    return f"Saved preference (may take a few minutes to appear in Settings): {content[:400]}"
 
 
 def _list_preferences(user_id: int) -> str:
@@ -278,6 +279,7 @@ def save_preference(
     """
     Remember a free-form reading preference for future briefs (brief scope only).
     Call when the user states a lasting taste preference worth storing.
+    Only tell the user it was saved after this tool returns success.
     """
     user_id = int(state["user_id"])
     # Preference body can be user-authored — log length only, never the text.

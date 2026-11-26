@@ -11,6 +11,7 @@ from n2s_observability import flush_tracing
 from graph import enrich_graph
 
 logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.INFO)
 
 
 def process_feed_item(item: FeedItem) -> dict[str, Any]:

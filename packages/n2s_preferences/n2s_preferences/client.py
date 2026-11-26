@@ -62,12 +62,18 @@ class PreferenceMemoryClient:
         return self.namespace_template.replace("{actorId}", actor_id)
 
     def record_preference(self, user_id: int, text: str) -> None:
-        """Write a short-term event; USER_PREFERENCE strategy extracts LTM."""
+        """Write a short-term event; USER_PREFERENCE strategy extracts LTM.
+
+        AgentCore extracts more reliably from a USER+ASSISTANT turn pair than
+        from a lone USER utterance (extraction is still asynchronous).
+        """
         content = (text or "").strip()
         if not content or not self.memory_id:
             return
         actor = actor_id_for_user(user_id)
         session_id = f"prefs-{actor}-{uuid.uuid4().hex[:12]}"
+        # Cap user text so USER+ASSISTANT stay within a comfortable payload size.
+        user_text = content[:8500]
         self.client.create_event(
             memoryId=self.memory_id,
             actorId=actor,
@@ -76,9 +82,20 @@ class PreferenceMemoryClient:
                 {
                     "conversational": {
                         "role": "USER",
-                        "content": {"text": content[:9000]},
+                        "content": {"text": user_text},
                     }
-                }
+                },
+                {
+                    "conversational": {
+                        "role": "ASSISTANT",
+                        "content": {
+                            "text": (
+                                "Understood. I will remember that reading "
+                                "preference when personalizing future briefs."
+                            )
+                        },
+                    }
+                },
             ],
         )
 

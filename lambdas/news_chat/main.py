@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from chat import run_chat
 
 logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.INFO)
 
 
 def _parse_event(event: dict[str, Any] | str | bytes) -> ChatWorkerRequest:

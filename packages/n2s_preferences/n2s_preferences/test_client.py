@@ -21,6 +21,39 @@ class PreferenceClientTests(unittest.TestCase):
         )
         self.assertEqual(client.namespace_for("9"), "/preferences/9")
 
+    def test_record_preference_writes_user_and_assistant_turns(self) -> None:
+        api = MagicMock()
+        client = PreferenceMemoryClient(
+            memory_id="mem-1",
+            region="eu-central-1",
+            client=api,
+        )
+        client.record_preference(3, "Less horse-race, more policy analysis")
+        api.create_event.assert_called_once()
+        kwargs = api.create_event.call_args.kwargs
+        self.assertEqual(kwargs["memoryId"], "mem-1")
+        self.assertEqual(kwargs["actorId"], "3")
+        self.assertTrue(str(kwargs["sessionId"]).startswith("prefs-3-"))
+        payload = kwargs["payload"]
+        self.assertEqual(len(payload), 2)
+        self.assertEqual(payload[0]["conversational"]["role"], "USER")
+        self.assertEqual(
+            payload[0]["conversational"]["content"]["text"],
+            "Less horse-race, more policy analysis",
+        )
+        self.assertEqual(payload[1]["conversational"]["role"], "ASSISTANT")
+        self.assertIn("remember", payload[1]["conversational"]["content"]["text"].lower())
+
+    def test_record_preference_noop_when_empty(self) -> None:
+        api = MagicMock()
+        client = PreferenceMemoryClient(
+            memory_id="mem-1",
+            region="eu-central-1",
+            client=api,
+        )
+        client.record_preference(3, "  ")
+        api.create_event.assert_not_called()
+
     def test_retrieve_parses_summaries(self) -> None:
         api = MagicMock()
         api.retrieve_memory_records.return_value = {

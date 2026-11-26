@@ -16,6 +16,7 @@ from n2s_api import Feed, FeedItem, FeedPollStateUpdate
 from n2s_web_client import ingest_feed_items, list_feeds, update_feed_poll_state
 
 logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.INFO)
 
 RSS_FETCH_TIMEOUT_S = 15.0
 

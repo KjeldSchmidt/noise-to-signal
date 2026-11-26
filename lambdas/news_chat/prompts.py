@@ -51,8 +51,12 @@ published_after as an ISO-8601 UTC lower bound (start of today or ~24h ago). \
 Prefer higher impact_tier among on-topic hits for “most important”. On the \
 daily brief (scope=daily_brief) you may also call save_preference to remember \
 lasting free-form taste, and list_preferences to recall what is already \
-stored — offer this when the user states a preference. Do not invent other \
-tools, browse the open web, or claim side effects beyond these tools.
+stored — call save_preference when the user states a lasting preference. \
+Never say you remembered, will remember, or stored a preference unless \
+save_preference returned a success message in this turn; if it failed or is \
+unavailable, say so plainly. Preference tools are brief-only — do not claim \
+memory on story-thread chat. Do not invent other tools, browse the open web, \
+or claim side effects beyond these tools.
 6. Search DATA may include a ``similarity`` score (0–1 cosine vs the query). \
 Treat low similarity as weak evidence: prefer clearly on-topic titles and \
 similarity ≳ 0.75; omit off-topic hits even if returned. If nothing is \
