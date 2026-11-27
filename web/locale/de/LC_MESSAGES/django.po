@@ -188,6 +188,35 @@ msgstr "Ihre eigenen Feeds"
 msgid "Unsubscribe"
 msgstr "Abbestellen"
 
+msgid "Delete account"
+msgstr "Konto löschen"
+
+msgid ""
+"Permanently deletes your account, settings, briefs, feedback, and preference"
+" memory. Shared feeds stay available for other users. Logs and traces are "
+"not removed."
+msgstr ""
+"Löscht dauerhaft Ihr Konto, Einstellungen, Briefings, Feedback und "
+"Präferenzspeicher. Geteilte Feeds bleiben für andere Nutzer verfügbar. Logs "
+"und Traces werden nicht entfernt."
+
+msgid "I understand this cannot be undone."
+msgstr "Ich verstehe, dass dies nicht rückgängig gemacht werden kann."
+
+msgid "Delete my account"
+msgstr "Mein Konto löschen"
+
+msgid "Confirm account deletion by checking the box."
+msgstr "Bestätigen Sie die Kontolöschung durch Ankreuzen der Box."
+
+msgid "Could not erase preference memory. Your account was not deleted."
+msgstr ""
+"Präferenzspeicher konnte nicht gelöscht werden. Ihr Konto wurde nicht "
+"gelöscht."
+
+msgid "Your account has been deleted."
+msgstr "Ihr Konto wurde gelöscht."
+
 msgid "Feed name"
 msgstr "Feed-Name"
 

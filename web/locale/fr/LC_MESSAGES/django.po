@@ -190,6 +190,35 @@ msgstr "Vos flux personnalisés"
 msgid "Unsubscribe"
 msgstr "Se désabonner"
 
+msgid "Delete account"
+msgstr "Supprimer le compte"
+
+msgid ""
+"Permanently deletes your account, settings, briefs, feedback, and preference"
+" memory. Shared feeds stay available for other users. Logs and traces are "
+"not removed."
+msgstr ""
+"Supprime définitivement votre compte, paramètres, briefs, retours et mémoire"
+" de préférences. Les flux partagés restent disponibles pour les autres. Les "
+"journaux et traces ne sont pas supprimés."
+
+msgid "I understand this cannot be undone."
+msgstr "Je comprends que cette action est irréversible."
+
+msgid "Delete my account"
+msgstr "Supprimer mon compte"
+
+msgid "Confirm account deletion by checking the box."
+msgstr "Confirmez la suppression du compte en cochant la case."
+
+msgid "Could not erase preference memory. Your account was not deleted."
+msgstr ""
+"Impossible d’effacer la mémoire de préférences. Votre compte n’a pas été "
+"supprimé."
+
+msgid "Your account has been deleted."
+msgstr "Votre compte a été supprimé."
+
 msgid "Feed name"
 msgstr "Nom du flux"
 

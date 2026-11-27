@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import AbstractBaseUser
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
@@ -53,6 +54,7 @@ from news.services import (
 from news.services.brief import resolve_brief_page
 from news.services.brief_invoke import (
     delete_preference_memory,
+    erase_preference_memories,
     invoke_brief_builder,
     list_preference_memories,
 )
@@ -509,6 +511,31 @@ def delete_theme_leaning(request: HttpRequest) -> HttpResponse:
     return JsonResponse({"ok": True})
 
 
+def _delete_account(request: HttpRequest) -> HttpResponse:
+    """Erase AgentCore preference LTM, then delete the Django user and session."""
+    confirm = (request.POST.get("confirm") or "").strip().lower()
+    if confirm != "delete":
+        messages.error(
+            request,
+            _("Confirm account deletion by checking the box."),
+        )
+        return redirect("settings")
+
+    user = cast(AbstractBaseUser, request.user)
+    user_id = int(user.pk)
+    if not erase_preference_memories(user_id):
+        messages.error(
+            request,
+            _("Could not erase preference memory. Your account was not deleted."),
+        )
+        return redirect("settings")
+
+    logout(request)
+    user.delete()
+    messages.success(request, _("Your account has been deleted."))
+    return redirect("landing")
+
+
 @login_required
 @require_POST
 def feedback(request: HttpRequest, article_id: int) -> HttpResponse:
@@ -713,6 +740,7 @@ def _chat(request: HttpRequest) -> JsonResponse:
     )
 
 
-# django-stubs decorator overloads disagree with JsonResponse views (same as other views).
+# django-stubs decorator overloads disagree with some view bodies / JsonResponse views.
 _login_required = cast(Any, login_required)
+delete_account = _login_required(require_POST(cast(Any, _delete_account)))
 chat = _login_required(require_POST(cast(Any, _chat)))

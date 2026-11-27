@@ -119,6 +119,8 @@ def invoke_brief_builder_sync(req: BriefBuilderRequest) -> dict[str, Any]:
             return {"ok": True, "action": "list_preferences", "memories": []}
         if req.action == "delete_preference":
             return {"ok": True, "action": "delete_preference"}
+        if req.action == "erase_preferences":
+            return {"ok": True, "action": "erase_preferences", "deleted": 0}
         return {"ok": True, "action": req.action}
 
     logger.error("BRIEF_BUILDER_FUNCTION_NAME is not configured")
@@ -169,4 +171,16 @@ def delete_preference_memory(user_id: int, record_id: str) -> bool:
             memory_record_id=rid,
         )
     )
+    return bool(out.get("ok"))
+
+
+def erase_preference_memories(user_id: int) -> bool:
+    """Sync erase of AgentCore LTM preference records for account delete."""
+    try:
+        out = invoke_brief_builder_sync(
+            BriefBuilderRequest(action="erase_preferences", user_id=user_id)
+        )
+    except Exception:
+        logger.exception("Failed to erase preference memories for user_id=%s", user_id)
+        return False
     return bool(out.get("ok"))

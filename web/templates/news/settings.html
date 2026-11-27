@@ -181,6 +181,19 @@
 </section>
 {% endif %}
 
+<section class="block danger-zone" id="delete-account">
+  <h2>{% trans "Delete account" %}</h2>
+  <p class="muted">{% trans "Permanently deletes your account, settings, briefs, feedback, and preference memory. Shared feeds stay available for other users. Logs and traces are not removed." %}</p>
+  <form method="post" action="{% url 'delete_account' %}" class="stack narrow-form">
+    {% csrf_token %}
+    <label class="danger-confirm">
+      <input type="checkbox" name="confirm" value="delete" required>
+      {% trans "I understand this cannot be undone." %}
+    </label>
+    <button type="submit" class="btn no">{% trans "Delete my account" %}</button>
+  </form>
+</section>
+
 {% endblock %}
 
 {% block extra_js %}

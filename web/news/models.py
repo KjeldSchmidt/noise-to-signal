@@ -68,7 +68,7 @@ class Feed(TimeStampedModel):
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="custom_feeds",
         help_text="Optional first-adder metadata for custom feeds.",
     )

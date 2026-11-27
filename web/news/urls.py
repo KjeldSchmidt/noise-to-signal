@@ -46,6 +46,11 @@ urlpatterns = [
         views.delete_theme_leaning,
         name="delete_theme_leaning",
     ),
+    path(
+        "settings/delete-account/",
+        views.delete_account,
+        name="delete_account",
+    ),
     path("feeds/<int:feed_id>/mute/", views.mute_feed, name="mute_feed"),
     path("feeds/<int:feed_id>/unmute/", views.unmute_feed, name="unmute_feed"),
     path(

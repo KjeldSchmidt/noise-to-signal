@@ -102,6 +102,28 @@ TRANSLATIONS: dict[str, tuple[str, str]] = {
     "Add feed": ("Ajouter le flux", "Feed hinzufügen"),
     "Your custom feeds": ("Vos flux personnalisés", "Ihre eigenen Feeds"),
     "Unsubscribe": ("Se désabonner", "Abbestellen"),
+    "Delete account": ("Supprimer le compte", "Konto löschen"),
+    "Permanently deletes your account, settings, briefs, feedback, and preference memory. Shared feeds stay available for other users. Logs and traces are not removed.": (
+        "Supprime définitivement votre compte, paramètres, briefs, retours et mémoire de préférences. Les flux partagés restent disponibles pour les autres. Les journaux et traces ne sont pas supprimés.",
+        "Löscht dauerhaft Ihr Konto, Einstellungen, Briefings, Feedback und Präferenzspeicher. Geteilte Feeds bleiben für andere Nutzer verfügbar. Logs und Traces werden nicht entfernt.",
+    ),
+    "I understand this cannot be undone.": (
+        "Je comprends que cette action est irréversible.",
+        "Ich verstehe, dass dies nicht rückgängig gemacht werden kann.",
+    ),
+    "Delete my account": ("Supprimer mon compte", "Mein Konto löschen"),
+    "Confirm account deletion by checking the box.": (
+        "Confirmez la suppression du compte en cochant la case.",
+        "Bestätigen Sie die Kontolöschung durch Ankreuzen der Box.",
+    ),
+    "Could not erase preference memory. Your account was not deleted.": (
+        "Impossible d’effacer la mémoire de préférences. Votre compte n’a pas été supprimé.",
+        "Präferenzspeicher konnte nicht gelöscht werden. Ihr Konto wurde nicht gelöscht.",
+    ),
+    "Your account has been deleted.": (
+        "Votre compte a été supprimé.",
+        "Ihr Konto wurde gelöscht.",
+    ),
     "Feed name": ("Nom du flux", "Feed-Name"),
     "RSS URL": ("URL RSS", "RSS-URL"),
     "Site URL (optional)": ("URL du site (optionnel)", "Site-URL (optional)"),
