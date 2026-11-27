@@ -5,10 +5,31 @@ from __future__ import annotations
 import os
 
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect
 from django.urls import Resolver404, resolve
 from django.utils import translation
 
 _PRODUCT_UI_LOCALES = frozenset({"en", "fr", "de"})
+
+
+class RequireOnboardingMiddleware:
+    """Send authenticated users without completed onboarding to the preference wizard."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        user = getattr(request, "user", None)
+        if user is not None and getattr(user, "is_authenticated", False):
+            path = request.path_info or request.path or "/"
+            from news.services.onboarding import (
+                ONBOARDING_EXEMPT_PREFIXES,
+                is_onboarding_complete,
+            )
+
+            if not path.startswith(ONBOARDING_EXEMPT_PREFIXES) and not is_onboarding_complete(user):
+                return redirect("onboarding")
+        return self.get_response(request)
 
 
 class ActivatePrimaryLanguageMiddleware:

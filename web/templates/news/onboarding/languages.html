@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Languages" %} · {% trans "Welcome" %}{% endblock %}
+{% block content %}
+<section class="page-head onboarding-head">
+  <h1>{% trans "Welcome" %}</h1>
+  <p class="muted">{% trans "A few quick preferences so your first brief already feels like yours." %}</p>
+  {% include "news/onboarding/_progress.html" %}
+</section>
+
+<section class="block onboarding-step">
+  <h2>{% trans "Which languages do you want to read?" %}</h2>
+  <p class="muted">{% trans "We pre-selected matches from your browser. Pick a primary for the interface and story titles." %}</p>
+
+  <form
+    method="post"
+    class="stack narrow-form language-prefs-form"
+    id="onboarding-languages-form"
+    {% if prefill_from_browser %}data-prefill-from-browser="1" data-catalog-languages="{{ catalog_languages|join:',' }}"{% endif %}
+  >
+    {% csrf_token %}
+    <fieldset class="language-accept">
+      <legend>{{ form.languages.label }}</legend>
+      {{ form.languages }}
+    </fieldset>
+    <fieldset class="language-primary">
+      <legend>{{ form.primary.label }}</legend>
+      <p class="muted">{{ form.primary.help_text }}</p>
+      {{ form.primary }}
+    </fieldset>
+    <div class="onboarding-actions">
+      <button type="submit" name="save_languages" class="btn primary">{% trans "Continue" %}</button>
+      <button type="submit" name="skip_onboarding" class="btn ghost" formnovalidate>{% trans "Skip for now" %}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/onboarding-languages.js' %}" defer></script>
+{% endblock %}

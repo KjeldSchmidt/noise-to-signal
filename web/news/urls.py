@@ -1,11 +1,27 @@
 from django.urls import path
 
-from news import views
+from news import views, views_onboarding
 
 urlpatterns = [
     path("", views.landing, name="landing"),
     path("privacy/", views.privacy, name="privacy"),
     path("oauth/popup-done/", views.oauth_popup_done, name="oauth_popup_done"),
+    path("onboarding/", views_onboarding.onboarding_entry, name="onboarding"),
+    path(
+        "onboarding/languages/",
+        views_onboarding.onboarding_languages,
+        name="onboarding_languages",
+    ),
+    path(
+        "onboarding/places/",
+        views_onboarding.onboarding_places,
+        name="onboarding_places",
+    ),
+    path(
+        "onboarding/themes/",
+        views_onboarding.onboarding_themes,
+        name="onboarding_themes",
+    ),
     path("brief/", views.brief, name="brief"),
     path("brief/<int:brief_id>/status/", views.brief_status, name="brief_status"),
     path("stories/", views.stories, name="stories"),

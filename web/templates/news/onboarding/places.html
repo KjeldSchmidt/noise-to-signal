@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Places" %} · {% trans "Welcome" %}{% endblock %}
+{% block content %}
+<section class="page-head onboarding-head">
+  <h1>{% trans "Places that matter" %}</h1>
+  <p class="muted">{% trans "Optional — we’ll prioritize stories tied to these places. You can add up to {{ max_locations }}." %}</p>
+  {% include "news/onboarding/_progress.html" %}
+</section>
+
+<section class="block onboarding-step">
+  {% if locations %}
+  <ul class="location-list">
+    {% for loc in locations %}
+    <li class="location-row">
+      <span class="location-label">{{ loc.label }}</span>{% spaceless %}
+      <form method="post" action="{% url 'delete_location' loc.id %}" class="location-remove">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'onboarding_places' %}">
+        <button type="submit" class="linkish muted" title="{% blocktrans %}Remove {{ loc.label }}{% endblocktrans %}">{% trans "remove" %}</button>
+      </form>{% endspaceless %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">{% trans "No locations yet — search or use your current position." %}</p>
+  {% endif %}
+
+  {% if not at_cap %}
+  <form method="post" class="location-picker" id="location-picker-form"
+        data-reverse-url="{% url 'geocode_reverse' %}"
+        data-search-url="{% url 'geocode_search' %}">
+    {% csrf_token %}
+    <div class="location-entry-row">
+      <div class="stack location-search">
+        <p>
+          <label for="location-search">{% trans "Search" %}</label>
+          <input type="search" id="location-search" name="location_search" placeholder="{% trans 'e.g. Berlin, Germany' %}" autocomplete="off">
+        </p>
+        <ul class="location-suggestions" id="location-suggestions" hidden></ul>
+      </div>
+      <div class="location-current">
+        <span class="location-current-label" aria-hidden="true">&nbsp;</span>
+        <button type="button" class="btn ghost" id="use-my-location">{% trans "Use current location" %}</button>
+      </div>
+    </div>
+    <p class="muted geo-status" id="geo-status" aria-live="polite" hidden></p>
+    {{ location_form.label }}
+    {{ location_form.latitude }}
+    {{ location_form.longitude }}
+    {{ location_form.country_code }}
+    {{ location_form.admin1 }}
+    {{ location_form.locality }}
+    {{ location_form.geo_level }}
+    <button type="submit" name="add_location" class="btn primary" id="add-location-btn" disabled>{% trans "Add location" %}</button>
+  </form>
+  {% else %}
+  <p class="muted">{% blocktrans %}You’ve added the maximum of {{ max_locations }} places for now.{% endblocktrans %}</p>
+  {% endif %}
+
+  <form method="post" class="onboarding-actions onboarding-actions-row">
+    {% csrf_token %}
+    <button type="submit" name="continue_places" class="btn primary">{% trans "Continue" %}</button>
+    <button type="submit" name="skip_step" class="btn ghost">{% trans "Skip this step" %}</button>
+    <button type="submit" name="skip_onboarding" class="btn ghost">{% trans "Skip for now" %}</button>
+  </form>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/settings-locations.js' %}" defer></script>
+{% endblock %}

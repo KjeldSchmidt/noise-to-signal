@@ -122,6 +122,21 @@ class Subscription(TimeStampedModel):
         return f"{self.user} → {self.feed}"
 
 
+class UserOnboarding(TimeStampedModel):
+    """Tracks whether the post-signup preference wizard has been finished or skipped."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="onboarding",
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        state = "done" if self.completed_at else "pending"
+        return f"{self.user_id} onboarding ({state})"
+
+
 class UserContentLanguage(TimeStampedModel):
     """Languages the user wants in briefs/stories (read-side filter on Feed.language)."""
 

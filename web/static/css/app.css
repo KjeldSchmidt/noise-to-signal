@@ -1568,3 +1568,42 @@ h1, h2, h3 {
     display: none;
   }
 }
+
+/* Post-signup onboarding */
+.onboarding-head h1 { margin-bottom: 0.35rem; }
+.onboarding-progress { margin: 0.75rem 0 0; font-size: 0.92rem; }
+.onboarding-step { max-width: 640px; }
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+.onboarding-actions-row { margin-top: 1.75rem; }
+.onboarding-theme-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.onboarding-theme-option {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffdf8;
+  cursor: pointer;
+  font-weight: 500;
+}
+.onboarding-theme-option:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, #fffdf8);
+}
+.onboarding-theme-option input {
+  margin-top: 0.2rem;
+}

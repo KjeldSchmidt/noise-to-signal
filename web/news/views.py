@@ -7,7 +7,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import AbstractBaseUser
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
@@ -87,10 +86,12 @@ def privacy(request: HttpRequest) -> HttpResponse:
 @login_required
 def oauth_popup_done(request: HttpRequest) -> HttpResponse:
     """Land here after Google OAuth in a popup; close popup and navigate opener."""
+    from news.views_onboarding import post_auth_next_url
+
     return render(
         request,
         "news/oauth_popup_done.html",
-        {"next_url": request.GET.get("next") or reverse("brief")},
+        {"next_url": post_auth_next_url(request, request.GET.get("next"))},
     )
 
 
@@ -451,7 +452,7 @@ def delete_location(request: HttpRequest, location_id: int) -> HttpResponse:
     deleted, _ = LocationOfInterest.objects.filter(user=request.user, pk=location_id).delete()
     if deleted:
         messages.info(request, "Location removed.")
-    return redirect("settings")
+    return redirect(request.POST.get("next") or "settings")
 
 
 @login_required

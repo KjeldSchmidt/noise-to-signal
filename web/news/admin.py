@@ -17,6 +17,7 @@ from news.models import (
     UserBrief,
     UserBriefItem,
     UserContentLanguage,
+    UserOnboarding,
     UserThemeAffinity,
 )
 
@@ -42,6 +43,14 @@ class FeedAdmin(admin.ModelAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ("user", "feed", "created_at")
     list_filter = ("feed",)
+
+
+@admin.register(UserOnboarding)
+class UserOnboardingAdmin(admin.ModelAdmin):
+    list_display = ("user", "completed_at", "updated_at")
+    search_fields = ("user__username", "user__email")
+    autocomplete_fields = ("user",)
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(UserContentLanguage)

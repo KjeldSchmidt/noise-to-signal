@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Topics" %} · {% trans "Welcome" %}{% endblock %}
+{% block content %}
+<section class="page-head onboarding-head">
+  <h1>{% trans "Topics you care about" %}</h1>
+  <p class="muted">{% trans "Pick a handful — we’ll lean your brief toward these themes. You can refine later." %}</p>
+  {% include "news/onboarding/_progress.html" %}
+</section>
+
+<section class="block onboarding-step">
+  <form method="post" class="onboarding-themes-form">
+    {% csrf_token %}
+    <ul class="onboarding-theme-grid">
+      {% for theme in themes %}
+      <li>
+        <label class="onboarding-theme-option">
+          <input type="checkbox" name="themes" value="{{ theme.slug }}">
+          <span>{{ theme.label }}</span>
+        </label>
+      </li>
+      {% empty %}
+      <li class="muted">{% trans "No topics available right now — continue to finish setup." %}</li>
+      {% endfor %}
+    </ul>
+    <div class="onboarding-actions">
+      <button type="submit" name="save_themes" class="btn primary">{% trans "Finish" %}</button>
+      <button type="submit" name="skip_step" class="btn ghost">{% trans "Skip this step" %}</button>
+      <button type="submit" name="skip_onboarding" class="btn ghost">{% trans "Skip for now" %}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

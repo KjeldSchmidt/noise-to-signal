@@ -1,0 +1,4 @@
+{% load i18n %}
+<p class="onboarding-progress muted" aria-live="polite">
+  {% blocktrans with current=step total=step_count %}Step {{ current }} of {{ total }}{% endblocktrans %}
+</p>
