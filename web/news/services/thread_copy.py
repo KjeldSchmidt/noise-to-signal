@@ -105,14 +105,28 @@ def upsert_thread_localizations(
     written = 0
     en_label = ""
     en_summary = ""
+    bootstrap_label = (thread.label or "").strip()[:300]
     for row in rows:
         language = row.language
         label = (row.label or "").strip()[:300]
         summary = (row.summary or "").strip()[:8000]
+        # Never blank out a prior title when the model omits label.
+        if not label:
+            existing = StoryThreadLocalization.objects.filter(
+                story_thread=thread,
+                language_id=language,
+            ).first()
+            if existing is not None:
+                label = (existing.label or "").strip()[:300]
+            elif language == "en":
+                label = bootstrap_label
+        defaults: dict[str, str] = {"summary": summary}
+        if label:
+            defaults["label"] = label
         StoryThreadLocalization.objects.update_or_create(
             story_thread=thread,
             language_id=language,
-            defaults={"label": label, "summary": summary},
+            defaults=defaults,
         )
         written += 1
         if language == "en":
@@ -120,14 +134,17 @@ def upsert_thread_localizations(
             en_summary = summary
 
     now = timezone.now()
-    if en_label or en_summary:
+    update_fields: list[str] = ["summarized_at", "updated_at"]
+    # Only overwrite StoryThread.label when we have a real English title —
+    # empty en_label + non-empty summary used to wipe the extract bootstrap label.
+    if en_label:
         thread.label = en_label[:300]
+        update_fields.append("label")
+    if en_summary:
         thread.summary = en_summary
-        thread.summarized_at = now
-        thread.save(update_fields=["label", "summary", "summarized_at", "updated_at"])
-    else:
-        thread.summarized_at = now
-        thread.save(update_fields=["summarized_at", "updated_at"])
+        update_fields.append("summary")
+    thread.summarized_at = now
+    thread.save(update_fields=update_fields)
     return thread, written
 
 

@@ -99,3 +99,22 @@ class ThreadCopyUpsertTests(TestCase):
         from news.services.thread_copy import localization_count
 
         self.assertEqual(localization_count(thread), 3)
+
+    def test_upsert_preserves_label_when_model_omits_titles(self) -> None:
+        """Empty localization labels must not wipe the extract bootstrap title."""
+        self.thread.label = "Bootstrap Crash"
+        self.thread.save(update_fields=["label", "updated_at"])
+        thread, written = upsert_thread_localizations(
+            self.thread,
+            [
+                {"language": "en", "label": "", "summary": "A train derailed overnight."},
+                {"language": "fr", "label": "", "summary": "Un train a déraillé."},
+                {"language": "de", "label": "", "summary": "Ein Zug entgleiste."},
+            ],
+        )
+        self.assertEqual(written, 3)
+        self.assertEqual(thread.label, "Bootstrap Crash")
+        self.assertEqual(thread.summary, "A train derailed overnight.")
+        en = StoryThreadLocalization.objects.get(story_thread=thread, language_id="en")
+        self.assertEqual(en.label, "Bootstrap Crash")
+        self.assertIn("derailed", en.summary)

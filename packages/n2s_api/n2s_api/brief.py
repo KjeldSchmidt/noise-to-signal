@@ -182,8 +182,14 @@ class StoryThreadSummaryContextResponse(BaseModel):
 
 class StoryThreadLocalizationDTO(BaseModel):
     language: ThreadLocalizationLanguage
-    label: str = ""
-    summary: str = ""
+    label: str = Field(
+        default="",
+        description="Short thread title in this language (about 3–6 words); never empty.",
+    )
+    summary: str = Field(
+        default="",
+        description="2–4 sentence neutral digest in this language.",
+    )
 
     @field_validator("label")
     @classmethod
@@ -209,11 +215,16 @@ class StoryThreadMultilangDigest(BaseModel):
             raise ValueError(f"missing localizations for: {', '.join(missing)}")
         # Keep stable product order; drop unexpected extras.
         ordered: list[StoryThreadLocalizationDTO] = []
+        empty_labels: list[str] = []
         for code in PRODUCT_THREAD_LANGUAGES:
             row = by_lang.get(code)
             if row is None:
                 raise ValueError(f"missing localizations for: {code}")
+            if not (row.label or "").strip():
+                empty_labels.append(code)
             ordered.append(row)
+        if empty_labels:
+            raise ValueError(f"empty label for: {', '.join(empty_labels)}")
         self.localizations = ordered
         return self
 

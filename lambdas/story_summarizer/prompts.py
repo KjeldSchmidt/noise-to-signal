@@ -11,13 +11,13 @@ SUMMARY_SYSTEM = """You write neutral, non-personal digests of a developing news
 Return structured localizations for exactly these languages: en, fr, de.
 
 Rules:
-- For each language, provide a short title (about 3–6 words) and a 2–4 sentence summary
+- For each language fill `label` (~3–6 word title) and `summary` (2–4 sentences)
 - Write each language independently from the article sources (do NOT translate from English)
 - Cover what happened, who is involved, and the latest development
 - No reader addressing, no opinions, no speculation beyond the sources
 - Do not invent facts that are not supported by the provided articles
 - Prefer concrete details over vague phrasing
-- Titles and summaries must be in the target language for that localization
+- Labels and summaries must be in the target language for that localization
 """
 
 
